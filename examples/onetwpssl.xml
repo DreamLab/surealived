@@ -1,0 +1,16 @@
+<surealived>
+
+<virtual name="onet" addr="192.168.0.1" port="443" proto="tcp" sched="wrr" rt="dr">
+  <tester loopdelay="1" timeout="2" retries2fail="1" retries2ok="1"
+          proto="http" testport="443" url="/login.html" host="poczta.onet.pl" SSL="1" />
+  <real name="sg" addr="213.180.147.147" port="443" weight="10"/>
+</virtual>
+
+<virtual name="wp" addr="192.168.0.2" port="443" proto="tcp" sched="wrr" rt="dr">
+  <tester loopdelay="1" timeout="2" retries2fail="1" retries2ok="1" 
+          proto="http" testport="443" url="/" host="www.wp.pl" retcode="302" SSL="1" />
+  <real name="sg" addr="212.77.101.148" port="443" weight="14" rt="masq"/>
+</virtual>
+
+
+</surealived>

@@ -1,0 +1,113 @@
+/*
+ * Copyright 2009 DreamLab Onet.pl Sp. z o.o.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+*/
+
+#include <common.h>
+#include <sd_defs.h>
+#include <glib.h>
+#include <sys/file.h>
+#include <sd_maincfg.h>
+#include <sd_log.h>
+
+#define TIMEDIFF_MS(t1,t2) (((t2.tv_sec - t1.tv_sec)*1000000 + (int)((int)t2.tv_usec - (int)t1.tv_usec))/1000)
+
+void human_time(gchar *out, gint len, struct timeval t) {
+    char buf[32];
+    strftime(buf, 32, "%F %T", localtime(&t.tv_sec));
+    snprintf(out, len, "%s.%03u", buf, (guint)t.tv_usec/1000);
+}
+
+static void timediff(struct timeval *out, struct timeval t1, struct timeval t2) {
+    /* this function sets out as a difference between t1 and t2: out=t2-t1 */
+    gint dusec = (gint) t2.tv_usec - (gint) t1.tv_usec;
+
+    out->tv_sec = out->tv_usec = 0;
+
+    if ((!t1.tv_sec && !t1.tv_usec) || (!t2.tv_sec && !t2.tv_usec))
+        return;
+
+    out->tv_sec = t2.tv_sec - t1.tv_sec;
+
+    if (dusec >= 0)
+        out->tv_usec = dusec;
+    else{
+        out->tv_usec = 1000000 + dusec;
+        out->tv_sec--;
+    }
+}
+
+/*! \brief Function stores statistics for specified virtual. Logging depends on global
+  variables \a log_stats and \a log_stats_combined defined in \a surealived.cfg
+  \param virt Virtual which statistics should be written to disk
+*/
+gint sd_log_stats(CfgVirtual *virt) {
+    /* here we write statistics to combined (full) file and per-virtual file */
+    FILE    *file_combined  = NULL;
+    FILE    *file_local     = NULL;
+    CfgReal *real;
+    gchar   filename[MAXPATHLEN];
+    gchar   htime[32];
+    gint    i, j;
+    FILE    *farr[2];
+    struct timeval  conn_time;
+
+    if (G_log_stats) {
+        snprintf(filename, MAXPATHLEN, "%s/sd_virtstats_%s:%d.%u", 
+                 G_stats_dir, virt->name, ntohs(virt->port), (unsigned) virt->end_time.tv_sec);
+        if ((file_local = fopen(filename, "w")) == NULL)
+            LOGERROR("Unable to open file '%s' for writing!", filename);
+    }
+
+    if (G_log_stats_combined) {
+        snprintf(filename, MAXPATHLEN, "%s/sd_fullstats.log", G_stats_dir);
+        if ((file_combined = fopen(filename, "a")) == NULL)
+            LOGERROR("Unable to open file '%s' for append!", filename);
+    }
+
+    if (!file_combined && !file_local)
+        return 0;
+
+    farr[0] = file_combined;
+    farr[1] = file_local;
+
+    human_time(htime, sizeof(htime), virt->start_time);
+    for (j = 0; j < 2; j++)
+        if (farr[j])
+            fprintf(farr[j], "START Virtual: %s start time=%s\n", virt->name, htime);
+
+    for (i = 0; i < virt->realArr->len; i++) {
+        real = g_ptr_array_index(virt->realArr, i);
+        human_time(htime, sizeof(htime), real->start_time);
+        timediff(&conn_time, real->start_time, real->conn_time);
+        for (j = 0; j < 2; j++) /* -funroll-loops should help in this function! */
+            if (farr[j]) {
+                fprintf(farr[j],
+                    "virt=%s:%d vaddr=%s:%d real=%s:%d raddr=%s:%d start=\"%s\" conntime=%ldms resptime=%ldms currtest=%s online=%s\n",
+                    virt->name, ntohs(virt->port), 
+                    virt->addrtxt, ntohs(virt->port),
+                    real->name, ntohs(real->port), 
+                    real->addrtxt, ntohs(real->port),    
+                    htime, TIMEDIFF_MS(real->start_time, real->conn_time), TIMEDIFF_MS(real->start_time, real->end_time),
+                    GBOOLSTR(real->test_state),
+                    GBOOLSTR(real->online));
+            }
+    }
+    human_time(htime, sizeof(htime), virt->end_time);
+    for (j = 0; j < 2; j++)
+        if (farr[j]){
+            fprintf(farr[j], "END   Virtual: %s end time=%s\n--------------\n", virt->name, htime);
+            fclose(farr[j]);
+        }
+    return 0;
+}
