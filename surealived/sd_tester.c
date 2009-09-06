@@ -183,16 +183,21 @@ static void sd_start_real(CfgReal *real) {
     if (!real)
         return;
 
-    if (real->tester->mops->m_test_protocol == SD_PROTO_TCP)
+    if (real->tester->mops->m_test_protocol == SD_PROTO_TCP) {
         real->fd = sd_socket_nb(SOCK_STREAM);
-
-    else if (real->tester->mops->m_test_protocol == SD_PROTO_UDP)
+        LOGDETAIL("TCP socket fd = [%d]", real->fd);
+    }
+    else if (real->tester->mops->m_test_protocol == SD_PROTO_UDP) {
         real->fd = sd_socket_nb(SOCK_DGRAM);
+        LOGDETAIL("UDP socket fd = [%d]", real->fd);
+    }
 
     if (real->tester->mops->m_test_protocol == SD_PROTO_TCP)
         sd_socket_solinger(real->fd);
-    else
-        real->fd = -1;
+    else {
+        if (real->tester->mops->m_test_protocol != SD_PROTO_UDP)
+            real->fd = -1;
+    }
 
     LOGDEBUG("Starting real [%s:%s] (fd = %d)!", real->virt->name, real->name, real->fd);
     if (real->tester->mops->m_test_protocol == SD_PROTO_NO_TEST) {
