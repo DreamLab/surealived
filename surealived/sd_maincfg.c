@@ -54,6 +54,9 @@ gchar      *G_diff_sync_dir       = NULL;
 gchar      *G_offline_dump        = NULL;
 gboolean    G_use_offline_dump    = TRUE;
 
+/* override.dump */
+gchar      *G_override_dump       = NULL;
+
 /* Cmd interface variables */
 u_int16_t   G_listen_port         = 1337;
 
@@ -105,6 +108,7 @@ gboolean sd_maincfg_new(gchar *fname) {
 
     _set_default(Cfg, "offline_dump",       "/var/lib/surealived/offline.dump");
     _set_default(Cfg, "use_offline_dump",   "true");
+    _set_default(Cfg, "override_dump",      "/var/lib/surealived/override.dump");
 
     _set_default(Cfg, "epoll_size",         "256"); 
 
@@ -197,6 +201,7 @@ gboolean sd_maincfg_new(gchar *fname) {
         G_use_offline_dump = FALSE;
 
     G_offline_dump = g_hash_table_lookup(Cfg, "offline_dump");
+    G_override_dump = g_hash_table_lookup(Cfg, "override_dump");
 
     if (G_loop_interval_ms > G_startup_delay_ms) {
         LOGWARN("loop_interval_ms MUST BE <= startup_delay_ms, "

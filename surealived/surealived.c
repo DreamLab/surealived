@@ -21,6 +21,7 @@
 #include <xmlparser.h>
 #include <sd_tester.h>
 #include <sd_log.h>
+#include <sd_override.h>
 #include <sd_offline.h>
 #include <sd_ipvssync.h>
 #include <sd_cmd.h>
@@ -288,11 +289,12 @@ gint main(gint argc, gchar **argv) {
         exit(1);
     }
     /* update VCfgArr by offline.dump */
+    sd_override_dump_merge(VCfgArr);
     sd_offline_dump_merge(VCfgArr);
 
     if (G_no_sync == FALSE) /* if full sync file does not exist! */
         sd_ipvssync_save_fullcfg(VCfgArr, TRUE); /* force writing full sync */
-
+    
     Tester = sd_tester_create(VCfgArr);
     sd_cmd_listen_socket_create(G_listen_port); /* set listen port and so on */
 

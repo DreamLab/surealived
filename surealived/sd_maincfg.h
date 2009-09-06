@@ -47,6 +47,8 @@ extern gchar      *G_diff_sync_dir;
 extern gchar      *G_offline_dump;
 extern gboolean    G_use_offline_dump;
 
+extern gchar      *G_override_dump;
+
 extern u_int16_t   G_listen_port;
 extern u_int32_t   G_memlimit;
 

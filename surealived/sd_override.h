@@ -13,12 +13,12 @@
  * limitations under the License.
 */
 
-#if !defined __SD_IPVSSYNC_H
-#define __SD_IPVSSYNC_H
+#if !defined __SD_OVERRIDE_H
+#define __SD_OVERRIDE_H
 
-gint sd_ipvssync_calculate_real_weight(CfgReal *real);
-void sd_ipvssync_diffcfg_real(CfgReal *real, gboolean override_change);
-gint sd_ipvssync_diffcfg_virt(CfgVirtual *virt);
-gint sd_ipvssync_save_fullcfg(GPtrArray *VCfgArr, gboolean force);
+void sd_override_dump_add(CfgReal *real);
+void sd_override_dump_del(CfgReal *real);
+gint sd_override_dump_save();
+void sd_override_dump_merge(GPtrArray *VCfgArr);
 
 #endif

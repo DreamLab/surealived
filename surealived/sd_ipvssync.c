@@ -78,44 +78,107 @@ static void touch_fullreload() {
     close(fd);
 }
 
+gint sd_ipvssync_calculate_real_weight(CfgReal *real) {
+    gint        currwgt  = 0;
+    gboolean    isonline;
+    
+    if (real->rstate == REAL_DOWN)
+        isonline = FALSE;
+    else if (real->rstate == REAL_OFFLINE) 
+        isonline = FALSE;
+    else if (real->rstate == REAL_ONLINE)
+        isonline = real->online;
+
+    /* if real is not online weight is 0 always */
+    if (!isonline)
+        currwgt = 0;
+    else {
+        /* use overrided weight if real->override_weight > 0 */
+        if (real->override_weight > 0 && real->override_weight_in_percent)
+            currwgt = MAX(1, real->ipvs_weight * real->override_weight / 100);
+        else if (real->override_weight > 0 && !real->override_weight_in_percent)
+            currwgt = real->override_weight;
+        else 
+            currwgt = real->ipvs_weight;
+    }
+    return currwgt;
+}
 /* ---------------------------------------------------------------------- */
-void sd_ipvssync_diffcfg_real(CfgReal *real) {
-    CfgVirtual *virt    = real->virt;
-    gint        currwgt = real->online ? real->ipvs_weight : 0;
+void sd_ipvssync_diffcfg_real(CfgReal *real, gboolean override_change) {
+    GString    *s;
+    CfgVirtual *virt     = real->virt;
+    gint        currwgt  = 0;
+    gboolean    rof      = real->tester->remove_on_fail;
+    gboolean    do_del = FALSE;
+    gboolean    do_add = FALSE;
+    gboolean    do_chg = FALSE;
 
     lock_ipvssync();
 
-    if (real->tester->remove_on_fail && !real->online)
-        fprintf(diff_sync_file, "cmd=delreal ");
-    else if (real->tester->remove_on_fail && real->online)
-        fprintf(diff_sync_file, "cmd=addreal ");
-    else fprintf(diff_sync_file, "cmd=chgreal ");
+    LOGDEBUG("rstate = %s, last_rstate = %s, online = %s, last_online = %s",
+             sd_rstate_str(real->rstate),
+             sd_rstate_str(real->last_rstate),
+             GBOOLSTR(real->online),
+             GBOOLSTR(real->last_online));
 
-    fprintf(diff_sync_file, "vname=%s vproto=%s vaddr=%s vport=%d vfwmark=%d vrt=%s vsched=%s",
-            virt->name, 
-            sd_proto_str(real->virt->ipvs_proto),
-            virt->addrtxt, ntohs(virt->port), 
-            virt->ipvs_fwmark,
-            sd_rt_str(real->virt->ipvs_rt),
-            virt->ipvs_sched);
+    if (real->rstate == REAL_DOWN)
+        do_del = TRUE;
+    else if (real->rstate != REAL_DOWN && rof && !real->online) 
+        do_del = TRUE;
+    else if (real->rstate != REAL_DOWN) {
+        do_add = TRUE;
+        do_chg = TRUE;
+    }
 
-    fprintf(diff_sync_file, " rname=%s raddr=%s rport=%d rweight=%d",
-            real->name, 
-            real->addrtxt, ntohs(real->port),
-            currwgt);
+    currwgt = sd_ipvssync_calculate_real_weight(real);
+
+    s = g_string_new_len(NULL, BUFSIZ);
+    
+    g_string_append_printf(s, "vname=%s vproto=%s vaddr=%s vport=%d vfwmark=%d vrt=%s vsched=%s",
+                           virt->name, 
+                           sd_proto_str(real->virt->ipvs_proto),
+                           virt->addrtxt, ntohs(virt->port), 
+                           virt->ipvs_fwmark,
+                           sd_rt_str(real->virt->ipvs_rt),
+                           virt->ipvs_sched);
+
+    g_string_append_printf(s, " rname=%s raddr=%s rport=%d rweight=%d",
+                           real->name, 
+                           real->addrtxt, ntohs(real->port),
+                           currwgt);
     
     if (real->ipvs_lthresh > 0)
-        fprintf(diff_sync_file, " rlthresh=%d", real->ipvs_lthresh);
+        g_string_append_printf(s, " rlthresh=%d", real->ipvs_lthresh);
 
     if (real->ipvs_uthresh > 0)
-        fprintf(diff_sync_file, " ruthresh=%d", real->ipvs_uthresh);
+        g_string_append_printf(s, " ruthresh=%d", real->ipvs_uthresh);
 
     /* if real has rt overwrite, write rrt */
     if (virt->ipvs_rt != real->ipvs_rt)
-        fprintf(diff_sync_file, " rrt=%s", sd_rt_str(real->ipvs_rt));
+        g_string_append_printf(s, " rrt=%s", sd_rt_str(real->ipvs_rt));
     
-    fprintf(diff_sync_file, "\n");
+    g_string_append_printf(s, "\n");
+
+    if (do_del) {
+        LOGINFO("diffcfg: do_del [%s]", s->str);
+        fprintf(diff_sync_file, "cmd=delreal ");
+        fprintf(diff_sync_file, s->str);
+    }
+
+    if (do_add) {
+        LOGINFO("diffcfg: do_add [%s]", s->str);
+        fprintf(diff_sync_file, "cmd=addreal ");
+        fprintf(diff_sync_file, s->str);
+    }
+
+    if (do_chg) {
+        LOGINFO("diffcfg: do_chg [%s]", s->str);
+        fprintf(diff_sync_file, "cmd=chgreal ");
+        fprintf(diff_sync_file, s->str);
+    }
+
     fflush(diff_sync_file);
+    g_string_free(s, TRUE);
 
     real->diff = FALSE;
 
@@ -133,7 +196,7 @@ gint sd_ipvssync_diffcfg_virt(CfgVirtual *virt) {
         real = (CfgReal *) g_ptr_array_index(virt->realArr, i);
         if (!real->diff)        /* nothing changed */
             continue;
-        sd_ipvssync_diffcfg_real(real);
+        sd_ipvssync_diffcfg_real(real, FALSE);
         updated++;
     }
 
@@ -231,8 +294,14 @@ gint sd_ipvssync_save_fullcfg(GPtrArray *VCfgArr, gboolean force) {
         if (virt->realArr) {
             for (j = 0; j < virt->realArr->len; j++) {
                 real = g_ptr_array_index(virt->realArr, j);
-                LOGDEBUG("real %s:%s, state %s", real->virt->name, real->name, GBOOLSTR(real->online));
-                currwgt = real->online ? real->ipvs_weight : 0;
+                LOGDEBUG("real %s:%s, state %s, rstate %s", 
+                         real->virt->name, real->name, GBOOLSTR(real->online), sd_rstate_str(real->rstate));
+                currwgt = sd_ipvssync_calculate_real_weight(real);
+
+                if (real->rstate == REAL_DOWN) {
+                    LOGDEBUG("Real down - skipping from output");
+                    continue;
+                }
 
                 if (real->online || !real->tester->remove_on_fail) {
                     fprintf(ipvsfile, "real rname=%s", real->name);

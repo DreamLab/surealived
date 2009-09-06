@@ -46,4 +46,8 @@ gboolean sd_unlink_commlog(CfgReal *real);
 gboolean sd_append_to_file(gchar *fname, gchar *buf, gint bufsiz);
 gboolean sd_append_to_commlog(CfgReal *real, gchar *buf, gint bufsiz);
 gchar *sd_proto_str(SDIPVSProtocol proto);
+SDIPVSProtocol sd_proto_no(gchar *str);
 gchar *sd_rt_str(SDIPVSRt rt);
+gchar *sd_rstate_str(RState st);
+RState sd_rstate_no(gchar *str);
+GHashTable *sd_parse_line(gchar *line);

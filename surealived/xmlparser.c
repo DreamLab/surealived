@@ -308,10 +308,12 @@ static gint sd_parse_real(CfgVirtual *virt, xmlNode *node) {
 
     real->tester       = virt->tester;
     real->virt         = virt;
+    real->rstate       = REAL_ONLINE;
+    real->last_rstate  = REAL_ONLINE;
     real->retries_ok   = 0;
     real->retries_fail = 0;
     real->diff         = FALSE;
-    real->online       = TRUE;          /* default, overwritten by sd_merge_dump */
+    real->online       = TRUE;          /* default, overwritten by sd_offline_merge_dump */
     real->last_online  = TRUE;
     parse_error        = FALSE;
 
@@ -345,6 +347,8 @@ static gint sd_parse_real(CfgVirtual *virt, xmlNode *node) {
     sd_xml_port(node, "testport", &real->testport, EXTRA_ATTR, "\t[-] Real (%s): No testport specified-default used", real->name);
     sd_xml_port(node, "port", &real->port, BASIC_ATTR, "\t[-] Real (%s): No port specified!", real->name);
     sd_xml_gint(node, "weight", &real->ipvs_weight, BASIC_ATTR, "\t[-] Real (%s): Invalid or no weight!", real->name);
+    real->override_weight = -1;
+    real->override_weight_in_percent = FALSE;
     sd_xml_guint(node, "uthresh", &real->ipvs_uthresh, EXTRA_ATTR, "\t[-] Real (%s): No uthresh specified!", real->name);
     sd_xml_guint(node, "lthresh", &real->ipvs_lthresh, EXTRA_ATTR, "\t[-] Real (%s): No lthresh specified!", real->name);
 
@@ -437,7 +441,7 @@ static CfgTester *sd_parse_tester(xmlNode *node) {
         return NULL;
     }
 
-    if (!strcasecmp(tester->proto, "NO_TEST")) {
+    if (!strcasecmp(tester->proto, "no-test")) {
         parse_error = FALSE;
         tester->mops = (mod_operations *)malloc(sizeof(mod_operations));
         memset(tester->mops, 0, sizeof(mod_operations));
@@ -532,8 +536,8 @@ static gint sd_parse_virtual(GPtrArray *VCfgArr, xmlNode *node) {
         return 1;
     }
 
-    if ((tmp = xmlGetProp(node, BAD_CAST "fwmark")) && tmp[0]=='1')
-        virt->ipvs_fwmark = 1;
+    if ((tmp = xmlGetProp(node, BAD_CAST "fwmark")))
+        virt->ipvs_fwmark = (u_int32_t) atoi((const char *)tmp);
 
     parse_error = FALSE;
     if (!virt->ipvs_fwmark) {
@@ -543,6 +547,10 @@ static gint sd_parse_virtual(GPtrArray *VCfgArr, xmlNode *node) {
             free_virtual(virt, NULL);
             return 1;
         }
+    } 
+    else {
+        strcpy(virt->addrtxt, "0.0.0.0");
+        strcpy(virt->porttxt, "0");
     }
 
     /* ipvs data */

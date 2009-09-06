@@ -34,9 +34,10 @@ void sd_offline_dump_add(CfgReal *real) {
 
     virt = real->virt;
 
-    line = g_strdup_printf("%s:%d:%d - %s:%d\n",
-        virt->addrtxt, ntohs(virt->port), virt->ipvs_proto,
-        real->addrtxt, ntohs(real->port));
+    line = g_strdup_printf("%s:%d:%d:%u - %s:%d\n",
+                           virt->addrtxt, ntohs(virt->port), 
+                           virt->ipvs_proto, virt->ipvs_fwmark,
+                           real->addrtxt, ntohs(real->port));
 
     g_hash_table_insert(OfflineH, real, line);
 
@@ -103,6 +104,7 @@ void sd_offline_dump_merge(GPtrArray *VCfgArr) {
     in_addr_t   raddr;
     u_int16_t   rport;
     gint        ipvs_proto;
+    u_int32_t   ipvs_fwmark;
     gint        vi, ri;
     gboolean    found = FALSE;
 
@@ -124,16 +126,17 @@ void sd_offline_dump_merge(GPtrArray *VCfgArr) {
 
     LOGINFO("Processing dump file [%s]!", G_offline_dump);
 
-    while (fscanf(dump, "%32[^:]:%d:%d - %32[^:]:%d\n",
-            vip, &vporth, &ipvs_proto, rip, &rporth) == 5) {
+    while (fscanf(dump, "%32[^:]:%d:%d:%u - %32[^:]:%d\n",
+                  vip, &vporth, &ipvs_proto, &ipvs_fwmark, rip, &rporth) == 6) {
         vport = htons(vporth);
         rport = htons(rporth);
         vaddr = inet_addr(vip);
-        raddr = inet_addr(rip);
+        raddr = inet_addr(rip);        
         found = FALSE;
         for (vi = 0; vi < VCfgArr->len; vi++) {
             virt = g_ptr_array_index(VCfgArr, vi);
-            if (virt->addr == vaddr && virt->port == vport && virt->ipvs_proto == ipvs_proto) {
+            if ( (ipvs_fwmark > 0 && virt->ipvs_fwmark - ipvs_fwmark == 0) ||
+                 (vaddr != 0 && virt->addr == vaddr && virt->port == vport && virt->ipvs_proto == ipvs_proto)) {
                 if (!virt->realArr) /* ignore empty virtuals */
                     continue;
 
@@ -141,7 +144,10 @@ void sd_offline_dump_merge(GPtrArray *VCfgArr) {
                     real = g_ptr_array_index(virt->realArr, ri);
                     if (real->addr == raddr && real->port == rport) {
                         /* this is where we actually set node values */
-                        LOGINFO("\tSet real: %s:%s to OFFLINE", real->virt->name, real->name);
+                        LOGINFO("\tSet real: %s:%s (%s:%d:%d:%d - %s:%d) to OFFLINE", 
+                                real->virt->name, real->name, real->virt->addrtxt,
+                                ntohs(real->virt->port), real->virt->ipvs_proto,
+                                real->virt->ipvs_fwmark, real->addrtxt, ntohs(real->port));
                         real->online = FALSE;
                         real->last_online = FALSE;
                         real->retries_fail = real->tester->retries2fail;
@@ -151,9 +157,13 @@ void sd_offline_dump_merge(GPtrArray *VCfgArr) {
                 }
             }
         }
-        if (!found)
-            LOGWARN("\tUnable to find real: %s:%d:%d - %s:%d",
-                vip, vporth, ipvs_proto, rip, rporth);
+        if (!found) {
+            LOGWARN("\tUnable to find real: %s:%d:%d:%u - %s:%d (removing from offline.dump)",
+                    vip, vporth, ipvs_proto, ipvs_fwmark, rip, rporth);
+            
+        }
     }
     fclose(dump);
+
+    sd_offline_dump_save(); 
 }

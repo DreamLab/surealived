@@ -68,6 +68,19 @@ typedef enum {
     RUNNING,
 } VState;
 
+/* a) REAL_ONLINE - real is tested and 'online' is used when conf data
+      for ipvssync are created
+   b) REAL_OFFLINE - user manually turned off real. For real which has:
+      - remove_on_fail == 0 weight is set to 0
+      - remove_on_fail == 1 real is removed from ipvs
+   c) REAL_DOWN - real is removed from ipvs 
+*/
+typedef enum {
+    REAL_ONLINE,
+    REAL_OFFLINE,
+    REAL_DOWN,
+} RState;
+
 typedef struct {
     gchar           proto[MAXPROTO];
     struct mod_operations  *mops;
@@ -131,8 +144,10 @@ typedef struct CfgReal {
 
     gint            retries_ok;
     gint            retries_fail;
-    gboolean        test_state;
-    gboolean        online;               /* real state */
+    RState          rstate;               /* real state set by user (ONLINE/OFFLINE/DOWN) */
+    RState          last_rstate;          /* required to detect if a chgreal or addreal should be called */
+    gboolean        test_state;           /* single test state */
+    gboolean        online;               /* real state - evaluated in tests */
     gboolean        last_online;          /* to detect when real status changed {retries2(ok|fail)} */
     guint           intstate;             /* internal state (used by modules) */
     gint            fd;                   /* module should NOT use it */
@@ -146,6 +161,8 @@ typedef struct CfgReal {
 
     unsigned        ipvs_rt;
     gint            ipvs_weight;
+    gint            override_weight;
+    gboolean        override_weight_in_percent;
     u_int32_t       ipvs_uthresh;
     u_int32_t       ipvs_lthresh;
 

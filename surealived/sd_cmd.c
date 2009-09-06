@@ -18,6 +18,8 @@
 #include <modloader.h>
 #include <sd_socket.h>
 #include <sd_epoll.h>
+#include <sd_override.h>
+#include <sd_ipvssync.h>
 #include <xmlparser.h>
 
 #define MAX_CLIENTS 16
@@ -38,78 +40,247 @@ typedef struct {
 
 } SDClient;
 
-static CfgVirtual *sd_cmd_find_virt(GPtrArray *VCfgArr, gchar *vip, u_int16_t vport, SDIPVSProtocol proto) {
-    CfgVirtual  *virt = NULL;
-    gint        i;
-    gboolean    found = FALSE;
-    in_addr_t   vaddr = inet_addr(vip);
-    u_int16_t   vport_no = ntohs(vport);
 
-    if (vaddr == -1) {
+static CfgVirtual *sd_cmd_find_virt(GPtrArray *VCfgArr, GHashTable *ht, gchar *errbuf) {
+    CfgVirtual    *virt = NULL;
+    gchar         *vaddr, *vport, *vproto, *vfwmark;
+    gint           i;
+    gboolean       found = FALSE;
+    in_addr_t      addr;
+    u_int16_t      port;
+    SDIPVSProtocol proto;
+    u_int32_t      fwmark;
+    gchar         *defaddr = "0.0.0.0";
+    gchar         *deffwmark = "0";
+    
+    vaddr = g_hash_table_lookup(ht, "vaddr");
+    if (!vaddr)
+        vaddr = defaddr;
+
+    vport = g_hash_table_lookup(ht, "vport");
+    if (!vport)
+        vport = deffwmark;
+
+    vproto = g_hash_table_lookup(ht, "vproto");
+    if (!vproto) {
+        if (errbuf)
+            strcpy(errbuf, "cmd_find_virt: No vproto specified\n");
+        return NULL;
+    }
+
+    vfwmark = g_hash_table_lookup(ht, "vfwmark");
+    if (!vfwmark) {
+        vfwmark = deffwmark;
+    }
+
+    addr   = inet_addr(vaddr);
+    port   = htons(atoi(vport));
+    proto  = sd_proto_no(vproto);
+    fwmark = atoi(vfwmark);
+
+    if (addr == -1) {
         LOGINFO("[^] logic: find_virt() invalid IP");
         return NULL;
     }
 
     for (i = 0; i < VCfgArr->len; i++) {
         virt = (CfgVirtual *) g_ptr_array_index(VCfgArr, i);
-        if (virt->addr != vaddr || virt->port != vport_no || virt->ipvs_proto != proto)
-            continue;
-        found = TRUE;
-        break;
+        LOGDETAIL("addr = %x==%x, %d==%d, %d==%d, %d==%d", virt->addr, addr, virt->port, port, 
+                  virt->ipvs_proto, proto, virt->ipvs_fwmark, fwmark);
+        if (fwmark > 0 && virt->ipvs_fwmark > 0 && !(virt->ipvs_fwmark - fwmark)) {
+            found = TRUE;
+            break;
+        }
+        
+        if (!virt->ipvs_fwmark && 
+            virt->addr == addr && virt->port == port &&
+            virt->ipvs_proto == proto) {
+            found = TRUE;
+            break;
+        }
     }
-    if (!found)
+
+    if (!found) {
+        if (errbuf)
+            strcpy(errbuf, "cmd_find_virt: Virt not found\n");
         return NULL;
+    }
 
     return virt;
 }
 
-static CfgReal *sd_cmd_find_real(CfgVirtual *virt, gchar *rip, u_int16_t rport) {
+CfgReal *sd_cmd_find_real(CfgVirtual *virt, GHashTable *ht, gchar *errbuf) {
     CfgReal     *real = NULL;
+    gchar       *raddr, *rport;
     gint        i;
     gboolean    found = FALSE;
-    in_addr_t   raddr = inet_addr(rip);
-    u_int16_t   rport_no = htons(rport);
+    in_addr_t   addr;
+    u_int16_t   port;
 
-    if (!virt || !virt->realArr)
+    if (!virt || !virt->realArr) {
+        strcpy(errbuf, "cmd_find_real: empty realArr\n");
         return NULL;
+    }
+    
+    raddr = g_hash_table_lookup(ht, "raddr");
+    if (!raddr) {
+        if (errbuf)
+            strcpy(errbuf, "cmd_find_real: raddr not found\n");
+        return NULL;
+    }
 
-    if (raddr == -1) {
-        LOGINFO("[^] find_real() invalid IP");
+    rport = g_hash_table_lookup(ht, "rport");
+    if (!rport) {
+        if (errbuf)
+            strcpy(errbuf, "cmd_find_real: rport not found\n");
+        return NULL;
+    }
+
+    addr   = inet_addr(raddr);
+    port   = htons(atoi(rport));
+
+    if (addr == -1) {
+        if (errbuf)
+            strcpy(errbuf, "cmd_find_real: invalid IP\n");
         return NULL;
     }
 
     for (i = 0; i < virt->realArr->len; i++) {
         real = (CfgReal *)g_ptr_array_index(virt->realArr, i);
-        if (real->addr != raddr || real->port != rport_no)
+        if (real->addr != addr || real->port != port)
             continue;
         found = TRUE;
         break;
     }
-    if (!found)
+    if (!found) {
+        if (errbuf)
+            strcpy(errbuf, "cmd_find_real: Real not found\n");
         return NULL;
+    }
 
     return real;
 }
 
-gint sd_cmd_chweight(GPtrArray *VCfgArr, gchar *vip, u_int16_t vport, 
-                     SDIPVSProtocol proto, gchar *rip, u_int16_t rport, gint weight) {
-    CfgReal *real = sd_cmd_find_real(sd_cmd_find_virt(VCfgArr, vip, vport, proto), rip, rport);
+/* Returns allocated string */
+static gchar *sd_cmd_vlist(GPtrArray *VCfgArr) {
+    GString    *s = g_string_new_len(NULL, BUFSIZ);
+    CfgVirtual *virt;
+    gint        i;
 
-    if (!real) {
-        LOGINFO("[^] logic: chweight - real (%s:%d_%d)[%s:%d] not found", vip, vport, proto, rip, rport);
-        return -1;
+    for (i = 0; i < VCfgArr->len; i++) {
+        virt = (CfgVirtual *) g_ptr_array_index(VCfgArr, i);
+        g_string_append_printf(s, "%d. vname=%s vproto=%s vaddr=%s vport=%d vfwmark=%d vrt=%s vsched=%s\n",
+                               i,
+                               virt->name, 
+                               sd_proto_str(virt->ipvs_proto),
+                               virt->addrtxt, ntohs(virt->port), 
+                               virt->ipvs_fwmark,
+                               sd_rt_str(virt->ipvs_rt),
+                               virt->ipvs_sched);
+    }
+    return g_string_free(s, FALSE);
+}
+
+/* Returns allocated string */
+static gchar *sd_cmd_rlist(GPtrArray *VCfgArr, GHashTable *ht) {
+    GString    *s = NULL;
+    CfgVirtual *virt;
+    CfgReal    *real;
+    gint        i;
+    gchar       errbuf[BUFSIZ];
+    gint        currwgt;
+        
+    virt = sd_cmd_find_virt(VCfgArr, ht, errbuf);
+    if (!virt)
+        return g_strdup(errbuf);
+
+    s = g_string_new_len(NULL, BUFSIZ);
+
+    g_string_append_printf(s, "vname=%s vproto=%s vaddr=%s vport=%d vfwmark=%d vrt=%s vsched=%s\n",
+                           virt->name, sd_proto_str(virt->ipvs_proto), virt->addrtxt, ntohs(virt->port), 
+                           virt->ipvs_fwmark, sd_rt_str(virt->ipvs_rt), virt->ipvs_sched);
+    
+    for (i = 0; i < virt->realArr->len; i++) {
+        real = (CfgReal *) g_ptr_array_index(virt->realArr, i);
+        currwgt = sd_ipvssync_calculate_real_weight(real);
+        g_string_append_printf(s, "%d. rname=%s raddr=%s rport=%d currwgt=%d confwgt=%d ronline=%s rstate=%s\n",
+                               i+1,
+                               real->name, 
+                               real->addrtxt, ntohs(real->port),
+                               currwgt, real->ipvs_weight, GBOOLSTR(real->online), sd_rstate_str(real->rstate));
+    }
+    return g_string_free(s, FALSE);
+}
+
+/* Returns allocated string */
+static gchar *sd_cmd_rset(GPtrArray *VCfgArr, GHashTable *ht) {
+    GString    *s = NULL;
+    CfgVirtual *virt;
+    CfgReal    *real;
+    gchar       errbuf[BUFSIZ];
+    gchar      *rweight, *rstate, *c;
+    gint        rst;
+        
+    virt = sd_cmd_find_virt(VCfgArr, ht, errbuf);
+    if (!virt)
+        return g_strdup(errbuf);
+
+    real = sd_cmd_find_real(virt, ht, errbuf);
+    if (!real)
+        return g_strdup(errbuf);
+
+    rstate = g_hash_table_lookup(ht, "rstate");
+    if (!rstate)
+        rstate = sd_rstate_str(real->rstate); //leave rstate untouched
+    else {
+        rst = sd_rstate_no(rstate);
+        if (rst < 0)
+            return g_strdup_printf("cmd_rset: rstate unknown [%s]\n", rstate);
     }
 
-    real->ipvs_weight = weight;
-    real->diff = TRUE;
-    LOGINFO("[^] logic: weight changed (%s:%d)[%s:%d] to '%d'", vip, vport, rip, rport, weight);
+    rweight = g_hash_table_lookup(ht, "rweight");
+    if (rweight) {
+        c = strchr(rweight, '%');
+        if (c) {
+            c[0] = 0;
+            real->override_weight_in_percent = TRUE;
+        }
+        else 
+            real->override_weight_in_percent = FALSE;
+        real->override_weight = atoi(rweight);
+    }
+    
+    if (rst == REAL_ONLINE &&
+        ((real->ipvs_weight == real->override_weight && !real->override_weight_in_percent) ||
+         (real->override_weight == 100 && real->override_weight_in_percent))) {
+        LOGINFO("Deleting entry from overrides: rstate=ONLINE, weight=ORIGINAL");
+        real->last_rstate = real->rstate;
+        real->rstate = rst;
+        sd_override_dump_del(real);
+        sd_ipvssync_diffcfg_real(real, TRUE);
+    }
+    else {
+        LOGINFO("Replacing entry in overrides: rstate=%s, weight=%d, inpercent=%s",
+                sd_rstate_str(rst), real->override_weight, 
+                GBOOLSTR(real->override_weight_in_percent));
+        real->last_rstate = real->rstate;
+        real->rstate = rst;
+        sd_override_dump_add(real);
+        sd_ipvssync_diffcfg_real(real, TRUE);
+    }
+          
+    s = g_string_new_len(NULL, BUFSIZ);
 
-    return 0;
+    g_string_append_printf(s, "Set: rstate=%s, weight=%d, inpercent=%s\n",
+                           sd_rstate_str(rst), real->override_weight, 
+                           GBOOLSTR(real->override_weight_in_percent));
+
+    return g_string_free(s, FALSE);
 }
 
 gint sd_cmd_delreal(GPtrArray *VCfgArr, gchar *vip, u_int16_t vport, 
                     SDIPVSProtocol proto, gchar *rip, u_int16_t rport) {
-    CfgReal *real = sd_cmd_find_real(sd_cmd_find_virt(VCfgArr, vip, vport, proto), rip, rport);
+    CfgReal *real = NULL; //sd_cmd_find_real(sd_cmd_find_virt(VCfgArr, vip, vport, proto), rip, rport);
 
     LOGINFO("[^] logic: deleting real (%s:%d_%d)[%s:%d]", vip, vport, proto, rip, rport);
 
@@ -142,7 +313,7 @@ gint sd_cmd_addvirt(gchar *xml_info) {
 gint sd_cmd_delvirt(GPtrArray *VCfgArr, gchar *vip, u_int16_t vport, SDIPVSProtocol proto) {
     gint        i;
     CfgReal     *real;
-    CfgVirtual  *virt = sd_cmd_find_virt(VCfgArr, vip, vport, proto);
+    CfgVirtual  *virt = NULL; //sd_cmd_find_virt(VCfgArr, vip, vport, proto);
 
     if (!virt) {
         LOGINFO("[^] logic: unable to find virt %s:%d_%d", vip, vport, proto);
@@ -215,10 +386,10 @@ static gint sd_cmd_accept_client() {
 
     client_sock = accept(listen_sock, (struct sockaddr *)&sa, &len);
     if (client_sock == -1 && errno != EAGAIN) {
-        LOGWARN("[@] Client disconnected!");
+        LOGINFO("[@] Client disconnected!");
         return -1;
     }
-    LOGERROR("[@] New client connected!\n");
+    LOGINFO("[@] New client connected!\n");
 
     client = (SDClient *)malloc(sizeof(SDClient));
     memset(client, 0, sizeof(SDClient));
@@ -230,37 +401,45 @@ static gint sd_cmd_accept_client() {
 }
 
 static void sd_cmd_execute(SDClient *client, GPtrArray *VCfgArr) {
-    gchar *cmd;
-
+    GHashTable *ht;
+    gchar      *cmd;
+    
     if (!client)
         return;
 
     cmd = client->rbuf;
+    ht = sd_parse_line(cmd);
 
     if (client->wbuf) {
         free(client->wbuf);
         client->wbuf = NULL;
     }
 
-    if (!strncmp(cmd, "roffline", 8)) {
-        client->wbuf = g_strdup_printf("OFFLINING!\n");
-        client->wlen = strlen(client->wbuf);
+    if (!strncmp(cmd, "vlist", 5)) {
+        client->wbuf = sd_cmd_vlist(VCfgArr);
+        goto cleanup;
     }
-    else if (!strncmp(cmd, "ronline",7)) {
-        client->wbuf = g_strdup_printf("ONLINING!\n");
-        client->wlen = strlen(client->wbuf);
+    else if (!strncmp(cmd, "rlist", 5)) {
+        client->wbuf = sd_cmd_rlist(VCfgArr, ht);
+        goto cleanup;
+    }
+    else if (!strncmp(cmd, "rset", 4)) {
+        client->wbuf = sd_cmd_rset(VCfgArr, ht);        
     }
     else{
-        client->wbuf = g_strdup_printf("Invalid request!\n");
-        client->wlen = strlen(client->wbuf);
+        client->wbuf = g_strdup_printf("Invalid request! [%s]\n", cmd);
     }
+
+cleanup:
+    client->wlen = strlen(client->wbuf);
+    g_hash_table_destroy(ht);
 }
 
 static void sd_cmd_process_client(SDClient *client, GPtrArray *VCfgArr) {
     gint    ret;
     gchar   *npos;
 
-    LOGINFO("Processing client!");
+    LOGDEBUG("Processing client!");
     if (client->wpos < client->wlen) {      /* that means we have to write something to client */
         ret = write(client->fd, client->wbuf + client->wpos, client->wlen - client->wpos); /* write correct amount */
         if (!ret || (ret < 0 && errno != EAGAIN)) { /* check if we have an incident */
@@ -312,7 +491,7 @@ static void sd_cmd_process_client(SDClient *client, GPtrArray *VCfgArr) {
 
     client->rpos += ret;
     if ((npos = strchr(client->rbuf + client->rpos - ret, '\n'))) { /* wee! we've got command */
-        *npos = 0;              /* substitude \n with \0 */
+        *npos = 0;              /* substitute \n with \0 */
         if (npos > &client->rbuf[0] && *(npos-1) == '\r')
             *(--npos) = 0;        /* kill \r */
 
@@ -336,7 +515,7 @@ void sd_cmd_loop(GPtrArray *VCfgArr) {
     if (nr_events < 1)
         return;
 
-    for (; nr_events>0 ; nr_events--) {
+    for (; nr_events > 0 ; nr_events--) {
         client = (SDClient *)sd_epoll_event_dataptr(logic_epoll, nr_events-1);
         if (sd_epoll_event_events(logic_epoll, nr_events-1) & EPOLLERR) {
             close(client->fd);
@@ -346,7 +525,7 @@ void sd_cmd_loop(GPtrArray *VCfgArr) {
             connected_clients--;
         }
 
-        LOGERROR("event [%d] on clients!", nr_events-1);
+        LOGDETAIL("event [%d] on clients!", nr_events-1);
         if (client->fd == listen_sock) {
             sd_cmd_accept_client();
             continue;

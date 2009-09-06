@@ -28,7 +28,8 @@ add_definitions(${GMODULE2_CFLAGS})
 add_definitions(${LIBXML2_CFLAGS})
 add_definitions(${OPENSSL_CFLAGS})
 
-add_library(sdutil STATIC ../common/logging.c sd_socket.c sd_epoll.c sd_tester.c common.c sd_log.c sd_offline.c sd_ipvssync.c sd_cmd.c)
+add_library(sdutil STATIC ../common/logging.c sd_socket.c sd_epoll.c sd_tester.c common.c 
+  sd_log.c sd_offline.c sd_override.c sd_ipvssync.c sd_cmd.c)
 
 set(surealivedSrcs surealived.c common.c sd_maincfg.c modloader.c xmlparser.c)
 add_executable(surealived ${surealivedSrcs})

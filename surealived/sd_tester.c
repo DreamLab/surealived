@@ -179,7 +179,6 @@ static gint sd_eof(CfgReal *real) {
 }
 
 /* ---------------------------------------------------------------------- */
-
 static void sd_start_real(CfgReal *real) {
     if (!real)
         return;
@@ -196,8 +195,10 @@ static void sd_start_real(CfgReal *real) {
         real->fd = -1;
 
     LOGDEBUG("Starting real [%s:%s] (fd = %d)!", real->virt->name, real->name, real->fd);
-    if (real->tester->mops->m_test_protocol == SD_PROTO_NO_TEST)
+    if (real->tester->mops->m_test_protocol == SD_PROTO_NO_TEST) {
         real->test_state = TRUE;
+        gettimeofday(&real->start_time, NULL);
+    }
     else
         real->test_state = FALSE; /* we assume a node is offline */
 
@@ -305,11 +306,12 @@ static gboolean sd_tester_eval_state(CfgReal *real) {
         real->online = TRUE;
         if (real->last_online != real->online) {
             real->diff = TRUE;
-            LOGINFO("Real: [%s:%s - %s:%d:%s %s:%d] changed its status to ONLINE", 
+            LOGINFO("Real: [%s:%s - %s:%d:%s %s:%d] changed its test state to ONLINE (rstate = %s)", 
                     real->virt->name, real->name,
                     real->virt->addrtxt, ntohs(real->virt->port),
                     sd_proto_str(real->virt->ipvs_proto),
-                    real->addrtxt, ntohs(real->port));
+                    real->addrtxt, ntohs(real->port),
+                    sd_rstate_str(real->rstate));
             sd_offline_dump_del(real);
             real_state_changed = TRUE;
         }
@@ -319,11 +321,12 @@ static gboolean sd_tester_eval_state(CfgReal *real) {
         real->online = FALSE;
         if (real->last_online != real->online) { 
             real->diff = TRUE;
-            LOGINFO("Real: [%s:%s - %s:%d:%s %s:%d] changed its status to OFFLINE", 
+            LOGINFO("Real: [%s:%s - %s:%d:%s %s:%d] changed its test state to OFFLINE (rstate = %s)", 
                     real->virt->name, real->name,
                     real->virt->addrtxt, ntohs(real->virt->port),
                     sd_proto_str(real->virt->ipvs_proto),
-                    real->addrtxt, ntohs(real->port));
+                    real->addrtxt, ntohs(real->port),
+                    sd_rstate_str(real->rstate));
             sd_offline_dump_add(real);
             real_state_changed = TRUE;
         }
@@ -349,6 +352,8 @@ static void sd_tester_virtual_expired(SDTester *sdtest, CfgVirtual *virt) {
 
         if (virt->tester->mops->m_test_protocol == SD_PROTO_EXEC)
             virt->tester->mops->m_check(real);
+        else if (virt->tester->mops->m_test_protocol == SD_PROTO_NO_TEST)
+            real->conn_time = real->end_time = real->start_time;
 
         LOGDEBUG("Real [%s:%s] test status: %s", real->virt->name, real->name, GBOOLSTR(real->test_state));
 
@@ -383,7 +388,6 @@ static void sd_tester_virtual_expired(SDTester *sdtest, CfgVirtual *virt) {
         if (!real->conn_time.tv_sec) {
             real->conn_time = virt->start_time; //perhaps connection established fail
             real->conn_time.tv_usec -= 1000;    //if timeout > 3sec - this means that no SYN,ACK
-                                                //
         }
 
         /* last_online - useful when online status change - only this real need to be
@@ -551,7 +555,7 @@ static void sd_tester_process_events(gint nr_events) {
             LOGDEBUG("Eval: process events (EPOLLERR)");
             if (sd_tester_eval_state(real)) {
                 LOGDEBUG("ipvssync diffcfg real (EPOLLERR)");
-                sd_ipvssync_diffcfg_real(real); 
+                sd_ipvssync_diffcfg_real(real, FALSE); 
             }
             continue;
         }
@@ -624,7 +628,7 @@ static void sd_tester_process_events(gint nr_events) {
             LOGDEBUG("Eval: process events (request end)");
             if (sd_tester_eval_state(real)) {
                 LOGDEBUG("ipvssync diffcfg real (request end)");
-                sd_ipvssync_diffcfg_real(real); 
+                sd_ipvssync_diffcfg_real(real, FALSE); 
             }
         }
         else if (REQ_WRITE(real->req))
@@ -671,8 +675,8 @@ gint sd_tester_master_loop(SDTester *sdtest) {
         /* if signal detected - sighup, sigint, sigterm - cleanup and exit loop */
         //retv = ... and break
 
-//        if (logic_epoll)        /* deal with clients */
-//            sd_cmd_loop(sdtest->VCfgArr);
+        if (logic_epoll)        /* deal with clients */
+            sd_cmd_loop(sdtest->VCfgArr);
         
         sigprocmask(SIG_SETMASK, &oldset, NULL); /* release critical section */
 
@@ -706,9 +710,11 @@ void sd_tester_debug(SDTester *sdtest) {
         if (virt->realArr) {
             for (j = 0; j < virt->realArr->len; j++) {
                 real = g_ptr_array_index(virt->realArr, j);
-                printf("\tReal: [%s:%d] (%s:%d)\t%s\n",real->name, ntohs(real->testport),
-                    inet_ntoa(*((struct in_addr *)&real->addr)), ntohs(real->port),
-                    real->online ? "ONLINE" : "OFFLINE");
+                printf("\tReal: [%s:%d] (%s:%d)\tteststate=%s, rstate=%s\n",
+                       real->name, ntohs(real->testport),
+                       inet_ntoa(*((struct in_addr *)&real->addr)), ntohs(real->port),
+                       real->online ? "ONLINE" : "OFFLINE",
+                       sd_rstate_str(real->rstate));
             }
             printf("\n");
         }

@@ -18,6 +18,7 @@
 
 static gchar *protostr[] = { "tcp", "udp", "fwmark", NULL };
 static gchar *rtstr[] = { "dr", "masq", "tun", NULL };
+static gchar *rstatestr[] = { "ONLINE", "OFFLINE", "DOWN", NULL };
 
 inline void time_inc(struct timeval *t, guint s, guint ms) {
     guint usd;
@@ -100,6 +101,66 @@ gchar *sd_proto_str(SDIPVSProtocol proto) {
     return protostr[proto];
 }
 
+SDIPVSProtocol sd_proto_no(gchar *str) {
+    gint i = 0;
+
+    while (1) {
+        if (!protostr[i])
+            return -1;
+
+        if (!strcmp(protostr[i], str))
+            return i;
+
+        i++;
+    }
+    return -1;
+}
+
 gchar *sd_rt_str(SDIPVSRt rt) {
     return rtstr[rt];
+}
+
+gchar *sd_rstate_str(RState st) {
+    return rstatestr[st];
+}
+
+RState sd_rstate_no(gchar *str) {
+    gint i = 0;
+
+    while (1) {
+        if (!rstatestr[i])
+            return -1;
+
+        if (!strcmp(rstatestr[i], str))
+            return i;
+
+        i++;
+    }
+    return -1;
+}
+
+
+/* ---------------------------------------------------------------------- */
+/* Split line into hash table, returns GHashTable */
+GHashTable *sd_parse_line(gchar *line) {
+    GHashTable *ht = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, g_free);
+    g_assert(ht);
+
+    gchar **strv = g_strsplit_set(line, " \t", 0);
+    gchar **v;
+	
+    v = strv;
+    while ( *v ) {
+        gchar **kvstrv = g_strsplit_set(*v, "=", 0);
+        if (kvstrv[0] && kvstrv[1]) {
+            LOGDETAIL("* key = %s, val = %s", kvstrv[0], kvstrv[1]);
+            g_hash_table_insert(ht, g_strdup(kvstrv[0]), g_strdup(kvstrv[1]));
+        }
+        g_strfreev(kvstrv);
+        v++;
+    }
+
+    g_strfreev(strv);
+
+    return ht;
 }
