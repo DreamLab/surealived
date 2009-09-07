@@ -25,4 +25,5 @@ add_definitions("-DHAVE_NET_IP_VS_H")
 target_link_libraries(ipvssync ipvs glib-2.0)
 include_directories(/usr/src/linux/include . ../libipvs)
 
-
+install(TARGETS ipvssync 
+  DESTINATION "/usr/sbin")

@@ -42,7 +42,7 @@ void unlock_ipvssync() {
 }
 
 
-static void diffs_apply_change_real(Config *conf, GHashTable *ht, gchar *line) {
+static void diffs_apply_change_real(Config *conf, GHashTable *ht, gchar *line, gboolean sync_to_ipvs) {
     ConfVirtual    *cv;
     ConfReal       *cr;
     gint            cvindex;
@@ -92,18 +92,25 @@ static void diffs_apply_change_real(Config *conf, GHashTable *ht, gchar *line) {
     /* Ok, here we have 'svc' and 'dest' which points to real or addflag is set */
     if (!strcmp(cmd, "chgreal")) {
         LOGINFO("* CHGREAL [%s]", line);
-        ipvsfuncs_update_dest(&svc, &dest);
+        if (sync_to_ipvs) //at ipvssync starts apply diffs only to configuration
+            ipvsfuncs_update_dest(&svc, &dest);
         cr->dest = dest;
     }
     else if (!strcmp(cmd, "delreal")) {
         LOGINFO("* DELREAL [%s]", line);
-        ipvsfuncs_del_dest(&svc, &dest);
+        if (sync_to_ipvs)
+            ipvsfuncs_del_dest(&svc, &dest);
         config_remove_real_by_index(cv, crindex);
     }
     else if (!strcmp(cmd, "addreal")) {
         LOGINFO("* ADDREAL [%s]", line);
-        ipvsfuncs_add_dest(&svc, &dest);
-        config_add_real(conf, cv, ht);
+        if (cr)
+            LOGINFO("** real already exists, skipping adding to ipvs");
+        else {
+            if (sync_to_ipvs)
+                ipvsfuncs_add_dest(&svc, &dest);
+            config_add_real(conf, cv, ht);
+        }
     }
 }
 
@@ -152,7 +159,7 @@ void diffs_apply(Config *conf, gboolean sync_to_ipvs) {
         /* change/remove real */
         if (sscanf(line, "%sreal", cmd) == 1) {
             ht = config_parse_line(line);
-            diffs_apply_change_real(conf, ht, line);
+            diffs_apply_change_real(conf, ht, line, sync_to_ipvs);
             g_hash_table_destroy(ht);
         }
     }
