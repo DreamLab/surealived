@@ -26,6 +26,7 @@ static GHashTable *OverrideH = NULL; /* this hash holds current offline reals */
 void sd_override_dump_add(CfgReal *real) {
     gchar *line;
     gchar *wgttxt;
+    gint   wgt;
     CfgVirtual *virt;
     if (!real)
         return;
@@ -36,10 +37,19 @@ void sd_override_dump_add(CfgReal *real) {
 
     virt = real->virt;
 
+    /* If someone wants to override only rstate at the beggining 
+       this could save -1 to override.dump */
+    if (real->override_weight == -1) {
+        wgt = real->ipvs_weight;
+        real->override_weight_in_percent = FALSE;
+    }
+    else
+        wgt = real->override_weight;
+
     if (real->override_weight_in_percent)
-        wgttxt = g_strdup_printf("weight=%u%%", real->override_weight);
+        wgttxt = g_strdup_printf("weight=%u%%", wgt);
     else 
-        wgttxt = g_strdup_printf("weight=%u ", real->override_weight);
+        wgttxt = g_strdup_printf("weight=%u ", wgt);
 
     line = g_strdup_printf("%s:%d:%d:%u - %s:%d - %s rstate=%s\n",
                            virt->addrtxt, ntohs(virt->port), 
@@ -62,11 +72,6 @@ void sd_override_dump_del(CfgReal *real) {
     gchar *line = NULL;
 
     LOGINFO("override dump del (real = %s:%s)", real->virt->name, real->name);
-
-//    real->override_weight = -1;
-//    real->override_weight_in_percent = FALSE;
-//    real->last_rstate = real->rstate;
-//  real->rstate = REAL_ONLINE;
 
     if (OverrideH) {
         line = g_hash_table_lookup(OverrideH, real);
