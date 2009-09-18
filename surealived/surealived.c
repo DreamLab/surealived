@@ -25,8 +25,8 @@
 #include <sd_offline.h>
 #include <sd_ipvssync.h>
 #include <sd_cmd.h>
+#include <sdversion.h>
 
-#define VERSION     "0.8.1"
 #define SLEEP_TIME  1           /* defines delay between watchdog checks */
 #define SDCONF      "/etc/surealived/surealived.cfg"
 

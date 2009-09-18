@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 2.6)
 #add_definitions("-Werror -Wall -ggdb -pg")
-add_definitions("-Werror -Wall")
+add_definitions("-Werror -Wall -Wformat=2")
 
 message(STATUS "\n=== configuring surealived ===")
 

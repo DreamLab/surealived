@@ -20,8 +20,8 @@
 #include <diffs.h>
 #include <maincfg.h>
 #include <logging.h>
+#include <sdversion.h>
 
-#define VERSION     "0.8.1"
 #define SDCONF      "/etc/surealived/surealived.cfg"
 
 void print_usage(gchar *pname) {

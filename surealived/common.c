@@ -70,9 +70,9 @@ gboolean sd_append_to_file(gchar *fname, gchar *buf, gint bufsiz) {
 
     gettimeofday(&tv, NULL);
     strftime(buft, 32, "[%F %T.", localtime(&tv.tv_sec));
-    fprintf(out, buft);
+    fprintf(out, "%s", buft);
     snprintf(micro, 16, "%06d] ", (int) tv.tv_usec);
-    fprintf(out, micro);
+    fprintf(out, "%s", micro);
 
     w = fwrite(buf, bufsiz, 1, out);
     fprintf(out, "\n");

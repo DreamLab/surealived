@@ -66,7 +66,7 @@ void sd_offline_dump_write(gpointer key, gpointer val, gpointer userdata) {
         return;
 
     LOGDETAIL("offline dump write [%s]", val);
-    fprintf(dump, (gchar *)val, strlen((gchar *)val));
+    fprintf(dump, "%s", (gchar *)val);
 }
 
 gint sd_offline_dump_save() {

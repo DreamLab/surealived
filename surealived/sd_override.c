@@ -91,7 +91,7 @@ void sd_override_dump_write(gpointer key, gpointer val, gpointer userdata) {
         return;
 
     LOGINFO("override dump write [%s]", val);
-    fprintf(dump, (gchar *)val, strlen((gchar *)val));
+    fprintf(dump, "%s", (gchar *)val);
 }
 
 gint sd_override_dump_save() {

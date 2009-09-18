@@ -20,7 +20,7 @@
 #include <sd_defs.h>
 #include <xmlparser.h>
 
-const gchar *request_template = "GET %s HTTP/1.0\r\nHost: %s\r\nUser-Agent: SD\r\n\r\n";
+#define REQUEST_TEMPLATE "GET %s HTTP/1.0\r\nHost: %s\r\nUser-Agent: SureAliveD\r\n\r\n"
 
 typedef struct {
     gchar       url[BUFSIZ];
@@ -83,7 +83,7 @@ static u_int32_t module_process_event(CfgReal *real) {
         if (t->request)
             return WANT_WRITE(t->req_len);
 
-        t->request = g_strdup_printf(request_template, t->url, t->host);
+        t->request = g_strdup_printf(REQUEST_TEMPLATE, t->url, t->host);
 
         real->buf  = t->request;
         t->req_len = strlen(t->request); /* and try to remember the length of it */

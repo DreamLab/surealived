@@ -162,19 +162,19 @@ void sd_ipvssync_diffcfg_real(CfgReal *real, gboolean override_change) {
     if (do_del) {
         LOGINFO("diffcfg: do_del [%s]", s->str);
         fprintf(diff_sync_file, "cmd=delreal ");
-        fprintf(diff_sync_file, s->str);
+        fprintf(diff_sync_file, "%s", s->str);
     }
 
     if (do_add) {
         LOGINFO("diffcfg: do_add [%s]", s->str);
         fprintf(diff_sync_file, "cmd=addreal ");
-        fprintf(diff_sync_file, s->str);
+        fprintf(diff_sync_file, "%s", s->str);
     }
 
     if (do_chg) {
         LOGINFO("diffcfg: do_chg [%s]", s->str);
         fprintf(diff_sync_file, "cmd=chgreal ");
-        fprintf(diff_sync_file, s->str);
+        fprintf(diff_sync_file, "%s", s->str);
     }
 
     fflush(diff_sync_file);
@@ -250,7 +250,7 @@ gint sd_ipvssync_save_fullcfg(GPtrArray *VCfgArr, gboolean force) {
     }
 
     strftime(buf, 80, "meta version=1.0 mdate=%F mtime=%T\n\n", localtime(&ctime.tv_sec));
-    fprintf(ipvsfile, buf);
+    fprintf(ipvsfile, "%s", buf);
 
     if (diff_sync_filename)
         free(diff_sync_filename);
