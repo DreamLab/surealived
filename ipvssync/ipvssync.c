@@ -21,7 +21,7 @@
 #include <maincfg.h>
 #include <logging.h>
 
-#define VERSION     "0.8.0"
+#define VERSION     "0.8.1"
 #define SDCONF      "/etc/surealived/surealived.cfg"
 
 void print_usage(gchar *pname) {
