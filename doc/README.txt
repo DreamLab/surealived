@@ -32,7 +32,7 @@ surealived:
   (-t option)
  
 ipvssync:
-* uses configuration stored in ipvssync.cfg and diffs files
+* uses configuration stored in ipvsfull.cfg and diffs files
 * allows to leave/remove unmanaged reals/virtuals
 * synchronize config to ipvs, allows delete/leave unmanaged virtuals
   (-u option)

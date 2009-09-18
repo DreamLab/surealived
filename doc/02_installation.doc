@@ -1,0 +1,79 @@
+[PL]
+\section{Instalacja}
+\subsection{Ze ¼róde³}
+Do skompilowania potrzebne s± nastêpuj±ce aplikacje i biblioteki%
+\footnote{Podane aplikacje i biblioteki s± nazwami pakietów Debiana.}:
+\begin{itemize}
+ \item gcc 
+ \item cmake
+ \item make
+ \item glib2-dev
+ \item libxml2-dev
+ \item libssl-dev
+ \item ¼ród³a kernela w \textit{/usr/src/linux}
+\end{itemize}
+
+[EN]
+TODO
+
+[PL]
+\noindent Po rozpakowaniu \textit{surealived-x.y.z.tar.gz} w katalogu znajduj±
+siê nastêpuj±ce podkatalogi:
+\begin{itemize}
+ \item \textit{common} - katalog z plikami ¼ród³owymi wykorzystywanymi
+       zarówno przez \textbf{surealived} jak i \textbf{ipvssync}
+ \item \textit{doc} - dokumentacja
+ \item \textit{examples} - przyk³adowe xmlowe pliki konfiguracyjne 
+       \textbf{surealived}
+ \item \textit{ipvssync} - katalog ze ¼ród³ami synchronizatora
+ \item \textit{libipvs} - biblioteka do komunikacji z \textit{IPVS},
+       autorstwa Wensong Zhanga, wykorzystywana przez synchronizator
+ \item \textit{surealived} - katalog ze ¼ród³ami testera
+\end{itemize}
+
+[EN]
+TODO
+
+[PL]
+\noindent Kompilacjê + instalacjê nale¿y wykonaæ z konta \textit{root}:
+[EN]
+\noindent Compiling and installation must be executed from \textit{root} account:
+[ALL]
+\begin{verbatim}
+   # tar xzvf surealived-x.y.z.tar.gz
+   # cd surealived-x.y.z
+   # cmake .
+   # make
+   # make install
+\end{verbatim}
+
+[PL]
+\noindent Podczas instalacji w systemie pojawi± siê binarki:
+\begin{itemize}
+ \item \textbf{/usr/sbin/ipvssync}
+ \item \textbf{/usr/bin/surealived}
+\end{itemize}
+
+\noindent G³owny plik konfiguracyjny \textit{surealived.cfg} wykorzystywany przez obie
+aplikacje zostaje przekopiowany do katalogu \textit{/etc/surealived}.
+
+\pagebreak
+\noindent Ponadto zostaj± utworzone katalogi:
+\begin{itemize}
+ \item \textit{/var/log/surealived} -- dla logów testera i synchronizatora,
+ \item \textit{/var/log/surealived/comm} -- dla wirtuali z ustawionym atrybutem
+	\textit{debugcomm=''1''},
+ \item \textit{/var/lib/surealived} -- dla dynamicznej konfiguracji testowanych
+       us³ug \textbf{surealived}%
+\footnote{Pliki \textit{offline.dump} oraz \textit{override.dump}.}%
+       oraz konfiguracji \textbf{ipvssync}%
+\footnote{Plik \textit{ipvsfull.cfg}, pliki z konfiguracj± ró¿nicow± s± w katalogu
+         \textit{diffs}.},
+ \item \textit{/var/lib/surealived/diffs} -- z konfiguracj± ró¿nicow± dla 
+       \textbf{ipvssync},
+ \item \textit{/var/lib/surealived/stats} -- dla statystyk testów reali.
+\end{itemize}
+
+\epsfig{file=sd-diagram,width=14cm}
+[EN]
+

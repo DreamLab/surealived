@@ -78,7 +78,7 @@ static void module_start_real(CfgReal *real) {
                 ((gchar **)real->moddynamic)[--tokens] = &((gchar *)real->moddata)[i+1];
                 ((gchar *)real->moddata)[i] = 0;
             }
-        ((gchar **)real->moddynamic)[3] = (gchar *)real->tester->moddata;
+        ((gchar **)real->moddynamic)[3] = tokens > 3 ? (gchar *)real->tester->moddata : NULL;
         ((gchar **)real->moddynamic)[2] = g_strdup_printf("%d", ntohs(real->port)); /* we will NEED to free this */
         ((gchar **)real->moddynamic)[1] = real->addrtxt;
         ((gchar **)real->moddynamic)[0] = real->tester->exec;

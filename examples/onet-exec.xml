@@ -1,0 +1,9 @@
+<surealived>
+
+<virtual name="onetexec" proto="tcp" addr="192.168.0.1" port="80" sched="wrr" rt="dr">
+  <tester loopdelay="1" timeout="5" retries2fail="1" retries2ok="1" 
+          proto="exec" testport="80" exec="/usr/lib/surealived/scripts/testexec.pl" params="www.onet.pl /0"/>
+  <real name="sg" addr="213.180.146.27" port="80" weight="10" rt="dr"/>
+</virtual>
+
+</surealived>
