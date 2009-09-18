@@ -55,7 +55,7 @@ void log_message(int loglev, int timeline, int newline, char *format, ...) {
     va_start (args, format);
     if (timeline) {
         strftime(buf, 32, "[%F %T", localtime(&tv.tv_sec));
-        fprintf(G_flog, buf);
+        fprintf(G_flog, "%s", buf);
         fprintf(G_flog, ".%06d] ", (int) tv.tv_usec);
         fprintf(G_flog, "%-6s: ", loglevstr[loglev]);
     }
