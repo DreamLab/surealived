@@ -1,0 +1,99 @@
+[PL]
+\section{Konfiguracja}
+\subsection{G³owny plik konfiguracyjny}
+Domy¶lnie g³ówny plik konfiguracyjny \textit{surealived.cfg}
+rezyduje w~\textit{/etc/surealived}. Zawiera on podstawow±
+konfiguracjê zarówno dla \textbf{surealived} jak i \textbf{ipvssync}.
+Konfiguracja ta mo¿e byæ w~ oddzielnych zbiorach, zw³aszcza, ¿e 
+synchronizator korzysta tylko z kilku zmiennych z~tego zbioru. 
+Jednak¿e, je¶li chcemy siê uchroniæ przed dziwnymi b³êdami zwi±zanymi
+z~tym, ¿e oba programy bêd± mia³y ró¿ne warto¶ci tych wspólnych
+zmiennych lepiej jest zostawiæ w tym zbiorze.
+
+\subsubsection{Zmienne konfiguracyjne surealived}
+Oto lista zmiennych wykorzystywanych przez tester:
+\begin{itemize}
+ \item \textbf{maxfd} -- maksymalna ilo¶æ (domy¶lnie 1024) otwartych 
+	deskryptorów procesu%
+\footnote{Je¶li uruchamiasz aplikacjê z \textit{roota} sprawa jest prosta,
+w przeciwnym wypadku upewnij siê, ¿e u¿ytkownik mo¿e przestawiæ t± warto¶æ.}.
+ \item \textbf{log} -- ¶cie¿ka do logu lub \textit{stderr}. Warto¶æ ta jest
+	nadpisywana na \textit{stderr} je¶li program nie bêdzie uruchamiany
+	w trybie demona.
+ \item \textbf{logging} -- poziom szczegó³owo¶ci logowania w kolejno¶ci rosn±cej: 
+	\textit{error}, \textit{warn}, \textit{info}, \textit{debug}, \textit{debdt}.
+	Warto¶æ ta jest nadpisywana przez parametr \textit{-v}.
+ \item \textbf{modules\_path} -- ¶cie¿ka do binarnych modu³ów (testera).
+ \item \textbf{modules} -- lista modu³ów do za³adowania oddzielona przecinkami
+	(\textbf{UWAGA} -- nie mo¿e byæ spacji po przecinku) lub \textit{all},
+	co spowoduje za³adowanie wszystkich modu³ów ze ¶cie¿ki \textbf{modules\_path}.
+	
+ \item \textbf{epoll\_size} -- minimalny rozmiar epolla, je¶li ilo¶æ testowanych
+ 	us³ug jest wiêksza od tej warto¶ci zostanie ona nadpisana.
+ \item \textbf{loop\_interval\_ms} -- do opisania.
+ \item \textbf{epoll\_interval\_ms} -- do opisania.
+ \item \textbf{startup\_delay\_ms} -- do opisania.
+ 
+ \item \textbf{debug\_comm} -- flaga 0/1 okre¶laj±ca mo¿liwo¶æ dumpowania przebiegu 
+	komunikacji z realami w danym wirtualu. Prze³±czenie jej na 1 jest warunkiem
+	koniecznym (niewystarczaj±cym) do dumpowania konfiguracji przez tester%
+\footnote{Nale¿y jeszcze w konfiguracji xmlowej w tagu <tester> ustawiæ atrybut 
+	\textit{debugcomm=''1''}.}.
+ \item \textbf{debug\_comm\_path} -- ¶cie¿ka, gdzie zapisywane bêd± zrzuty z komunikacji.
+
+ \item \textbf{memlimit} -- do opisania.
+
+ \item \textbf{stats\_dir} -- ¶cie¿ka, gdzie zapisywane bêd± statystyki testów%
+\footnote{Mo¿na je wykorzystaæ do analizy czasów odpowiedzi poszczególnych serwerów, 
+	zbalansowania wirtuali, itp.}.
+ \item \textbf{log\_stats} -- ustawienie warto¶ci na \textit{true} spowoduje, ¿e do
+  	\textbf{stats\_dir} bêd± zapisywane statystyki testów w sposób indywidualny,
+ 	tj zbiór.timestamp per test wirtuala%
+\footnote{Je¶li w³±czysz t± opcjê zadbaj o czyszczenie katalogu ze starych zbiorów, 
+	gdy¿ bardzo szybko bêdziesz tam mia³ miliony zbiorów.}.
+ \item \textbf{log\_stats\_combined} -- warto¶æ \textit{true} oznacza, ¿e do jednego zbioru
+ 	bêd± dopisywane wszystkie statystyki testów%
+\footnote{Zbiór mo¿na przycinaæ, gdy¿ aplikacja dopisuje na koniec (tworz±c wcze¶niej zbiór
+	je¶li nie istnieje).}.
+
+ \item \textbf{no\_sync} -- je¶li \textit{true} nie bêd± tworzone pliki dla 
+	synchronizatora.
+
+ \item \textbf{use\_offline\_dump} -- czy zapisywaæ stan reali, których
+        nie uda³o siê poprawnie przetestowaæ (plik stanów negatywnych).
+ \item \textbf{offline\_dump} -- 
+ \item \textbf{override\_dump} -- do opisania.
+\end{itemize}
+
+[EN]
+TODO
+
+[PL]
+\subsubsection{Zmienne konfiguracyjne ipvssync}
+Oto lista zmiennych wykorzystywanych przez synchronizator:
+\begin{itemize}
+ \item \textbf{ipvssync\_log} -- ¶cie¿ka do pliku logu synchronizatora.
+ \item \textbf{ipvssync\_logging}-- ¶cie¿ka do logu lub \textit{stderr}. 
+	Warto¶æ ta jest nadpisywana na \textit{stderr} je¶li program nie 
+	bêdzie uruchamiany w trybie demona.
+\end{itemize}
+
+[EN]
+TODO
+
+[PL]
+\subsubsection{Wspólne zmienne konfiguracyjne}
+Oto lista zmiennych wykorzystywanych zarówno przez tester jak i synchronizator:
+\begin{itemize}
+ \item \textbf{lock\_sync\_file} -- plik s³u¿±cy do synchronizacji
+	pomiêcy testerem a synchronizatorem (flock).
+ \item \textbf{full\_sync\_file} -- plik pe³nej konfiguracji tablicy
+ 	\textit{IPVS} dla synchronizatora (generowany co 60 sek. przez tester).
+ \item \textbf{full\_reload\_file} -- plik (flaga), którego pojawienie siê
+	wymusza prze³adowanie konfiguracji synchronizatora. 
+ \item \textbf{diff\_sync\_dir} -- katalog, gdzie zapisywane bêd± pliki 
+	ró¿nicowe (zawieraj±ce zmiany w stosunku do pe³nego pliku konfiguracji).
+\end{itemize}
+
+[EN]
+TODO
