@@ -66,7 +66,71 @@ w przeciwnym wypadku upewnij siê, ¿e u¿ytkownik mo¿e przestawiæ t± warto¶æ.}.
 \end{itemize}
 
 [EN]
-TODO
+\section{Configuration}
+\subsection{Main configuration file}
+By default main configuration file \textit{surealived.cfg}
+is placed in~\textit{/etc/surealived}. That file holds basic
+configuration for \textbf{surealived} and \textbf{ipvssync}.
+Configuration can be held in separate collections in particular
+because synchronizer uses only few variables defined inside that set.
+However in order to protect us from strange errors related to
+config desynchronization it''s better to keep it in that one file.
+
+\subsubsection{surealived config variables}
+Here's a list of variables used by tester:
+\begin{itemize}
+ \item \textbf{maxfd} -- maximum number of open descriptors (1024 by default)%
+   \footnote{If you run this application with \textit{root} privileges it's
+     very simple, otherwise please make sure user can change that value.}.
+ \item \textbf{log} -- path to log or \textit{stderr}. That value is overwritten
+   to \textit{stderr} if program is not run daemonized (--d parameter).
+ \item \textbf{logging} -- logging verbosity in ascending order:
+   \textit{error}, \textit{warn}, \textit{info}, \textit{debug}, \textit{debdt}.
+   This value is overwritten by \textit{-v} parameter.
+ \item \textbf{modules\_path} -- path to tester's binary modules.
+ \item \textbf{modules} -- comma-separated list of modules
+   (\textbf{WARNING} -- there must be no space after comma) or \textit{all},
+   which forces loading of all modules from path set in \textbf{modules\_path}.	
+
+ \item \textbf{epoll\_size} -- minimum epoll size, if there is more services to test
+   than this value describes, it will be overwritten
+ \item \textbf{loop\_interval\_ms} -- to describe.
+ \item \textbf{epoll\_interval\_ms} -- to describe.
+ \item \textbf{startup\_delay\_ms} -- to describe.
+ 
+ \item \textbf{debug\_comm} -- binary flag (0/1) determining if dumping
+   communication with reals inside given virtual should be enabled.
+   Setting this value to 1 is insufficient prerequisite to dump communication%
+   \footnote{You also need to set \textit{debugcomm=''1''} attribute inside
+     <tester> tag in xml configuration.}.
+ \item \textbf{debug\_comm\_path} -- path to directory where communication dump files
+   should be saved.
+
+ \item \textbf{memlimit} -- to describe.
+
+ \item \textbf{stats\_dir} -- directory path, describing where test stats should be saved%
+¶cie¿ka, gdzie zapisywane bêd± statystyki testów%
+\footnote{it can be used to analyze each server answer time, virtual balancing, etc.}
+
+ \item \textbf{log\_stats} -- setting this value to \textit{true} will enable
+   saving test statistics inside \textbf{stats\_dir}, each virtual will have it's own file
+   named <set>.<timestamp>%
+   \footnote{If you enable this option, make sure that old logs will be deleted,
+     because soon you will have millions of files!}.
+
+ \item \textbf{log\_stats\_combined} -- setting this value to \textit{true} enables
+   saving all statistics to one file%
+   \footnote{That file could be truncated, because application appends data to the end of file
+     (creating file if it doesn't exist)}.
+
+ \item \textbf{no\_sync} -- je¶li \textit{true} nie bêd± tworzone pliki dla 
+	synchronizatora.
+
+ \item \textbf{use\_offline\_dump} -- czy zapisywaæ stan reali, których
+        nie uda³o siê poprawnie przetestowaæ (plik stanów negatywnych).
+ \item \textbf{offline\_dump} -- 
+ \item \textbf{override\_dump} -- do opisania.
+\end{itemize}
 
 [PL]
 \subsubsection{Zmienne konfiguracyjne ipvssync}

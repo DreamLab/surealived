@@ -10,29 +10,50 @@ Do skompilowania potrzebne s± nastêpuj±ce aplikacje i biblioteki%
  \item glib2-dev
  \item libxml2-dev
  \item libssl-dev
- \item ¼ród³a kernela w \textit{/usr/src/linux}
+ \item ¼ród³a kernela (lub pakiet \textit{linux-headers})
 \end{itemize}
 
 [EN]
-TODO
+\section{Installation}
+\subsection{From sources}
+You will need the following Debian packages to be able to compile \textbf{SureAliveD}
+\begin{itemize}
+ \item gcc
+ \item cmake
+ \item make
+ \item glib2-dev
+ \item libxml2-dev
+ \item libssl-dev
+ \item kernel sources (or \textit{linux-headers} packet)
+\end{itemize}    
 
 [PL]
 \noindent Po rozpakowaniu \textit{surealived-x.y.z.tar.gz} w katalogu znajduj±
 siê nastêpuj±ce podkatalogi:
 \begin{itemize}
- \item \textit{common} - katalog z plikami ¼ród³owymi wykorzystywanymi
+ \item \textit{common} -- katalog z plikami ¼ród³owymi wykorzystywanymi
        zarówno przez \textbf{surealived} jak i \textbf{ipvssync}
- \item \textit{doc} - dokumentacja
- \item \textit{examples} - przyk³adowe xmlowe pliki konfiguracyjne 
+ \item \textit{doc} -- dokumentacja
+ \item \textit{examples} -- przyk³adowe xmlowe pliki konfiguracyjne 
        \textbf{surealived}
- \item \textit{ipvssync} - katalog ze ¼ród³ami synchronizatora
- \item \textit{libipvs} - biblioteka do komunikacji z \textit{IPVS},
+ \item \textit{ipvssync} -- katalog ze ¼ród³ami synchronizatora
+ \item \textit{libipvs} -- biblioteka do komunikacji z \textit{IPVS},
        autorstwa Wensong Zhanga, wykorzystywana przez synchronizator
- \item \textit{surealived} - katalog ze ¼ród³ami testera
+ \item \textit{surealived} -- katalog ze ¼ród³ami testera
 \end{itemize}
 
 [EN]
-TODO
+\noindent After unpacking \textit{surealived-x.y.z.tar.gz} you will find
+these directories:
+\begin{itemize}
+ \item \textit{common} -- directory containing source files used by
+   both \textbf{surealived} and \textbf{ipvssync}
+ \item \textit{doc} -- documentation
+ \item \textit{examples} -- \textbf{surealived} xml configuration files examples
+ \item \textit{ipvssync} -- synchronizer source files
+ \item \textit{libipvs} -- library (by Wensong Zhang) used to communicate with \textit{IPVS}
+ \item \textit{surealived} -- tester's source files
+\end{itemize}
 
 [PL]
 \noindent Kompilacjê + instalacjê nale¿y wykonaæ z konta \textit{root}:
@@ -48,7 +69,7 @@ TODO
 \end{verbatim}
 
 [PL]
-\noindent Podczas instalacji w systemie pojawi± siê binarki:
+\noindent Po instalacji w systemie pojawi± siê binarki:
 \begin{itemize}
  \item \textbf{/usr/sbin/ipvssync}
  \item \textbf{/usr/bin/surealived}
@@ -65,7 +86,7 @@ aplikacje zostaje przekopiowany do katalogu \textit{/etc/surealived}.
 	\textit{debugcomm=''1''},
  \item \textit{/var/lib/surealived} -- dla dynamicznej konfiguracji testowanych
        us³ug \textbf{surealived}%
-\footnote{Pliki \textit{offline.dump} oraz \textit{override.dump}.}%
+\footnote{Pliki \textit{offline.dump} oraz \textit{override.dump}.}
        oraz konfiguracji \textbf{ipvssync}%
 \footnote{Plik \textit{ipvsfull.cfg}, pliki z konfiguracj± ró¿nicow± s± w katalogu
          \textit{diffs}.},
@@ -76,6 +97,30 @@ aplikacje zostaje przekopiowany do katalogu \textit{/etc/surealived}.
 
 \epsfig{file=sd-diagram,width=14cm}
 [EN]
+\noindent After installation you will find following binaries in your system:
+\begin{itemize}
+ \item \textbf{/usr/sbin/ipvssync}
+ \item \textbf{/usr/bin/surealived}
+\end{itemize}
+
+\noindent Main configuration file \textit{surealived.cfg} used by both
+applications is copied into \textit{/etc/surealived}.
+
+\pagebreak
+\noindent Furthermore following directories are created:
+\begin{itemize}
+ \item \textit{/var/log/surealived} -- log files for tester and synchronizer
+ \item \textit{/var/log/surealived/comm} -- communication dump files for virtuals with
+	\textit{debugcomm=''1''} attribute set
+ \item \textit{/var/lib/surealived} -- for dynamic configuration files used by \textbf{surealived} tester%
+\footnote{Files \textit{offline.dump} and \textit{override.dump}.}
+       and for \textbf{ipvssync} configuration%
+\footnote{File \textit{ipvsfull.cfg}, differential config files are inside \textit{diffs} directory.}
+ \item \textit{/var/lib/surealived/diffs} -- \textbf{ipvssync} differential configuration
+ \item \textit{/var/lib/surealived/stats} -- real's tests statistics
+\end{itemize}
+
+\epsfig{file=sd-diagram,width=14cm}
 
 [ALL]
 \newpage

@@ -133,7 +133,7 @@ I'll explain semantics on following example:
 		to retcode
   * retcode="string" [optional, default "200"]
 
-  b) DNS  
+  b) DNS
   dns tester attributes:
   * request="string" [mandatory], domain for which soa will be checked
 

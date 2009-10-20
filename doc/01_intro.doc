@@ -4,8 +4,8 @@
 \vspace{20em}
 ~
 \begin{center}
- \epsfig{file=surealived-logo, width=8cm}
- \textit{ver. 0.8.2}
+  \epsfig{file=surealived-logo, width=8cm}
+  \textit{ver. 0.8.2}
 \end{center}
 \newpage
 
@@ -23,8 +23,8 @@ jest tak¿e niewielki wybór aplikacji testuj±cych, w szczegolno¶ci
 dla \textit{LVSów}, gdzie wpiêtych jest wiele serwerów a czêstotliwo¶æ
 testu nie powinna byæ d³u¿sza ni¿ kilka sekund. Takie za³o¿enie
 zdecydowanie ogranicza listê mo¿liwych do zastosowania aplikacji,
-gdy¿ musz± one byæ oparte o multipleksowane IO (select/poll/epoll). 
-Do tej pory jedyn± aplikacj± spe³niaj±c± te wymagania by³ \textit{keepalived}. 
+gdy¿ musz± one byæ oparte o multipleksowane IO (select/poll/epoll).
+Do tej pory jedyn± aplikacj± spe³niaj±c± te wymagania by³ \textit{keepalived}.
 Ze wzglêdu na b³êdy i pewne braki funkcjonalne w \textit{keepalived}
 zdecydowali¶my siê napisaæ od zera tester us³ug. Nazwali¶my go do¶æ
 przewrotnie \textit{SureAliveD}, ze wzglêdu na to, i¿ chcemy byæ pewni,
@@ -32,6 +32,19 @@ przewrotnie \textit{SureAliveD}, ze wzglêdu na to, i¿ chcemy byæ pewni,
 
 [EN]
 \section{Introduction}
+\textit{Linux Virtual Server (LVS)} is one of the most efficient
+traffic balancing server. In environments containing hundreds (if not thousands)
+services plugged to \textit{LVS} it's becoming a challenge to
+test services and make the right decision about plugging the server in or out.
+Another problem about scalability in this matter is the lack of testing applications
+especially for \textit{LVS}, where there are many servers plugged in and test 
+frequency should not be longer than few seconds. That requirement reduces
+list of usable applications, because they have to be based on multiplexed IO
+(select/poll/epoll). So far the only application satisfying this requirements
+was \textit{keepalived}. Because of it's bugs and lack of some functionalities
+in \textit{keepalived} we decided to write a new service tester from scratch.
+We called it \textit{SureAliveD}, because we wanted to make \underline{sure}
+that services plugged to \textit{LVS} are working.
 
 [PL]
 \subsection{Czym jest i jak dzia³a \textit{SureAliveD}?}
@@ -43,12 +56,17 @@ testuj±cej od modyfikuj±cej zmiany w~j±drze linuksa (w~tablicy
 \textbf{ipvssync}.
 
 [EN]
-\subsection{What the \textit{SureAliveD is and how it works}?}
+\subsection{What \textit{SureAliveD} is and how it works?}
+\textit{SureAliveD} is very effective \textit{real} servers tester
+plugged to LVS. We decided to separate testing layer from the one
+modifying linux kernel (in \textit{IPVS} table). Application which
+tests real's availability is called \textbf{surealived}, and \textit{IPVS}
+changes synchronizer is called \textbf{ipvssync}.
 
 [PL]
 Podstawowym za³o¿eniem aplikacji by³o zast±pienie stosowanego do
 tej pory \textit{keepalived} w~czê¶ci testuj±cej. \textit{Keepalived}
-¶wietnie sprawuje siê tam, gdzie nie ma potrzeby czêstego grzebania 
+¶wietnie sprawuje siê tam, gdzie nie ma potrzeby czêstego grzebania
 w~konfiguracji. W~du¿ych ¶rodowiskach, gdzie do LVSa wpiête s± setki
 us³ug, problematyczn± staje siê ka¿dorazowa konieczno¶æ prze³adowania
 ca³o¶ci konfiguracji (nawet przy potrzebie zmiany wagi pojedynczego
@@ -58,71 +76,132 @@ segfaultowanie checkera, pozostawienie otwartych deskryptorów, brak
 mo¿liwo¶ci przetestowania poprawno¶ci sk³adni pliku konfiguracyjnego
 oraz czyszczenie tablicy \textit{IPVS}%
 \footnote{Istnieje owszem opcja uruchomienia \textbf{keepalived}
-z pozostawieniem starych wpisów, jednak od tego momentu przestaje siê on
-''interesowaæ'' serwerami, których nie ma ju¿ w~konfiguracji a~pozosta³y
-w~\textit{IPVS} -- i~zamiast usuwaæ pozostawia je nietkniête z~uprzednio
-ustawion± wag±.}.
+  z pozostawieniem starych wpisów, jednak od tego momentu przestaje siê on
+  ''interesowaæ'' serwerami, których nie ma ju¿ w~konfiguracji a~pozosta³y
+  w~\textit{IPVS} -- i~zamiast usuwaæ pozostawia je nietkniête z~uprzednio
+  ustawion± wag±.}.
 
 [EN]
-TODO
+Our main goal was to replace \textit{keepalived} in testing part.
+\textit{Keepalived} works great where there is no need to change
+configuration frequently. In big environments, where there are hundreds
+services plugged to LVS, it's problematic to reload whole configuration
+each time (even if we need to change just one server's weight).
+Frequent configuration reloading highlights bugs in \textbf{KeepaliveD} such as:
+\begin{itemize}
+  \item failure to test some services
+  \item tester's segfaulting
+  \item leaving open file descriptors
+  \item lack of config file validation and clearing \textit{IPVS} table%
+    \footnote{There is indeed an option to start \textbf{keepalived} and
+      leave old entries, but from that moment \textbf{keepalived} is no
+      longer ''interested'' in servers which are not in the configuration
+      but exist in \textit{IPVS} table -- but it leaves them intact with
+      previously set weight instead of removing them.}.
+\end{itemize}
+      
 
 [PL]
 \subsection{Charakterystyka \textbf{surealived}}
 Oto podstawowe cechy testera -- \textbf{surealived}:
 \begin{itemize}
- \item oparty na epollu,
- \item posiada rozszerzaln± XMLow± konfiguracjê (rozparsowywaln±
-       przez modu³),
- \item testery us³ug s± w~rzeczywisto¶ci ³adowanymi dynamicznie
-       modu³ami -- daje to mo¿liwo¶æ ³atwego dodawania nowych 
-       testerów kolejnych us³ug,
- \item w~chwili obecnej ma zaimplementowane modu³y testuj±ce 
-       protoko³ów TCP, HTTP, DNS, exec (uruchomienie zewnêtrznego
-       testera) oraz no-test (potraktowanie serwera jako dostêpnego
-       zawsze),
- \item ma wbudowan± przezroczyst± obs³ugê SSL (wystarczy ustawiæ
-       atrybut SSL=''1'' przy konfiguracji testera).
- \item zapisuje statystyki po³±czeñ do poszczególnych serwerów
-       (czas po³±czenia i czas odpowiedzi),
- \item trzyma tablicê stanów serwerów, których test siê nie powiód³,
-       a tak¿e tablicê przes³aniaj±c± bie¿±c± konfiguracjê (stan
-       serwera oraz wagi), stany te s± honorowane po restarcie,
- \item na starcie nastêpuje zapisanie stanu dla \textbf{ipvssync}
-       i wymuszenie synchronizacji konfiguracji z tablic± \textit{IPVS},
- \item komunikacja z \textbf{ipvssync} odbywa siê poprzez plik
-       konfiguracji dla ipvssync (zapisywany co 60 sek.) oraz pliki
-       ró¿nicowe, zapisywane przy ka¿dej zmianie,
- \item start testów roz³o¿ony jest w~czasie (1 sek.), co zmniejsza
-       obci±¿enie CPU w~przypadku równoczesnego uruchomienia testów
-       dla setek reali,
- \item umo¿liwia sprawdzenie sk³adni (parametr -t),
- \item restart aplikacji nie stanowi problememu,
- \item mo¿liwa jest praca \textbf{surealived} tylko jako testera us³ug,
-       bez synchronizacji do \textit{IPVS},
- \item wystawia port do zarz±dzania (domy¶lnie 1337), umo¿liwiaj±c 
-       wykonywanie pewnych akcji bez restartowania aplikacji.
+\item oparty na epollu,
+\item posiada rozszerzaln± XMLow± konfiguracjê (rozparsowywaln±
+  przez modu³),
+\item testery us³ug s± w~rzeczywisto¶ci ³adowanymi dynamicznie
+  modu³ami -- daje to mo¿liwo¶æ ³atwego dodawania nowych
+  testerów kolejnych us³ug,
+\item w~chwili obecnej ma zaimplementowane modu³y testuj±ce
+  protoko³ów TCP, HTTP, DNS, exec (uruchomienie zewnêtrznego
+  testera) oraz no-test (potraktowanie serwera jako dostêpnego
+  zawsze),
+\item ma wbudowan± przezroczyst± obs³ugê SSL (wystarczy ustawiæ
+  atrybut SSL=''1'' przy konfiguracji testera).
+\item zapisuje statystyki po³±czeñ do poszczególnych serwerów
+  (czas po³±czenia i czas odpowiedzi),
+\item trzyma tablicê stanów serwerów, których test siê nie powiód³,
+  a tak¿e tablicê przes³aniaj±c± bie¿±c± konfiguracjê (stan
+  serwera oraz wagi), stany te s± honorowane po restarcie,
+\item na starcie nastêpuje zapisanie stanu dla \textbf{ipvssync}
+  i wymuszenie synchronizacji konfiguracji z tablic± \textit{IPVS},
+\item komunikacja z \textbf{ipvssync} odbywa siê poprzez plik
+  konfiguracji dla ipvssync (zapisywany co 60 sek.) oraz pliki
+  ró¿nicowe, zapisywane przy ka¿dej zmianie,
+\item start testów roz³o¿ony jest w~czasie (1 sek.), co zmniejsza
+  obci±¿enie CPU w~przypadku równoczesnego uruchomienia testów
+  dla setek reali,
+\item umo¿liwia sprawdzenie sk³adni konfiguracji (parametr -t),
+\item restart aplikacji nie stanowi problemu,
+\item mo¿liwa jest praca \textbf{surealived} tylko jako testera us³ug,
+  bez synchronizacji do \textit{IPVS},
+\item wystawia port do zarz±dzania (domy¶lnie 1337), umo¿liwiaj±c
+  wykonywanie pewnych akcji bez restartowania aplikacji.
 \end{itemize}
- 
+
 [EN]
-TODO
+\subsection{\textbf{SureAliveD} characteristics}
+These are the main \textbf{surealived} tester features:
+\begin{itemize}
+\item based on epoll
+\item flexible XML configuration (parsed by module)
+\item service testers are in fact dynamically loaded modules
+  (DSO - Dynamic Shared Object) -- it allows us to easily
+  implement and add new service testers.
+\item currently implemented testing modules are TCP protocol, HTTP,
+  DNS, exec (executing external tester) and no-test (always treat server
+  as available)
+\item built-in transparent SSL support (just set SSL=''1'' attribute
+  in tester configuration)
+\item writes connection statistics for each server
+  (time of connection and answer time)
+\item two additional servers state table -- first holds info
+  about servers that failed the test, and second keeps temporary
+  configuration which overrides configuration from XML (server state
+  and weight), those states are honoured after restart
+\item on start configuration for \textbf{ipvssync} is saved
+  and synchronization with \textit{IPVS} table is forced.
+\item communication with \textbf{ipvssync} takes place via full
+  synchronization file (written every 60 seconds) and via differential 
+  configuration (written after every change)
+\item tests start is spread in time (1 sec.), which reduces CPU load
+  in case of simultaneous tests start for hundreds of reals
+\item possibility to check configuration syntax (-t parameter)
+\item application restart is not a problem
+\item \textbf{surealived} can work just as service tester without
+  synchronizing with \textit{IPVS}
+\item opens a management port (1337 by default), allowing us
+  to make some actions without application restart
+\end{itemize}
 
 [PL]
 \subsection{Charakterystyka \textbf{ipvssync}}
 Oto cechy synchronizatora \textbf{ipvssync}:
 \begin{itemize}
- \item u¿ywa konfiguracji wygenerowanej przez \textbf{surealived}, tzn
-       \textit{ipvsfull.cfg} oraz plików ró¿nicowych,
- \item pozwala na pozostawienie/usuniêcie niezarz±dzanych przez niego
-       \textit{wirtuali} z \textbf{IPVS}, w~przypadku \textit{reali} 
-       pe³na synchronizacja odbywa siê zawsze,
- \item mo¿liwe jest sprawdzenie sk³adni konfiguracji (parametr -t),
- \item restart aplikacji nie jest problemem, podobnie jak w~przypadku
-       restartu \textbf{surealived} nastêpuje wymuszenie pe³nej
-       synchronizacji z \textit{IPVS},
- \item wymaga dzia³ania z u¿ytkownika root.
+\item u¿ywa konfiguracji wygenerowanej przez \textbf{surealived}, tzn
+  \textit{ipvsfull.cfg} oraz plików ró¿nicowych,
+\item pozwala na pozostawienie/usuniêcie niezarz±dzanych przez niego
+  \textit{wirtuali} z \textbf{IPVS}, w~przypadku \textit{reali}
+  pe³na synchronizacja odbywa siê zawsze,
+\item mo¿liwe jest sprawdzenie sk³adni konfiguracji (parametr -t),
+\item restart aplikacji nie jest problemem, podobnie jak w~przypadku
+  restartu \textbf{surealived} nastêpuje wymuszenie pe³nej
+  synchronizacji z \textit{IPVS},
+\item wymaga dzia³ania z u¿ytkownika root.
 \end{itemize}
 \newpage
 
 [EN]
-TODO
+\subsection{\textbf{ipvssync} characteristics}
+These are \textbf{ipvssync} synchronizator features:
+\begin{itemize}
+\item uses configuration generated by \textbf{surealived}, i.e.
+  \textit{ipvsfull.cfg} and differential config files.
+\item allows to leave or delete unmanaged \textit{virtuals}
+  from \textbf{IPVS}, in case of \textit{reals} full synchronization
+  takes place
+\item application restart is not a problem (as in the case of
+  \textbf{surealived} restart, full synchronization with \textit{IPVS}
+  is forced
+\item needs root privileges
+\end{itemize}
 \newpage

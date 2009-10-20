@@ -1,3 +1,4 @@
+PROJECT(surealived C)
 cmake_minimum_required(VERSION 2.6)
 #add_definitions("-Werror -Wall -ggdb -pg")
 add_definitions("-Werror -Wall -Wformat=2")
@@ -29,7 +30,7 @@ endif()
 # === ip_vs.h ===
 FIND_PATH(IPVS 
 	net/ip_vs.h
-	/usr/src/linux/include
+	/lib/modules/${CMAKE_SYSTEM_VERSION}/build/include/
 	)
 IF (IPVS)
    MESSAGE(STATUS "Kernel net/ip_vs.h header = ${IPVS}/net/ip_vs.h")
