@@ -68,18 +68,22 @@ Podstawowym za³o¿eniem aplikacji by³o zast±pienie stosowanego do
 tej pory \textit{keepalived} w~czê¶ci testuj±cej. \textit{Keepalived}
 ¶wietnie sprawuje siê tam, gdzie nie ma potrzeby czêstego grzebania
 w~konfiguracji. W~du¿ych ¶rodowiskach, gdzie do LVSa wpiête s± setki
-us³ug, problematyczn± staje siê ka¿dorazowa konieczno¶æ prze³adowania
+us³ug, problematyczna staje siê ka¿dorazowa konieczno¶æ prze³adowania
 ca³o¶ci konfiguracji (nawet przy potrzebie zmiany wagi pojedynczego
 serwera). Przy czêstym prze³adowywaniu konfiguracji uwidaczniaj± siê
-b³êdy takie jak: zaniechanie testowania niektórych us³ug,
-segfaultowanie checkera, pozostawienie otwartych deskryptorów, brak
-mo¿liwo¶ci przetestowania poprawno¶ci sk³adni pliku konfiguracyjnego
-oraz czyszczenie tablicy \textit{IPVS}%
-\footnote{Istnieje owszem opcja uruchomienia \textbf{keepalived}
-  z pozostawieniem starych wpisów, jednak od tego momentu przestaje siê on
-  ''interesowaæ'' serwerami, których nie ma ju¿ w~konfiguracji a~pozosta³y
-  w~\textit{IPVS} -- i~zamiast usuwaæ pozostawia je nietkniête z~uprzednio
-  ustawion± wag±.}.
+b³êdy takie jak:
+\begin{itemize}
+  \item zaniechanie testowania niektórych us³ug
+  \item segfaultowanie testera
+  \item pozostawienie otwartych deskryptorów
+  \item brak mo¿liwo¶ci przetestowania poprawno¶ci sk³adni pliku konfiguracyjnego
+  \item czyszczenie tablicy \textit{IPVS}%
+    \footnote{Istnieje owszem opcja uruchomienia \textbf{keepalived}
+      z pozostawieniem starych wpisów, jednak od tego momentu przestaje siê on
+      ''interesowaæ'' serwerami, których nie ma ju¿ w~konfiguracji a~pozosta³y
+      w~\textit{IPVS} -- i~zamiast usuwaæ pozostawia je nietkniête z~uprzednio
+      ustawion± wag±.}.
+\end{itemize}
 
 [EN]
 Our main goal was to replace \textit{keepalived} in testing part.
@@ -92,7 +96,8 @@ Frequent configuration reloading highlights bugs in \textbf{KeepaliveD} such as:
   \item failure to test some services
   \item tester's segfaulting
   \item leaving open file descriptors
-  \item lack of config file validation and clearing \textit{IPVS} table%
+  \item lack of config file validation
+  \item clearing \textit{IPVS} table%
     \footnote{There is indeed an option to start \textbf{keepalived} and
       leave old entries, but from that moment \textbf{keepalived} is no
       longer ''interested'' in servers which are not in the configuration
@@ -100,6 +105,8 @@ Frequent configuration reloading highlights bugs in \textbf{KeepaliveD} such as:
       previously set weight instead of removing them.}.
 \end{itemize}
       
+[ALL]
+\newpage
 
 [PL]
 \subsection{Charakterystyka \textbf{surealived}}
@@ -111,10 +118,9 @@ Oto podstawowe cechy testera -- \textbf{surealived}:
 \item testery us³ug s± w~rzeczywisto¶ci ³adowanymi dynamicznie
   modu³ami -- daje to mo¿liwo¶æ ³atwego dodawania nowych
   testerów kolejnych us³ug,
-\item w~chwili obecnej ma zaimplementowane modu³y testuj±ce
-  protoko³ów TCP, HTTP, DNS, exec (uruchomienie zewnêtrznego
-  testera) oraz no-test (potraktowanie serwera jako dostêpnego
-  zawsze),
+\item obecnie zaimplementowane modu³y testuj±ce
+  protokó³ TCP, HTTP, DNS, exec (uruchomienie zewnêtrznego
+  testera) oraz no-test (traktowanie serwera jako dostêpnego)
 \item ma wbudowan± przezroczyst± obs³ugê SSL (wystarczy ustawiæ
   atrybut SSL=''1'' przy konfiguracji testera).
 \item zapisuje statystyki po³±czeñ do poszczególnych serwerów
@@ -177,8 +183,8 @@ These are the main \textbf{surealived} tester features:
 \subsection{Charakterystyka \textbf{ipvssync}}
 Oto cechy synchronizatora \textbf{ipvssync}:
 \begin{itemize}
-\item u¿ywa konfiguracji wygenerowanej przez \textbf{surealived}, tzn
-  \textit{ipvsfull.cfg} oraz plików ró¿nicowych,
+\item u¿ywa konfiguracji generowanej przez \textbf{surealived}
+  (\textit{ipvsfull.cfg}) oraz plików ró¿nicowych
 \item pozwala na pozostawienie/usuniêcie niezarz±dzanych przez niego
   \textit{wirtuali} z \textbf{IPVS}, w~przypadku \textit{reali}
   pe³na synchronizacja odbywa siê zawsze,

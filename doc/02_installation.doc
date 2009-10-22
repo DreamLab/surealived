@@ -112,9 +112,9 @@ applications is copied into \textit{/etc/surealived}.
  \item \textit{/var/log/surealived} -- log files for tester and synchronizer
  \item \textit{/var/log/surealived/comm} -- communication dump files for virtuals with
 	\textit{debugcomm=''1''} attribute set
- \item \textit{/var/lib/surealived} -- for dynamic configuration files used by \textbf{surealived} tester%
+ \item \textit{/var/lib/surealived} -- for dynamic configuration files used by \textbf{surealived}% tester
 \footnote{Files \textit{offline.dump} and \textit{override.dump}.}
-       and for \textbf{ipvssync} configuration%
+       and for \textbf{ipvssync}% configuration
 \footnote{File \textit{ipvsfull.cfg}, differential config files are inside \textit{diffs} directory.}
  \item \textit{/var/lib/surealived/diffs} -- \textbf{ipvssync} differential configuration
  \item \textit{/var/lib/surealived/stats} -- real's tests statistics
