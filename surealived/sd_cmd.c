@@ -21,11 +21,12 @@
 #include <sd_override.h>
 #include <sd_ipvssync.h>
 #include <xmlparser.h>
+#include <sys/resource.h>
 
 #define MAX_CLIENTS 16
 
 int      listen_sock;
-SDepoll *logic_epoll;
+SDepoll *logic_epoll = NULL;
 int      connected_clients = 0;
 
 typedef struct {
@@ -37,7 +38,6 @@ typedef struct {
     gint    rend;
     gint    wpos;
     gint    wlen;
-
 } SDClient;
 
 
@@ -213,6 +213,118 @@ static gchar *sd_cmd_rlist(GPtrArray *VCfgArr, GHashTable *ht) {
 }
 
 /* Returns allocated string */
+static gchar *sd_cmd_stats(GPtrArray *VCfgArr) {
+    GString    *s = NULL;
+    CfgVirtual *virt;
+    CfgReal    *real;
+    gint        i, j;
+    gboolean    do_scan; 
+    struct timeval ctime;
+    static struct timeval lsttime = { 0, 0 };
+    static struct rusage usage;
+    static gint total_v = 0;
+    static gint total_r = 0;
+    static gint total_ronline = 0;
+    static gint total_roffline = 0; 
+    static gint total_rdown = 0;
+    static gint total_success = 0;
+    static gint total_failed = 0;
+    FILE  *in = NULL;
+    gchar *fname = NULL;
+    gchar  buf[BUFSIZ];
+    GDir  *dir = NULL;
+    gint   fdno = 0;
+        
+    gettimeofday(&ctime, NULL);
+    if (ctime.tv_sec >= lsttime.tv_sec + 2)
+        do_scan = TRUE;
+
+    s = g_string_new_len(NULL, BUFSIZ);
+    if (do_scan) {
+        getrusage(RUSAGE_SELF, &usage);
+        total_v = VCfgArr->len;
+        total_r = total_ronline = total_roffline = total_rdown = total_success = total_failed = 0;
+
+        for (i = 0; i < VCfgArr->len; i++) {
+            virt = (CfgVirtual *) g_ptr_array_index(VCfgArr, i);
+            for (j = 0; j < virt->realArr->len; j++) {
+                real = (CfgReal *) g_ptr_array_index(virt->realArr, j);
+
+                if (real->rstate == REAL_ONLINE) 
+                    total_ronline++;
+                else if (real->rstate == REAL_OFFLINE)
+                    total_roffline++;
+                else 
+                    total_rdown++;
+                
+                if (real->online)
+                    total_success++;
+                else 
+                    total_failed++;
+            }
+        }
+    }
+
+    g_string_append_printf(s, 
+                           "=== global stats ===\n"
+                           "virtuals : %d\n"
+                           "reals    : %d\n"
+                           "=== real settings ===\n"
+                           "ronline  : %d\n"
+                           "roffline : %d\n"
+                           "rdown    : %d\n"
+                           "=== test stats ===\n"
+                           "success  : %d\n"
+                           "failed   : %d\n\n",
+                           total_v, total_r,
+                           total_ronline, total_roffline, total_rdown,
+                           total_success, total_failed);
+
+    g_string_append_printf(s, 
+                           "=== resource usage ===\n"
+                           "user time     : %d.%06d sec\n"
+                           "system time   : %d.%06d sec\n"
+                           "block in ops  : %ld\n"
+                           "block out ops : %ld\n"
+                           "messages sent : %ld\n"
+                           "messages rcvd : %ld\n"
+                           "signals rcvd  : %ld\n"
+                           "voluntary ctx : %ld\n"
+                           "involunt. ctx : %ld\n",
+                           (int) usage.ru_utime.tv_sec, (int) usage.ru_utime.tv_usec,
+                           (int) usage.ru_stime.tv_sec, (int) usage.ru_stime.tv_usec,
+                           usage.ru_inblock, usage.ru_oublock,
+                           usage.ru_msgsnd, usage.ru_msgrcv,
+                           usage.ru_nsignals,
+                           usage.ru_nvcsw, usage.ru_nivcsw);
+
+    /* Count fd usage */
+    fname = g_strdup_printf("/proc/%d/fd", getpid());
+    dir = g_dir_open(fname, 0, NULL);
+    assert(dir != NULL);
+    free(fname);
+    fdno = 0;
+    while (g_dir_read_name(dir))
+        fdno++;
+    g_dir_close(dir);
+
+    g_string_append_printf(s, "fd used       : %d\n\n", fdno);
+
+    /* Print Vm* from /proc/PID/status */
+    fname = g_strdup_printf("/proc/%d/status", getpid());
+    in = fopen(fname, "r");
+    assert(in != NULL);
+    free(fname);
+    g_string_append_printf(s, "=== memory usage ===\n");
+    while (fgets(buf, BUFSIZ, in))
+        if (!strncmp(buf, "Vm", 2))
+            g_string_append_printf(s, "%s", buf);
+    fclose(in);
+
+    return g_string_free(s, FALSE);
+}
+
+/* Returns allocated string */
 static gchar *sd_cmd_rset(GPtrArray *VCfgArr, GHashTable *ht) {
     GString    *s = NULL;
     CfgVirtual *virt;
@@ -346,7 +458,7 @@ gint sd_cmd_delvirt(GPtrArray *VCfgArr, gchar *vip, u_int16_t vport, SDIPVSProto
 
 gint sd_cmd_listen_socket_create(u_int16_t lport) {
     struct sockaddr_in  sa;
-    SDClient            *server;
+    SDClient            *server = NULL;
 
     LOGDETAIL("%s()", __PRETTY_FUNCTION__);
     listen_sock = sd_socket_nb(SOCK_STREAM);
@@ -368,7 +480,7 @@ gint sd_cmd_listen_socket_create(u_int16_t lport) {
         LOGERROR("Unable to listen()");
         return -1;
     }
-    server = (SDClient *)malloc(sizeof(SDClient));
+    server = (SDClient *) malloc(sizeof(SDClient));
     server->fd = listen_sock;
     sd_epoll_ctl(logic_epoll, EPOLL_CTL_ADD, listen_sock, server, EPOLLIN);
 
@@ -386,10 +498,10 @@ static gint sd_cmd_accept_client() {
 
     client_sock = accept(listen_sock, (struct sockaddr *)&sa, &len);
     if (client_sock == -1 && errno != EAGAIN) {
-        LOGINFO("[@] Client disconnected!");
+        LOGDEBUG("[@] Client disconnected!");
         return -1;
     }
-    LOGINFO("[@] New client connected!\n");
+    LOGDEBUG("[@] New client connected!\n");
 
     client = (SDClient *)malloc(sizeof(SDClient));
     memset(client, 0, sizeof(SDClient));
@@ -421,6 +533,10 @@ static void sd_cmd_execute(SDClient *client, GPtrArray *VCfgArr) {
     }
     else if (!strncmp(cmd, "rlist", 5)) {
         client->wbuf = sd_cmd_rlist(VCfgArr, ht);
+        goto cleanup;
+    }
+    else if (!strncmp(cmd, "stats", 5)) {
+        client->wbuf = sd_cmd_stats(VCfgArr);
         goto cleanup;
     }
     else if (!strncmp(cmd, "rset", 4)) {
