@@ -1,7 +1,7 @@
 PROJECT(surealived C)
 cmake_minimum_required(VERSION 2.6)
 #add_definitions("-Werror -Wall -ggdb -pg")
-add_definitions("-Werror -Wall -Wformat=2")
+add_definitions("-Werror -Wall -Wformat=2 -ggdb")
 
 message(STATUS "\n=== configuring surealived ===")
 

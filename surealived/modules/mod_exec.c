@@ -1,16 +1,16 @@
 /*
  * Copyright 2009 DreamLab Onet.pl Sp. z o.o.
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * 
+ *   This program is distributed in the hope that it will be useful,
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ *   See the GNU General Public License for more details.
  *
- *    http://www.apache.org/licenses/LICENSE-2.0
+ *   This program is free software; you can redistribute it and/or modify
+ *   it under the terms of the GNU General Public License as published by
+ *   the Free Software Foundation; either version 2 of the License, or
+ *   (at your option) any later version.
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
 */
 
 #include <stdio.h>
@@ -59,6 +59,7 @@ static void module_start_real(CfgReal *real) {
     gint i,len;
     gint tokens = 3;            /* argv[0] + addr + port */
     GString *s = NULL;
+    sigset_t blockset;
 
     if (real->moddynamic == NULL) {
 
@@ -85,6 +86,9 @@ static void module_start_real(CfgReal *real) {
     }
 
     if (!(real->pid = fork())) { /* child */
+        sigfillset(&blockset);
+        sigprocmask(SIG_UNBLOCK, &blockset, NULL); //unblock previously blocked signals in sd_tester_master_loop
+
         dup2(fileno(G_flog), 1);
         dup2(fileno(G_flog), 2);
         real->pgrp = setpgid(0, getpid());

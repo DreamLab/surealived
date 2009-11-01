@@ -187,6 +187,9 @@ Set: rstate=OFFLINE, weight=-1, inpercent=FALSE
 > printf "rlist vproto=tcp vaddr=192.168.0.2 vport=80\n" | nc -q 1 localhost 1337
 1. raddr=212.77.100.101 rport=80 currwgt=0 confwgt=11 ronline=TRUE rstate=OFFLINE
 
+> printf "stats\n" | nc -q 1 localhost 1337
+... useful statistics here ... 
+
 See and try example xml files in examples directory.
 
 Suggested startup when you don't wont to daemonize:
