@@ -229,11 +229,13 @@ static gchar *sd_cmd_stats(GPtrArray *VCfgArr) {
     static gint total_rdown = 0;
     static gint total_success = 0;
     static gint total_failed = 0;
-    FILE  *in = NULL;
-    gchar *fname = NULL;
-    gchar  buf[BUFSIZ];
-    GDir  *dir = NULL;
-    gint   fdno = 0;
+    FILE   *in = NULL;
+    gchar  *fname = NULL;
+    gchar   buf[BUFSIZ];
+    GDir   *dir = NULL;
+    gint    fdno = 0;
+    gchar   vmname[32], vmunit[8];
+    gulong  vmvalue;
         
     gettimeofday(&ctime, NULL);
     if (ctime.tv_sec >= lsttime.tv_sec + 2)
@@ -249,6 +251,7 @@ static gchar *sd_cmd_stats(GPtrArray *VCfgArr) {
             virt = (CfgVirtual *) g_ptr_array_index(VCfgArr, i);
             for (j = 0; j < virt->realArr->len; j++) {
                 real = (CfgReal *) g_ptr_array_index(virt->realArr, j);
+                total_r++;
 
                 if (real->rstate == REAL_ONLINE) 
                     total_ronline++;
@@ -317,8 +320,10 @@ static gchar *sd_cmd_stats(GPtrArray *VCfgArr) {
     free(fname);
     g_string_append_printf(s, "=== memory usage ===\n");
     while (fgets(buf, BUFSIZ, in))
-        if (!strncmp(buf, "Vm", 2))
-            g_string_append_printf(s, "%s", buf);
+        if (sscanf(buf, "Vm%31s %ld %7s\n", vmname, &vmvalue, vmunit) == 3) {
+            vmname[strlen(vmname)-1] = '\0';
+            g_string_append_printf(s, "Vm%-11s : %-6ld %s\n", vmname, vmvalue, vmunit);
+        }
     fclose(in);
 
     return g_string_free(s, FALSE);
@@ -390,72 +395,7 @@ static gchar *sd_cmd_rset(GPtrArray *VCfgArr, GHashTable *ht) {
     return g_string_free(s, FALSE);
 }
 
-gint sd_cmd_delreal(GPtrArray *VCfgArr, gchar *vip, u_int16_t vport, 
-                    SDIPVSProtocol proto, gchar *rip, u_int16_t rport) {
-    CfgReal *real = NULL; //sd_cmd_find_real(sd_cmd_find_virt(VCfgArr, vip, vport, proto), rip, rport);
-
-    LOGINFO("[^] logic: deleting real (%s:%d_%d)[%s:%d]", vip, vport, proto, rip, rport);
-
-    if (!real) {
-        LOGINFO("\t-> unable to find real!");
-        return -1;
-    }
-    if (real->ssl)
-        SSL_free(real->ssl);
-    if (real->moddata)
-        free(real->moddata);
-
-    g_ptr_array_remove_fast(real->virt->realArr, real); /* super strange */
-    free(real);
-
-    return 0;
-}
-
-gint sd_cmd_addreal(gchar *xml_info) {
-    /* i suppose the best way to add real's/virtuals is to pass complete tree */
-    /* in an XML form (ie. <real .... /> ) and user sd_xml_parse_* */
-    return 0;
-}
-
-gint sd_cmd_addvirt(gchar *xml_info) {
-
-    return 0;
-}
-
-gint sd_cmd_delvirt(GPtrArray *VCfgArr, gchar *vip, u_int16_t vport, SDIPVSProtocol proto) {
-    gint        i;
-    CfgReal     *real;
-    CfgVirtual  *virt = NULL; //sd_cmd_find_virt(VCfgArr, vip, vport, proto);
-
-    if (!virt) {
-        LOGINFO("[^] logic: unable to find virt %s:%d_%d", vip, vport, proto);
-        return 1;
-    }
-    LOGINFO("[^] logic: deleting virtual %s (%s:%d)", virt->name, vip, vport);
-    if (virt->realArr) {
-        for (i = 0; i < virt->realArr->len; i++) { /* free all real's */
-            real = g_ptr_array_index(virt->realArr, i);
-            LOGDEBUG("\tfreeing real: %s", real->name);
-            virt->tester->mops->m_free(real); /* free real's memory */
-            if (real->ssl)
-                SSL_free(real->ssl);
-            if (real->moddata)
-                free(real->moddata);
-            g_ptr_array_remove_fast(virt->realArr, real);
-            free(real);
-        }
-        g_ptr_array_free(virt->realArr, FALSE); /* free real array */
-    }
-    if (virt->tester) {
-        if (virt->tester->moddata) {
-            LOGDEBUG("\tfreeing tester");
-            free(virt->tester->moddata); /* free module private data */
-        }
-    }
-    free(virt);                 /* free virtual at last */
-    return 0;
-}
-
+/* ---------------------------------------------------------------------- */
 gint sd_cmd_listen_socket_create(u_int16_t lport) {
     struct sockaddr_in  sa;
     SDClient            *server = NULL;
