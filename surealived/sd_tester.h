@@ -37,6 +37,15 @@ typedef struct {
 
 extern gboolean stop; 
 
+extern guint G_stats_test_success;
+extern guint G_stats_test_failed;
+extern guint G_stats_online_set;
+extern guint G_stats_offline_set;
+extern guint G_stats_conn_problem;
+extern guint G_stats_arp_problem;
+extern guint G_stats_bytes_rcvd;
+extern guint G_stats_bytes_sent;
+
 SDTester   *sd_tester_create(GPtrArray *VCfgArr);
 gint        sd_tester_master_loop(SDTester *sdtest);
 void        sd_tester_debug(SDTester *sdtest);

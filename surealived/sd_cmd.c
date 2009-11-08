@@ -20,6 +20,7 @@
 #include <sd_epoll.h>
 #include <sd_override.h>
 #include <sd_ipvssync.h>
+#include <sd_tester.h>
 #include <xmlparser.h>
 #include <sys/resource.h>
 
@@ -270,30 +271,49 @@ static gchar *sd_cmd_stats(GPtrArray *VCfgArr) {
 
     g_string_append_printf(s, 
                            "=== global stats ===\n"
-                           "virtuals : %d\n"
-                           "reals    : %d\n"
+                           "virtuals       : %d\n"
+                           "reals          : %d\n\n"
                            "=== real settings ===\n"
-                           "ronline  : %d\n"
-                           "roffline : %d\n"
-                           "rdown    : %d\n"
-                           "=== test stats ===\n"
-                           "success  : %d\n"
-                           "failed   : %d\n\n",
+                           "ronline        : %d\n"
+                           "roffline       : %d\n"
+                           "rdown          : %d\n\n"
+                           "=== real stats ===\n"
+                           "success        : %d\n"
+                           "failed         : %d\n\n",
                            total_v, total_r,
                            total_ronline, total_roffline, total_rdown,
                            total_success, total_failed);
 
     g_string_append_printf(s, 
+                           "=== tests stats ===\n"
+                           "t_success      : %u\n"
+                           "t_failed       : %u\n"
+                           "t_online_set   : %u\n"
+			   "t_offline_set  : %u\n"
+			   "t_conn_problem : %u\n"
+			   "t_arp_problem  : %u\n"
+			   "t_bytes_rcvd   : %u\n"
+			   "t_bytes_sent   : %u\n\n",
+			   G_stats_test_success,
+			   G_stats_test_failed,
+			   G_stats_online_set,
+			   G_stats_offline_set,
+			   G_stats_conn_problem,
+			   G_stats_arp_problem,
+			   G_stats_bytes_rcvd,
+			   G_stats_bytes_sent);
+
+    g_string_append_printf(s, 
                            "=== resource usage ===\n"
-                           "user time     : %d.%06d sec\n"
-                           "system time   : %d.%06d sec\n"
-                           "block in ops  : %ld\n"
-                           "block out ops : %ld\n"
-                           "messages sent : %ld\n"
-                           "messages rcvd : %ld\n"
-                           "signals rcvd  : %ld\n"
-                           "voluntary ctx : %ld\n"
-                           "involunt. ctx : %ld\n",
+                           "user_time      : %d.%06d sec\n"
+                           "system_time    : %d.%06d sec\n"
+                           "block_in_ops   : %ld\n"
+                           "block_out_ops  : %ld\n"
+                           "messages_sent  : %ld\n"
+                           "messages_rcvd  : %ld\n"
+                           "signals_rcvd   : %ld\n"
+                           "voluntary_ctx  : %ld\n"
+                           "involunt_ctx   : %ld\n",
                            (int) usage.ru_utime.tv_sec, (int) usage.ru_utime.tv_usec,
                            (int) usage.ru_stime.tv_sec, (int) usage.ru_stime.tv_usec,
                            usage.ru_inblock, usage.ru_oublock,
@@ -311,7 +331,7 @@ static gchar *sd_cmd_stats(GPtrArray *VCfgArr) {
         fdno++;
     g_dir_close(dir);
 
-    g_string_append_printf(s, "fd used       : %d\n\n", fdno);
+    g_string_append_printf(s, "fd_used        : %d\n\n", fdno);
 
     /* Print Vm* from /proc/PID/status */
     fname = g_strdup_printf("/proc/%d/status", getpid());
@@ -322,7 +342,7 @@ static gchar *sd_cmd_stats(GPtrArray *VCfgArr) {
     while (fgets(buf, BUFSIZ, in))
         if (sscanf(buf, "Vm%31s %ld %7s\n", vmname, &vmvalue, vmunit) == 3) {
             vmname[strlen(vmname)-1] = '\0';
-            g_string_append_printf(s, "Vm%-11s : %-6ld %s\n", vmname, vmvalue, vmunit);
+            g_string_append_printf(s, "Vm%-12s : %-6ld %s\n", vmname, vmvalue, vmunit);
         }
     fclose(in);
 
@@ -347,15 +367,20 @@ static gchar *sd_cmd_rset(GPtrArray *VCfgArr, GHashTable *ht) {
         return g_strdup(errbuf);
 
     rstate = g_hash_table_lookup(ht, "rstate");
-    if (!rstate)
+    rweight = g_hash_table_lookup(ht, "rweight");
+    if (!rstate && !rweight) 
+        return g_strdup_printf("cmd_rset: you need to set at least 'rstate' or 'rweight'\n");
+
+    if (!rstate) {
         rstate = sd_rstate_str(real->rstate); //leave rstate untouched
+        rst = sd_rstate_no(rstate);
+    }
     else {
         rst = sd_rstate_no(rstate);
         if (rst < 0)
             return g_strdup_printf("cmd_rset: rstate unknown [%s]\n", rstate);
     }
 
-    rweight = g_hash_table_lookup(ht, "rweight");
     if (rweight) {
         c = strchr(rweight, '%');
         if (c) {

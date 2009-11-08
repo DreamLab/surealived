@@ -34,6 +34,16 @@ SDepoll *epoll;
 guint        tests_running = 0;  /* for gentle restart */
 gboolean     stop = FALSE;
 
+/* Statistics counters */
+guint        G_stats_test_success = 0; //counter for single test
+guint        G_stats_test_failed  = 0; 
+guint        G_stats_online_set   = 0; //counter (switch to online)
+guint        G_stats_offline_set  = 0; //counter (switch to offline)
+guint        G_stats_conn_problem = 0; //counter (if arp reply is ok (no EPOLLERR occured in connect function) that means there's no SYN,ACK segment)
+guint        G_stats_arp_problem  = 0; //counter (if EPOLLERR occured before connect - suppose, there's no arp reply for that host)
+guint        G_stats_bytes_rcvd   = 0;
+guint        G_stats_bytes_sent   = 0;
+
 /* ---------------------------------------------------------------------- */
 /* === Private methods === */
 static gint sd_read(CfgReal *real) {
@@ -47,12 +57,14 @@ static gint sd_read(CfgReal *real) {
             if (G_debug_comm == TRUE && real->tester->debugcomm && ret > 0)
                 sd_append_to_commlog(real, real->buf + real->pos, ret);
             real->pos += ret;
+            G_stats_bytes_rcvd += ret;
             brk--;
         }
         else if (real->ssl && (ret = SSL_read(real->ssl, real->buf + real->pos, len - real->pos)) > 0) {
             if (G_debug_comm == TRUE && real->tester->debugcomm && ret > 0)
                 sd_append_to_commlog(real, real->buf + real->pos, ret);
             real->pos += ret;
+            G_stats_bytes_rcvd += ret;
             brk--;
         }
         else
@@ -96,6 +108,7 @@ static gint sd_read_av(CfgReal *real) { /* read and return after one read */
 
     if (ret > 0) {
         real->bytes_read = ret;
+        G_stats_bytes_rcvd += ret;
         return 0;               /* some data read */
     }
 
@@ -126,12 +139,14 @@ static gint sd_write(CfgReal *real) {
             if (G_debug_comm == TRUE && real->tester->debugcomm && ret > 0)
                 sd_append_to_commlog(real, real->buf + real->pos, ret);
             real->pos += ret;
+            G_stats_bytes_sent += ret;
             brk--;
         }
         else if (real->ssl && (ret = SSL_write(real->ssl, real->buf + real->pos, len-real->pos)) > 0) {
             if (G_debug_comm == TRUE && real->tester->debugcomm && ret > 0)
                 sd_append_to_commlog(real, real->buf + real->pos, ret);
             real->pos += ret;
+            G_stats_bytes_sent += ret;
             brk--;
         }
         else
@@ -171,6 +186,7 @@ static gint sd_eof(CfgReal *real) {
         sd_append_to_commlog(real, buf, ret);
 
     real->bytes_read += ret;
+    G_stats_bytes_rcvd += ret;
 
     if (ret < 0 && errno != EAGAIN)
         real->error = errno;
@@ -295,11 +311,13 @@ static gboolean sd_tester_eval_state(CfgReal *real) {
         if (real->retries_ok != real->tester->retries2ok)
             real->retries_ok++;
         real->retries_fail = 0;
+        G_stats_test_success++;
     }
     else {
         if (real->retries_fail != real->tester->retries2fail)
             real->retries_fail++;
         real->retries_ok = 0;
+        G_stats_test_failed++;
     }
 
     LOGDEBUG("eval state, real = %s:%s, last_online=%s, online=%s, rok=%d r2ok=%d rfail=%d r2fail=%d", 
@@ -311,6 +329,7 @@ static gboolean sd_tester_eval_state(CfgReal *real) {
         real->online = TRUE;
         if (real->last_online != real->online) {
             real->diff = TRUE;
+            G_stats_online_set++;
             LOGINFO("Real: [%s:%s - %s:%d:%s %s:%d] changed its test state to ONLINE (rstate = %s)", 
                     real->virt->name, real->name,
                     real->virt->addrtxt, ntohs(real->virt->port),
@@ -326,6 +345,7 @@ static gboolean sd_tester_eval_state(CfgReal *real) {
         real->online = FALSE;
         if (real->last_online != real->online) { 
             real->diff = TRUE;
+            G_stats_offline_set++;
             LOGINFO("Real: [%s:%s - %s:%d:%s %s:%d] changed its test state to OFFLINE (rstate = %s)", 
                     real->virt->name, real->name,
                     real->virt->addrtxt, ntohs(real->virt->port),
@@ -393,6 +413,7 @@ static void sd_tester_virtual_expired(SDTester *sdtest, CfgVirtual *virt) {
         if (!real->conn_time.tv_sec) {
             real->conn_time = virt->start_time; //perhaps connection established fail
             real->conn_time.tv_usec -= 1000;    //if timeout > 3sec - this means that no SYN,ACK
+            G_stats_conn_problem++;
         }
 
         /* last_online - useful when online status change - only this real need to be
@@ -555,6 +576,7 @@ static void sd_tester_process_events(gint nr_events) {
             if (!real->conn_time.tv_sec) {
                 real->conn_time = real->start_time;
                 real->conn_time.tv_usec -= 2000; //arp problem?
+                G_stats_arp_problem++;
             }
 
             LOGDEBUG("Eval: process events (EPOLLERR)");
