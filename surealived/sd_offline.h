@@ -20,5 +20,6 @@ void sd_offline_dump_add(CfgReal *real);
 void sd_offline_dump_del(CfgReal *real);
 gint sd_offline_dump_save();
 void sd_offline_dump_merge(GPtrArray *VCfgArr);
+guint sd_offline_hash_table_size(void);
 
 #endif

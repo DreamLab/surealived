@@ -167,3 +167,9 @@ void sd_offline_dump_merge(GPtrArray *VCfgArr) {
 
     sd_offline_dump_save(); 
 }
+
+guint sd_offline_hash_table_size(void) {
+    if (!OfflineH) 
+        return -1;
+    return g_hash_table_size(OfflineH);
+}

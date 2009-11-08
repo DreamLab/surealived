@@ -18,6 +18,7 @@
 #include <modloader.h>
 #include <sd_socket.h>
 #include <sd_epoll.h>
+#include <sd_offline.h>
 #include <sd_override.h>
 #include <sd_ipvssync.h>
 #include <sd_tester.h>
@@ -276,12 +277,16 @@ static gchar *sd_cmd_stats(GPtrArray *VCfgArr) {
                            "=== real settings ===\n"
                            "ronline        : %d\n"
                            "roffline       : %d\n"
-                           "rdown          : %d\n\n"
+                           "rdown          : %d\n"
+                           "offline_size   : %u\n"
+                           "override_size  : %u\n\n"
                            "=== real stats ===\n"
                            "success        : %d\n"
                            "failed         : %d\n\n",
                            total_v, total_r,
                            total_ronline, total_roffline, total_rdown,
+                           sd_offline_hash_table_size(),
+                           sd_override_hash_table_size(),
                            total_success, total_failed);
 
     g_string_append_printf(s, 
@@ -289,19 +294,19 @@ static gchar *sd_cmd_stats(GPtrArray *VCfgArr) {
                            "t_success      : %u\n"
                            "t_failed       : %u\n"
                            "t_online_set   : %u\n"
-			   "t_offline_set  : %u\n"
-			   "t_conn_problem : %u\n"
-			   "t_arp_problem  : %u\n"
-			   "t_bytes_rcvd   : %u\n"
-			   "t_bytes_sent   : %u\n\n",
-			   G_stats_test_success,
-			   G_stats_test_failed,
-			   G_stats_online_set,
-			   G_stats_offline_set,
-			   G_stats_conn_problem,
-			   G_stats_arp_problem,
-			   G_stats_bytes_rcvd,
-			   G_stats_bytes_sent);
+                           "t_offline_set  : %u\n"
+                           "t_conn_problem : %u\n"
+                           "t_arp_problem  : %u\n"
+                           "t_bytes_rcvd   : %u\n"
+                           "t_bytes_sent   : %u\n\n",
+                           G_stats_test_success,
+                           G_stats_test_failed,
+                           G_stats_online_set,
+                           G_stats_offline_set,
+                           G_stats_conn_problem,
+                           G_stats_arp_problem,
+                           G_stats_bytes_rcvd,
+                           G_stats_bytes_sent);
 
     g_string_append_printf(s, 
                            "=== resource usage ===\n"
@@ -391,6 +396,10 @@ static gchar *sd_cmd_rset(GPtrArray *VCfgArr, GHashTable *ht) {
             real->override_weight_in_percent = FALSE;
         real->override_weight = atoi(rweight);
     }
+
+    /* set default weight */
+    if (real->override_weight == -1)
+        real->override_weight = real->ipvs_weight;
     
     if (rst == REAL_ONLINE &&
         ((real->ipvs_weight == real->override_weight && !real->override_weight_in_percent) ||

@@ -20,5 +20,6 @@ void sd_override_dump_add(CfgReal *real);
 void sd_override_dump_del(CfgReal *real);
 gint sd_override_dump_save();
 void sd_override_dump_merge(GPtrArray *VCfgArr);
+guint sd_override_hash_table_size(void);
 
 #endif

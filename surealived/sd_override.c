@@ -169,15 +169,6 @@ void sd_override_dump_merge(GPtrArray *VCfgArr) {
                                 ntohs(real->virt->port), real->virt->ipvs_proto,
                                 real->virt->ipvs_fwmark, real->addrtxt, ntohs(real->port), 
                                 weight, wgttype, rstate);
-//                        if (!strcmp(rstate, "ONLINE")) {
-//                            real->online = TRUE;
-//                            real->last_online = TRUE;
-//                        } 
-//                        else {
-//                            real->online = FALSE;
-//                            real->last_online = FALSE;
-//                            real->retries_fail = real->tester->retries2fail;
-//                        }
                         found = TRUE;
                         real->override_weight = weight;
                         real->override_weight_in_percent = wgttype == '%' ? TRUE : FALSE;
@@ -194,4 +185,10 @@ void sd_override_dump_merge(GPtrArray *VCfgArr) {
     fclose(dump);
 
     sd_override_dump_save(); 
+}
+
+guint sd_override_hash_table_size(void) {
+    if (!OverrideH) 
+        return -1;
+    return g_hash_table_size(OverrideH);
 }
