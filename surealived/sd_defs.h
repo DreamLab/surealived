@@ -50,6 +50,8 @@
 #define REQ_END(x)      ((u_int32_t)(x)&SD_MASK ? 0 : 1)
 #define REQ_LEN(x)      ((u_int32_t)(x)&(u_int32_t)(~SD_MASK))
 
+typedef u_int32_t REQUEST;
+
 typedef enum {
     SD_IPVS_TCP,
     SD_IPVS_UDP,

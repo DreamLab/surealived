@@ -50,11 +50,11 @@ static gint module_loader(const gchar *modpath, const gchar *modname) {
         }
     FLOGDEBUG(FALSE, TRUE, "%p", initmod);
     memset((void *)mops, 0, sizeof(mod_operations));
-    *mops = initmod(NULL);
+    *mops = initmod();
 
     if (!THash)
         THash = g_hash_table_new(g_str_hash, g_str_equal);
-    g_hash_table_insert(THash, (gpointer) mops->m_name(), (gpointer) mops);
+    g_hash_table_insert(THash, (gpointer)mops->m_name, (gpointer) mops);
 
     return 0;
 }
