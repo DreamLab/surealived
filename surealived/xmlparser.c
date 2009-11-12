@@ -37,189 +37,103 @@ static CfgTester  CfgDefault = {
     .debugcomm      = 0
 };
 
-static gchar* sd_xml_string(xmlNode       *node, 
-                            gchar         *attr, 
-                            gchar         *dst, 
-                            gint           maxlen, 
-                            SD_ATTR_TYPE  mandatory, 
-                            gchar         *fmt, 
-                            ...)
-{
-    xmlChar     *tmp;
+static void *sd_xml_attr(xmlNode *node, gchar *attr, void *dst, SD_MODARG_TYPE arg_type, int param, SD_ATTR_TYPE attr_type, gchar *error_fmt, ...) {
     gchar       errmsg[256];
+    xmlChar     *tmp;
     va_list     args;
-    va_start(args, fmt);
-    vsnprintf(errmsg, 256, fmt, args);
-    va_end(args);
+    u_int16_t   p;
 
+    va_start(args, error_fmt);
+    vsnprintf(errmsg, 256, error_fmt, args);
+    va_end(args);
     tmp = xmlGetProp(node, BAD_CAST attr);
     if (!tmp) {
-        if (mandatory == BASIC_ATTR) {
+        if (attr_type == BASIC_ATTR) {
             LOGERROR(errmsg);
             parse_error = TRUE;
+            free(tmp);
             return NULL;
         }
-        else{
+        else {                  /* not mandatory but we could set default value */
             LOGDEBUG(errmsg);
+            if (arg_type == STRING)
+                return NULL;
+            if (arg_type == PORT)
+                *(u_int16_t *)dst = htons(param);
+            else
+                *(int *)dst = param;
+            free(tmp);
+            return dst;            
+        }
+    }
+    switch (arg_type) {
+    case STRING:
+        if (!strncpy(dst, (gchar *) tmp, param)) {
+            LOGERROR("Can't strncpy [attr = %s, maxlen = %d]", attr, param);
+            parse_error = TRUE; 
+            free(tmp);
             return NULL;
         }
-        return NULL;
-    }
-    if (!strncpy(dst, (gchar *) tmp, maxlen)) {
-        LOGERROR("Can't strncpy [attr = %s, maxlen = %d]", attr, maxlen);
-        parse_error = TRUE;
-        return NULL;
-    }
-    return dst;
-}
-
-static guint sd_xml_port(xmlNode       *node, 
-                         gchar         *attr, 
-                         u_int16_t     *port, 
-                         SD_ATTR_TYPE  mandatory, 
-                         gchar         *fmt, 
-                         ...)
-{
-    xmlChar *tmp;
-    gint    p;
-
-    gchar errmsg[256];
-    va_list args;
-    va_start(args, fmt);
-    vsnprintf(errmsg, 256, fmt, args);
-    va_end(args);
-
-    tmp = xmlGetProp(node, BAD_CAST attr);
-    if (!tmp) {
-        if (mandatory == BASIC_ATTR) {
-            LOGERROR(errmsg);
-            parse_error = TRUE;
-            return 1;
-        }
-        else {
-            LOGDEBUG(errmsg);
-            return 1;
-        }
-    }
-    p = atoi((const char *)tmp);
-    if (p < 0 || p > 65535) {
-        LOGERROR("Invalid uint16 [attr = %s, port = %s]", attr, tmp);
-        parse_error = TRUE;
-        return 1;
-    }
-    *port = htons(p);
-    return 0;
-}
-
-static guint sd_xml_guint(xmlNode       *node, 
-                          gchar         *attr, 
-                          guint         *i, 
-                          SD_ATTR_TYPE  mandatory, 
-                          gchar         *fmt, 
-                          ...)
-{
-    xmlChar *tmp;
-    gchar errmsg[256];
-    va_list args;
-    va_start(args, fmt);
-    vsnprintf(errmsg, 256, fmt, args);
-    va_end(args);
-
-    tmp = xmlGetProp(node, BAD_CAST attr);
-    if (!tmp) {
-        if (mandatory == BASIC_ATTR) {
-            LOGERROR(errmsg);
-            parse_error = TRUE;
-            return 1;
-        }
-        else {
-            LOGDEBUG(errmsg);
-            return 1;
-        }
-    }
-
-    if (!sscanf((gchar *) tmp, "%u", i)) {
-        LOGERROR("Invalid guint [attr = %s, value = %s]", attr, tmp);
-        parse_error = TRUE;
-        return 1;
-    }
-    return 0;
-}
-
-static guint sd_xml_gint(xmlNode       *node, 
-                         gchar         *attr, 
-                         gint          *i, 
-                         SD_ATTR_TYPE  mandatory, 
-                         gchar         *fmt, 
-                         ...)
-{
-    xmlChar *tmp;
-    gchar errmsg[256];
-    va_list args;
-    va_start(args, fmt);
-    vsnprintf(errmsg, 256, fmt, args);
-    va_end(args);
-
-    tmp = xmlGetProp(node, BAD_CAST attr);
-    if (!tmp) {
-        if (mandatory == BASIC_ATTR) {
-            LOGERROR(errmsg);
-            parse_error = TRUE;
-            return 1;
-        }
-        else {
-            LOGDEBUG(errmsg);
-            return 1;
-        }
-    }
-
-    if (!sscanf((gchar *) tmp, "%d", i)) {
-        LOGERROR("Invalid guint [attr = %s, value = %s]", attr, tmp);
-        parse_error = TRUE;
-        return 1;
-    }
-    return 0;
-}
-
-static guint sd_xml_gbool(xmlNode       *node, 
-                          gchar         *attr, 
-                          gboolean      *b, 
-                          SD_ATTR_TYPE  mandatory, 
-                          gchar         *fmt, 
-                          ...)
-{
-    xmlChar *tmp;
-    gchar errmsg[256];
-    va_list args;
-    va_start(args, fmt);
-    vsnprintf(errmsg, 256, fmt, args);
-    va_end(args);
-
-    tmp = xmlGetProp(node, BAD_CAST attr);
-    if (!tmp) {
-        if (mandatory == BASIC_ATTR) {
-            LOGERROR(errmsg);
-            parse_error = TRUE;
-            return 1;
-        }
-        else {
-            LOGDEBUG(errmsg);
-            return 1;
-        }
-    }
-    switch(tmp[0]) {
-    case '0':
-        *b = FALSE;
         break;
-    case '1':
-        *b = TRUE;
+    case PORT:
+        p = atoi((const char *)tmp);
+        if (p < 0 || p > 65535) {
+            LOGERROR("Invalid uint16 [attr = %s, port = %s]", attr, tmp);
+            parse_error = TRUE;
+            free(tmp);
+            return NULL;
+        }
+        *(u_int16_t *)dst = htons(p);
+
+        break;
+    case UINT:
+        *(int *)dst = atoi((const char *)tmp);
+        if (*(int *)dst < 0) {
+            if (attr_type == BASIC_ATTR) {
+                LOGERROR("Invalid u_int32_t value [attr = %s, value = %s]", attr, tmp);
+                parse_error = TRUE;
+            }
+            else
+                LOGWARN("Invalid u_int32_t value [attr = %s, value = %s]", attr, tmp);
+
+            *(int *)dst = 0;
+            free(tmp);
+            return NULL;
+        }
+
+        break;
+    case INT:
+        *(int *)dst = atoi((const char *)tmp);
+        break;
+    case BOOL:
+        *(gboolean *)dst = 0;
+
+        if (!strcasecmp((char *)tmp, "true") || !strcasecmp((char *)tmp, "on"))
+            *(gboolean *)dst = TRUE;
+        else if (!strcasecmp((char *)tmp, "false") || !strcasecmp((char *)tmp, "off"))
+            *(gboolean *)dst = FALSE;
+        else if (strlen((char *)tmp) == 1 && tmp[0] == '1')
+            *(gboolean *)dst = TRUE;
+        else if (strlen((char *)tmp) == 1 && tmp[0] == '0')
+            *(gboolean *)dst = FALSE;
+        else if (attr_type == EXTRA_ATTR)
+            LOGWARN("Invalid boolean value [attr = %s, value = %s]", attr, tmp);
+        else {
+            LOGERROR("Invalid boolean value [attr = %s, value = %s]", attr, tmp);
+            parse_error = TRUE;
+            free(tmp);
+            return NULL;
+        }
+            
         break;
     default:
-        LOGERROR("Invalid boolean value [attr=%s, value=%s]", attr, tmp);
-        parse_error = TRUE;
-        return 1;
+        LOGDEBUG("unknown argument type: %d\n", arg_type);
+        free(tmp);
+        return NULL;
     }
-    return 0;
+    free(tmp);
+
+    return dst;
 }
 
 static gint sd_parse_mod_args(mod_args  *m,
@@ -229,54 +143,37 @@ static gint sd_parse_mod_args(mod_args  *m,
 {
     /* this function puts module request into memory */
     /* even though it looks awful it works - don't break it */
-    gchar         *md = (gchar *)mdptr;
-    gint           ret = 0;
-    SD_MODARG_TYPE mandatory = EXTRA_ATTR;
+    gchar           *md = (gchar *)mdptr;
+    gint            ret = 0;
+    SD_ATTR_TYPE    attr_type = EXTRA_ATTR;
+    gint            attr_size = 0;
 
     for (; m && m->name; m++) {
+        attr_type = BASIC_ATTR;
         if (!tester)
-            mandatory = m->mandatory;
-
-        switch (m->type) {
-        case STRING:
-            if (tester)
-                memcpy((void *)((gchar *)md + m->offset), (void *)((gchar *)tester->moddata + m->offset), m->param);
-            if (sd_xml_string(node, (gchar *)m->name, (gchar *)((gchar *)md + m->offset), m->param, mandatory,
-                    "\t[-] 404 - param '%s' not found", m->name))
-                ret++;
-            break;
-        case PORT:
-            if (tester)
-                *(u_int16_t *)((gchar *)md + m->offset) = *(u_int16_t *)((gchar *)tester->moddata + m->offset);
-            if (!sd_xml_port(node, (gchar *)m->name, (u_int16_t *)((gchar *)md + m->offset), mandatory,
-                    "\t[-] 404 - param '%s' not found", m->name))
-                ret++;
-            break;
-        case UINT:
-            if (tester)
-                *(guint *)((gchar *)md + m->offset) = *(guint *)((gchar *)tester->moddata + m->offset);
-            if (!sd_xml_guint(node, (gchar*)m->name, (guint *)((gchar *)md + m->offset), mandatory,
-                    "\t[-] 404 - param '%s' not found", m->name))
-                ret++;
-            break;
-        case INT:
-            if (tester)
-                *(gint *)((gchar *)md + m->offset) = *(gint *)((gchar *)md + m->offset);
-            if (!sd_xml_gint(node, (gchar *)m->name, (gint *)((gchar *)md + m->offset), mandatory,
-                    "\t[-] 404 - param '%s' not found", m->name))
-                ret++;
-            break;
-        case BOOL:
-            if (tester)
-                *(gboolean *)((gchar *)md + m->offset) = *(gboolean *)((gchar *)md + m->offset);
-            if (!sd_xml_gbool(node, (gchar *)m->name, (gboolean *)((gchar *)md + m->offset), mandatory,
-                    "\t[-] 404 - param '%s' not found", m->name))
-                ret++;
-            break;
-        default:
-            break;
+            attr_type = m->attr_type;
+        else { /* copy value from parent (tester) we will overwrite it if requested */
+            switch (m->type) {
+            case STRING:
+                attr_size = m->param;
+                break;
+            case PORT:
+                attr_size = sizeof(u_int16_t);
+                break;
+            case BOOL:
+                attr_size = sizeof(char);
+                break;
+            default:
+                attr_size = sizeof(u_int32_t);
+                break;
+            }
+            memcpy((void *)((gchar *)md + m->offset), (void *)((gchar *)tester->moddata + m->offset), attr_size);
         }
+        if (sd_xml_attr(node, (gchar *)m->name, (void *)((gchar *)md + m->offset), m->type, m->param, attr_type,
+                "\t[-] 404 - param '%s' not found", m->name))
+            ret++;
     }
+    LOGDEBUG("sd_parse_mod_args() = %d\n", ret);
     return ret;
 }
 
@@ -317,22 +214,21 @@ static gint sd_parse_real(CfgVirtual *virt, xmlNode *node) {
     real->last_online  = TRUE;
     parse_error        = FALSE;
 
-    sd_xml_string(node, "name", real->name, MAXNAME, BASIC_ATTR, "\t[-] No name specified for real!");
+    sd_xml_attr(node, "name", real->name, STRING, MAXNAME, BASIC_ATTR, "\t[-] No name specified for real!");
     LOGDEBUG("\t[i] Parsing real: %s",real->name);
-    sd_xml_string(node, "addr", real->addrtxt, MAXIPTXT, BASIC_ATTR, "\t[-] Real (%s): No addr specified!",real->name);
+    sd_xml_attr(node, "addr", real->addrtxt, STRING, MAXIPTXT, BASIC_ATTR, "\t[-] Real (%s): No addr specified!",real->name);
 
     if (parse_error) {
         free_real(real, NULL);
         return 1;
     }
-
-    if (!inet_aton(real->addrtxt, (struct in_addr *) &real->addr)) {
+    if (!sd_str_to_addr(real->addrtxt, &real->addr)) {
         LOGERROR("\t[-] Real (%s): Invalid addr '%s'", real->name, real->addrtxt);
         free_real(real, NULL);
         return 1;
     }
     else {
-        if (IN_MULTICAST(ntohl(real->addr))) {
+        if (IN_MULTICAST(ntohl(real->addr.ipv4))) { /* FIX! This only supports checking for ipv4 multicasts */
             LOGERROR("\t[-] Real (%s): Multicast address not supported '%s'",
                 real->name, real->addrtxt);
             free_real(real, NULL);
@@ -340,20 +236,27 @@ static gint sd_parse_real(CfgVirtual *virt, xmlNode *node) {
         }
         
     }
+    if (strchr(real->addrtxt, '.'))
+        real->ip_v = 4;
+    else
+        real->ip_v = 6;
 
-    if (real->tester)
-        real->testport = real->tester->testport; /* default */
+    sd_xml_attr(node, "testport", &real->testport, PORT, ntohs(real->tester->testport), EXTRA_ATTR,
+        "\t[-] Real (%s): No testport specified-default used", real->name);
+    sd_xml_attr(node, "port", &real->port, PORT, 0, BASIC_ATTR,
+        "\t[-] Real (%s): No port specified!", real->name);
+    sd_xml_attr(node, "weight", &real->ipvs_weight, INT, 1, BASIC_ATTR,
+        "\t[-] Real (%s): Invalid or no weight!", real->name);
 
-    sd_xml_port(node, "testport", &real->testport, EXTRA_ATTR, "\t[-] Real (%s): No testport specified-default used", real->name);
-    sd_xml_port(node, "port", &real->port, BASIC_ATTR, "\t[-] Real (%s): No port specified!", real->name);
-    sd_xml_gint(node, "weight", &real->ipvs_weight, BASIC_ATTR, "\t[-] Real (%s): Invalid or no weight!", real->name);
     real->override_weight = -1;
     real->override_weight_in_percent = FALSE;
-    sd_xml_guint(node, "uthresh", &real->ipvs_uthresh, EXTRA_ATTR, "\t[-] Real (%s): No uthresh specified!", real->name);
-    sd_xml_guint(node, "lthresh", &real->ipvs_lthresh, EXTRA_ATTR, "\t[-] Real (%s): No lthresh specified!", real->name);
+    sd_xml_attr(node, "uthresh", &real->ipvs_uthresh, UINT, 0, EXTRA_ATTR,
+        "\t[-] Real (%s): No uthresh specified!", real->name);
+    sd_xml_attr(node, "lthresh", &real->ipvs_lthresh, UINT, 0, EXTRA_ATTR,
+        "\t[-] Real (%s): No lthresh specified!", real->name);
 
-    if (sd_xml_string(node, "bindaddr", real->bindaddrtxt, MAXIPTXT, EXTRA_ATTR, NULL)) {
-        strncpy(real->bindaddrtxt, (gchar *)tmp, MAXIPTXT);
+    if (sd_xml_attr(node, "bindaddr", real->bindaddrtxt, STRING, MAXIPTXT, EXTRA_ATTR, NULL)) {
+        /* strncpy(real->bindaddrtxt, (gchar *)tmp, MAXIPTXT); */ // is it a bug ?
         if (!inet_aton(real->bindaddrtxt, (struct in_addr *) &real->bindaddr)) {
             LOGERROR("\t[-] Real (%s): Invalid bindaddr='%s'", real->name, real->bindaddrtxt);
             free_real(real, NULL);
@@ -436,7 +339,7 @@ static CfgTester *sd_parse_tester(xmlNode *node) {
     }
     memcpy(tester, &CfgDefault, sizeof(CfgTester));
 
-    if (!sd_xml_string(node, "proto", tester->proto, MAXPROTO, BASIC_ATTR, "No proto specified")) {
+    if (!sd_xml_attr(node, "proto", tester->proto, STRING, MAXPROTO, BASIC_ATTR, "No proto specified")) {
         free_tester(tester);
         return NULL;
     }
@@ -461,25 +364,22 @@ static CfgTester *sd_parse_tester(xmlNode *node) {
     parse_error = FALSE;
     if (tester->mops->m_test_protocol == SD_PROTO_EXEC) {
         tester->exec = malloc(MAXPATHLEN);
-        sd_xml_string(node, "exec", tester->exec, MAXPATHLEN, BASIC_ATTR, "\t[!] EXEC tester but no 'exec' data");
+        sd_xml_attr(node, "exec", tester->exec, STRING, MAXPATHLEN, BASIC_ATTR, "\t[!] EXEC tester but no 'exec' data");
     }
 
-    sd_xml_port(node, "testport", &tester->testport, BASIC_ATTR, "\t[i] No test port specified");
-    sd_xml_guint(node, "loopdelay", &tester->loopdelay, EXTRA_ATTR, "\t[i] No loopdelay");
-    sd_xml_guint(node, "timeout", &tester->timeout, EXTRA_ATTR, "\t[i] No timeout");
-    sd_xml_guint(node, "retries2ok", &tester->retries2ok, EXTRA_ATTR, "\t[i] No retries2ok");
-    sd_xml_guint(node, "retries2fail", &tester->retries2fail, EXTRA_ATTR, "\t[i] No retries2fail");
-    sd_xml_guint(node, "remove_on_fail", &tester->remove_on_fail, EXTRA_ATTR, "\t[i] No remove_on_fail");
-    sd_xml_guint(node, "debugcomm", &tester->debugcomm, EXTRA_ATTR, "\t[i] No debugcomm");
-    sd_xml_string(node, "SSL", &tester->ssl, 1, EXTRA_ATTR, "");
+    sd_xml_attr(node, "testport", &tester->testport, PORT, 0, BASIC_ATTR, "\t[i] No test port specified");
+    sd_xml_attr(node, "loopdelay", &tester->loopdelay, UINT, 0, EXTRA_ATTR, "\t[i] No loopdelay");
+    sd_xml_attr(node, "timeout", &tester->timeout, UINT, 0, EXTRA_ATTR, "\t[i] No timeout");
+    sd_xml_attr(node, "retries2ok", &tester->retries2ok, UINT, 0, EXTRA_ATTR, "\t[i] No retries2ok");
+    sd_xml_attr(node, "retries2fail", &tester->retries2fail, UINT, 0, EXTRA_ATTR, "\t[i] No retries2fail");
+    sd_xml_attr(node, "remove_on_fail", &tester->remove_on_fail, UINT, 0, EXTRA_ATTR, "\t[i] No remove_on_fail");
+    sd_xml_attr(node, "debugcomm", &tester->debugcomm, UINT, 0, EXTRA_ATTR, "\t[i] No debugcomm");
+    sd_xml_attr(node, "SSL", &tester->ssl, BOOL, 0, EXTRA_ATTR, "");
 
     if (parse_error) {
         free_tester(tester);
         return NULL;
     }
-
-    if (tester->ssl)
-        tester->ssl -= '0';     /* convert to integer */
 
     if (tester->mops->m_args) {
         tester->moddata = tester->mops->m_alloc_args();
@@ -494,7 +394,7 @@ static CfgTester *sd_parse_tester(xmlNode *node) {
             return NULL;
         }
     }
-
+    LOGDEBUG("\t[!] Tester parsed OK");
     return tester;
 }
 
@@ -531,7 +431,7 @@ static gint sd_parse_virtual(GPtrArray *VCfgArr, xmlNode *node) {
 
     memset(virt, 0, sizeof(CfgVirtual));
 
-    if (!sd_xml_string(node, "name", virt->name, MAXNAME, BASIC_ATTR, "[-] Virtual: no name specified!")) {
+    if (!sd_xml_attr(node, "name", virt->name, STRING, MAXNAME, BASIC_ATTR, "[-] Virtual: no name specified!")) {
         free_virtual(virt, NULL);
         return 1;
     }
@@ -541,8 +441,8 @@ static gint sd_parse_virtual(GPtrArray *VCfgArr, xmlNode *node) {
 
     parse_error = FALSE;
     if (!virt->ipvs_fwmark) {
-        sd_xml_string(node, "addr", virt->addrtxt, MAXIPTXT, BASIC_ATTR, "[-] Virtual (%s): no addr specified!", virt->name);
-        sd_xml_port(node, "port", &virt->port, BASIC_ATTR, "[-] Virtual (%s): no port specified!", virt->name);
+        sd_xml_attr(node, "addr", virt->addrtxt, STRING, MAXIPTXT, BASIC_ATTR, "[-] Virtual (%s): no addr specified!", virt->name);
+        sd_xml_attr(node, "port", &virt->port, PORT, 0, BASIC_ATTR, "[-] Virtual (%s): no port specified!", virt->name);
         if (parse_error) {
             free_virtual(virt, NULL);
             return 1;
@@ -574,7 +474,8 @@ static gint sd_parse_virtual(GPtrArray *VCfgArr, xmlNode *node) {
         free_virtual(virt, NULL);
         return 1;
     }
-    sd_xml_string(node, "sched", virt->ipvs_sched, MAXSCHED, BASIC_ATTR, "[-] Virtual (%s): no scheduler specified!", virt->name);
+    sd_xml_attr(node, "sched", virt->ipvs_sched, STRING, MAXSCHED, BASIC_ATTR,
+        "[-] Virtual (%s): no scheduler specified!", virt->name);
     if (parse_error) {
         free_virtual(virt, NULL);
         return 1;
@@ -610,7 +511,7 @@ static gint sd_parse_virtual(GPtrArray *VCfgArr, xmlNode *node) {
             return 1;
         }
         else {
-            if (IN_MULTICAST(ntohl(virt->addr))) {
+            if (IN_MULTICAST(ntohl(virt->addr.ipv4))) { /* FIX! this only supports ipv4 multicasts */
                 LOGERROR("\t[-] Virtual (%s): Multicast address not supported '%s'",
                     virt->name, virt->addrtxt);
                 free_virtual(virt, NULL);

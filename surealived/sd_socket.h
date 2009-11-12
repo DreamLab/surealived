@@ -19,10 +19,12 @@
 #include "common.h"
 #include <openssl/ssl.h>
 
-int  sd_socket_nb(int sock_type);
+gboolean sd_str_to_addr(char *s, sd_addr *addr);
+
+int  sd_socket_nb(int sock_type, int ip_version);
 void sd_socket_solinger(int fd);
 
-int  sd_socket_connect(int fd, in_addr_t addr, u_int16_t port);
+int  sd_socket_connect(int fd, sd_addr addr, u_int16_t port, char ip_version);
 int  sd_bind_ssl(CfgReal *real);
 void sd_ssl_free(SSL *ssl);
 SSL *sd_SSL_new();

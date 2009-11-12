@@ -20,6 +20,7 @@
 #include <sd_maincfg.h>
 #include <sd_log.h>
 #include <sd_override.h>
+#include <sd_socket.h>
 
 static GHashTable *OverrideH = NULL; /* this hash holds current offline reals */
 
@@ -120,11 +121,11 @@ void sd_override_dump_merge(GPtrArray *VCfgArr) {
     CfgReal     *real;
     gchar       vip[32];
     gint        vporth;
-    in_addr_t   vaddr;
+    sd_addr     vaddr;
     u_int16_t   vport;
     gchar       rip[32];
     gint        rporth;
-    in_addr_t   raddr;
+    sd_addr     raddr;
     u_int16_t   rport;
     gint        ipvs_proto;
     u_int32_t   ipvs_fwmark;
@@ -151,19 +152,21 @@ void sd_override_dump_merge(GPtrArray *VCfgArr) {
                   vip, &vporth, &ipvs_proto, &ipvs_fwmark, rip, &rporth, &weight, &wgttype, rstate) == 9) {
         vport = htons(vporth);
         rport = htons(rporth);
-        vaddr = inet_addr(vip);
-        raddr = inet_addr(rip);
+        sd_str_to_addr(vip, &vaddr);
+        sd_str_to_addr(rip, &raddr);
+
         found = FALSE;
         for (vi = 0; vi < VCfgArr->len; vi++) {
             virt = g_ptr_array_index(VCfgArr, vi);
             if ( (ipvs_fwmark > 0 && virt->ipvs_fwmark - ipvs_fwmark == 0) ||
-                 (vaddr != 0 && virt->addr == vaddr && virt->port == vport && virt->ipvs_proto == ipvs_proto)) {
+                (CMP_ADDR(vaddr, virt->addr, virt->ip_v) && 
+                     virt->port == vport && virt->ipvs_proto == ipvs_proto)) {
                 if (!virt->realArr)
                     continue;
 
                 for (ri = 0; ri < virt->realArr->len; ri++) {
                     real = g_ptr_array_index(virt->realArr, ri);
-                    if (real->addr == raddr && real->port == rport) {
+                    if (CMP_ADDR(real->addr, raddr, real->ip_v) && real->port == rport) {
                         LOGDEBUG("\tOverride real: %s:%s (%s:%d:%d:%d - %s:%d) weight=%d%c, rstate=%s", 
                                 real->virt->name, real->name, real->virt->addrtxt,
                                 ntohs(real->virt->port), real->virt->ipvs_proto,

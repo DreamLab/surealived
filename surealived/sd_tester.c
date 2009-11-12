@@ -200,11 +200,11 @@ static void sd_start_real(CfgReal *real) {
         return;
 
     if (real->tester->mops->m_test_protocol == SD_PROTO_TCP) {
-        real->fd = sd_socket_nb(SOCK_STREAM);
+        real->fd = sd_socket_nb(SOCK_STREAM, real->ip_v);
         LOGDETAIL("TCP socket fd = [%d]", real->fd);
     }
     else if (real->tester->mops->m_test_protocol == SD_PROTO_UDP) {
-        real->fd = sd_socket_nb(SOCK_DGRAM);
+        real->fd = sd_socket_nb(SOCK_DGRAM, real->ip_v);
         LOGDETAIL("UDP socket fd = [%d]", real->fd);
     }
 
@@ -239,7 +239,7 @@ static void sd_start_real(CfgReal *real) {
 
     if (real->tester->mops->m_test_protocol == SD_PROTO_TCP ||
         real->tester->mops->m_test_protocol == SD_PROTO_UDP) {
-        sd_socket_connect(real->fd, real->addr, real->testport);
+        sd_socket_connect(real->fd, real->addr, real->testport, real->ip_v);
 
         if (real->ssl && sd_bind_ssl(real))
             LOGWARN("Unable to bind ssl to socket (real = [%s:%s]!", real->virt->name, real->name);
