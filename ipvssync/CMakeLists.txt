@@ -1,3 +1,4 @@
+PROJECT(ipvssync C)
 cmake_minimum_required(VERSION 2.6)
 #add_definitions("-Wall -Werror -ggdb")
 add_definitions("-Wall -Werror -Wformat=2")
