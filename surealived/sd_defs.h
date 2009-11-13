@@ -22,14 +22,9 @@
 #define TIME_HAS_COME(t1,t2) ( (t2.tv_sec - t1.tv_sec > 0) ? TRUE :     \
         ((t2.tv_sec - t1.tv_sec == 0) && (t2.tv_usec - t1.tv_usec > 0)) ? TRUE : FALSE )
 #endif
-#define CMP_ADDR(a1,a2,ipv) ((ipv) == 4 ? (a1).ipv4 == (a2).ipv4 : (	\
-    *(int *)(&(a1).ipv6) == *(int *)(&(a2).ipv6) &&			\
-    *(int *)(&(a1).ipv6 + 4) == *(int *)(&(a2).ipv6 + 4) &&		\
-    *(int *)(&(a1).ipv6 + 8) == *(int *)(&(a2).ipv6 + 8) &&		\
-    *(int *)(&(a1).ipv6 + 12) == *(int *)(&(a2).ipv6 + 12) ))
 
 #define MAXNAME         128
-#define MAXIPTXT        40          /* 123.567.901.345 || 0000:0000:0000:0000:0000:0000:0000:0000 */
+#define MAXIPTXT        16          /* 123.567.901.345 */
 #define MAXPORTTXT      8           /* 65535 */
 #define MAXSCHED        16          /* wrr */
 #define MAXPROTO        16
@@ -54,8 +49,6 @@
 #define REQ_EOF(x)      (((u_int32_t)(x)&SD_MASK) == SD_EOF ? 1 : 0)
 #define REQ_END(x)      ((u_int32_t)(x)&SD_MASK ? 0 : 1)
 #define REQ_LEN(x)      ((u_int32_t)(x)&(u_int32_t)(~SD_MASK))
-
-typedef u_int32_t REQUEST;
 
 typedef enum {
     SD_IPVS_TCP,
@@ -88,11 +81,6 @@ typedef enum {
     REAL_DOWN,
 } RState;
 
-typedef union {
-    in_addr_t       ipv4;
-    struct in6_addr ipv6;
-} sd_addr;
-
 typedef struct {
     gchar           proto[MAXPROTO];
     struct mod_operations  *mops;
@@ -117,8 +105,7 @@ typedef struct {
     gchar           name[MAXNAME];
     gchar           addrtxt[MAXIPTXT];
     gchar           porttxt[MAXPORTTXT];
-    sd_addr         addr;
-    gchar           ip_v;                 /* ip version */
+    in_addr_t       addr;
     u_int16_t       port;
     VState          state;                /* NOT_READY by default */
 
@@ -169,8 +156,7 @@ typedef struct CfgReal {
     gchar           name[MAXNAME];
     gchar           addrtxt[MAXIPTXT];
     gchar           porttxt[MAXPORTTXT];
-    sd_addr         addr;
-    gchar           ip_v;                 /* ip version */
+    in_addr_t       addr;
     u_int16_t       port;
 
     unsigned        ipvs_rt;

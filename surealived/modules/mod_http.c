@@ -41,6 +41,8 @@ enum {
 
 static mod_operations mops;
 
+static const gchar *name = "http";
+
 static mod_args m_args[]={
     { "url",    STRING,     BUFSIZ, BASIC_ATTR, SDOFF(TestHTTP, url)    },
     { "host",   STRING,     256,    BASIC_ATTR, SDOFF(TestHTTP, host)   },
@@ -49,7 +51,11 @@ static mod_args m_args[]={
     { NULL, 0,  0,  0,  0 },
 };
 
-static gpointer module_alloc_args(void) {
+static const gchar *module_name(void) {
+    return name;
+}
+
+static gpointer module_set_args(void) {
     TestHTTP    *ret = g_new0(TestHTTP, 1);
     memset(ret, 0, sizeof(TestHTTP));
     return ret;
@@ -58,7 +64,7 @@ static gpointer module_alloc_args(void) {
 static void module_test_prepare(CfgReal *real) {
     TestHTTP    *t = (TestHTTP *)real->moddata;
     LOGDETAIL("http module test prepare");
-
+    real->req = WANT_END;
     real->intstate = CONNECTED;
     if (!t->retcode[0])
         strncpy(t->retcode, "200", 3);
@@ -120,17 +126,15 @@ static void module_free(CfgReal *real) {
     t->request = NULL;
 }
 
-mod_operations __init_module(void) {
-    LOGINFO(" ** Init module: setting mod_operations for tester [http]");
+mod_operations __init_module(gpointer data) {
+    LOGINFO(" ** Init module: setting mod_operations for tester [%s]", name);
 
-    mops.m_name             = "http";
+    mops.m_name             = module_name;
     mops.m_test_protocol    = SD_PROTO_TCP;
+    mops.m_set_args         = module_set_args;
     mops.m_args             = m_args;
-
-    mops.m_alloc_args       = module_alloc_args;
     mops.m_prepare          = module_test_prepare;
     mops.m_process_event    = module_process_event;
     mops.m_free             = module_free;
-
     return mops;
 }

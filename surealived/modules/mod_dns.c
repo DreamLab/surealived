@@ -44,6 +44,8 @@ static mod_args m_args[] = {    /* this struct defines what we want from XML */
     { NULL, 0, 0, 0, 0 },       /* we need to end this struct with NULLs */
 };
 
+static const gchar *name = "dns";
+
 typedef struct QUERY_HEADER {   /* dns query header */
     unsigned type   :16;
     unsigned class  :16;
@@ -58,7 +60,11 @@ typedef struct RESOURCE_HEADER { /* actually we're not using it for now */
     unsigned rdata  :16;
 } RESOURCE_HEADER;
 
-static gpointer module_alloc_args(void) {
+static const gchar *mod_dns_name(void) {
+    return name;
+}
+
+static gpointer module_set_args(void) {
     testDNS *ret = g_new(testDNS, 1);
     memset(ret, 0, sizeof(testDNS)); /* it's always a good idea to zero memory */
     return ret;
@@ -69,6 +75,7 @@ static void mod_dns_test_prepare(CfgReal *real) {
     gint    i;
     gchar   dot;
 
+    real->req = WANT_END;            /* reset tester requests */
     real->intstate = DNS_TEST_START; /* reset tester state */
 
     if (!real->moddynamic) {
@@ -152,16 +159,15 @@ void mod_free(CfgReal *real) {  /* this function is called when real is removed!
     real->moddynamic = NULL;
 }
 
-mod_operations __init_module(void) {
-    LOGINFO(" ** Init module: setting mod_operations for tester [dns]");
+mod_operations __init_module(gpointer data) {
+    LOGINFO(" ** Init module: setting mod_operations for tester [%s]", name);
 
-    mops.m_name             = "dns";
+    mops.m_name             = mod_dns_name; /* set name */
     mops.m_test_protocol    = SD_PROTO_UDP; /* DNS test uses UDP protocol */
-    mops.m_args             = m_args;       /* this struct defines what we want from xml */
-
-    mops.m_alloc_args       = module_alloc_args;        /* this functions allocates local memory */
-    mops.m_prepare          = mod_dns_test_prepare;     /* prepare test function */
-    mops.m_process_event    = mod_dns_process_event;    /* here be dragons */
-    mops.m_free             = mod_free;                 /* always free memory when deleting real */
-    return mops;                                        /* return mod operations */
+    mops.m_set_args         = module_set_args; /* this functions allocates local memory */
+    mops.m_args             = m_args;          /* this struct defines what we want from xml */
+    mops.m_prepare          = mod_dns_test_prepare;  /* prepare test function */
+    mops.m_process_event    = mod_dns_process_event; /* here be dragons */
+    mops.m_free             = mod_free;              /* always free memory when deleting real */
+    return mops;                                     /* return mod operations */
 }

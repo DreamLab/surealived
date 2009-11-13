@@ -21,16 +21,22 @@
 
 static mod_operations mops;
 
+static const gchar *name = "tcp";
+
+static const gchar *module_name(void) {
+    return name;
+}
+
 static u_int32_t module_process_event(CfgReal *real) {
     LOGDEBUG("Connection successfull: fd=%d\n", real->fd);
     real->test_state = TRUE;
     return WANT_END;
 }
 
-mod_operations __init_module(void) {
-    LOGINFO(" ** Init module: setting mod_operations for tester [tcp]");
+mod_operations __init_module(gpointer data) {
+    LOGINFO(" ** Init module: setting mod_operations for tester [%s]", name);
 
-    mops.m_name          = "tcp";
+    mops.m_name          = module_name;
     mops.m_test_protocol = SD_PROTO_TCP;
     mops.m_process_event = module_process_event;
 

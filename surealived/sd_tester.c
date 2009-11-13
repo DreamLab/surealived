@@ -200,11 +200,11 @@ static void sd_start_real(CfgReal *real) {
         return;
 
     if (real->tester->mops->m_test_protocol == SD_PROTO_TCP) {
-        real->fd = sd_socket_nb(SOCK_STREAM, real->ip_v);
+        real->fd = sd_socket_nb(SOCK_STREAM);
         LOGDETAIL("TCP socket fd = [%d]", real->fd);
     }
     else if (real->tester->mops->m_test_protocol == SD_PROTO_UDP) {
-        real->fd = sd_socket_nb(SOCK_DGRAM, real->ip_v);
+        real->fd = sd_socket_nb(SOCK_DGRAM);
         LOGDETAIL("UDP socket fd = [%d]", real->fd);
     }
 
@@ -239,7 +239,7 @@ static void sd_start_real(CfgReal *real) {
 
     if (real->tester->mops->m_test_protocol == SD_PROTO_TCP ||
         real->tester->mops->m_test_protocol == SD_PROTO_UDP) {
-        sd_socket_connect(real->fd, real->addr, real->testport, real->ip_v);
+        sd_socket_connect(real->fd, real->addr, real->testport);
 
         if (real->ssl && sd_bind_ssl(real))
             LOGWARN("Unable to bind ssl to socket (real = [%s:%s]!", real->virt->name, real->name);
@@ -413,7 +413,7 @@ static void sd_tester_virtual_expired(SDTester *sdtest, CfgVirtual *virt) {
            Suggested timeout should be greater than (retrans_time_ms * mcast_solicit).           
         */
         if (!real->conn_time.tv_sec) {
-            real->conn_time = virt->start_time; //perhaps connection established fail
+            real->conn_time = real->start_time; //perhaps connection established fail
             real->conn_time.tv_usec -= 1000;    //if timeout > 3sec - this means that no SYN,ACK
             G_stats_conn_problem++;
         }

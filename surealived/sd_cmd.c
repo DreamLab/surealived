@@ -48,7 +48,7 @@ static CfgVirtual *sd_cmd_find_virt(GPtrArray *VCfgArr, GHashTable *ht, gchar *e
     gchar         *vaddr, *vport, *vproto, *vfwmark;
     gint           i;
     gboolean       found = FALSE;
-    sd_addr        addr;
+    in_addr_t      addr;
     u_int16_t      port;
     SDIPVSProtocol proto;
     u_int32_t      fwmark;
@@ -75,13 +75,15 @@ static CfgVirtual *sd_cmd_find_virt(GPtrArray *VCfgArr, GHashTable *ht, gchar *e
         vfwmark = deffwmark;
     }
 
-    if (!sd_str_to_addr(vaddr, &addr)) {
-        LOGINFO("[^] logic: find_virt() invalid IP");
-        return NULL;
-    }
+    addr   = inet_addr(vaddr);
     port   = htons(atoi(vport));
     proto  = sd_proto_no(vproto);
     fwmark = atoi(vfwmark);
+
+    if (addr == -1) {
+        LOGINFO("[^] logic: find_virt() invalid IP");
+        return NULL;
+    }
 
     for (i = 0; i < VCfgArr->len; i++) {
         virt = (CfgVirtual *) g_ptr_array_index(VCfgArr, i);
@@ -93,7 +95,7 @@ static CfgVirtual *sd_cmd_find_virt(GPtrArray *VCfgArr, GHashTable *ht, gchar *e
         }
         
         if (!virt->ipvs_fwmark && 
-            CMP_ADDR(virt->addr, addr, virt->ip_v) && virt->port == port &&
+            virt->addr == addr && virt->port == port &&
             virt->ipvs_proto == proto) {
             found = TRUE;
             break;
@@ -114,7 +116,7 @@ CfgReal *sd_cmd_find_real(CfgVirtual *virt, GHashTable *ht, gchar *errbuf) {
     gchar       *raddr, *rport;
     gint        i;
     gboolean    found = FALSE;
-    sd_addr     addr;
+    in_addr_t   addr;
     u_int16_t   port;
 
     if (!virt || !virt->realArr) {
@@ -136,16 +138,18 @@ CfgReal *sd_cmd_find_real(CfgVirtual *virt, GHashTable *ht, gchar *errbuf) {
         return NULL;
     }
 
-    if (!sd_str_to_addr(raddr, &addr)) {
+    addr   = inet_addr(raddr);
+    port   = htons(atoi(rport));
+
+    if (addr == -1) {
         if (errbuf)
             strcpy(errbuf, "cmd_find_real: invalid IP\n");
         return NULL;
     }
-    port   = htons(atoi(rport));
 
     for (i = 0; i < virt->realArr->len; i++) {
         real = (CfgReal *)g_ptr_array_index(virt->realArr, i);
-        if (CMP_ADDR(real->addr, addr, real->ip_v) || real->port != port)
+        if (real->addr != addr || real->port != port)
             continue;
         found = TRUE;
         break;
@@ -431,7 +435,7 @@ gint sd_cmd_listen_socket_create(u_int16_t lport) {
     SDClient            *server = NULL;
 
     LOGDETAIL("%s()", __PRETTY_FUNCTION__);
-    listen_sock = sd_socket_nb(SOCK_STREAM, 4);
+    listen_sock = sd_socket_nb(SOCK_STREAM);
     sd_socket_solinger(listen_sock);
 
     sa.sin_family = PF_INET;

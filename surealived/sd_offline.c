@@ -19,7 +19,6 @@
 #include <sys/file.h>
 #include <sd_maincfg.h>
 #include <sd_log.h>
-#include <sd_socket.h>
 
 static GHashTable *OfflineH = NULL; /* this hash holds current offline reals */
 
@@ -98,11 +97,11 @@ void sd_offline_dump_merge(GPtrArray *VCfgArr) {
     CfgReal     *real;
     gchar       vip[32];
     gint        vporth;
-    sd_addr     vaddr;
+    in_addr_t   vaddr;
     u_int16_t   vport;
     gchar       rip[32];
     gint        rporth;
-    sd_addr     raddr;
+    in_addr_t   raddr;
     u_int16_t   rport;
     gint        ipvs_proto;
     u_int32_t   ipvs_fwmark;
@@ -131,20 +130,19 @@ void sd_offline_dump_merge(GPtrArray *VCfgArr) {
                   vip, &vporth, &ipvs_proto, &ipvs_fwmark, rip, &rporth) == 6) {
         vport = htons(vporth);
         rport = htons(rporth);
-        sd_str_to_addr(vip, &vaddr);
-        sd_str_to_addr(vip, &raddr);
+        vaddr = inet_addr(vip);
+        raddr = inet_addr(rip);        
         found = FALSE;
         for (vi = 0; vi < VCfgArr->len; vi++) {
             virt = g_ptr_array_index(VCfgArr, vi);
             if ( (ipvs_fwmark > 0 && virt->ipvs_fwmark - ipvs_fwmark == 0) ||
-                (CMP_ADDR(vaddr, virt->addr, virt->ip_v) &&
-                    virt->port == vport && virt->ipvs_proto == ipvs_proto)) {
+                 (vaddr != 0 && virt->addr == vaddr && virt->port == vport && virt->ipvs_proto == ipvs_proto)) {
                 if (!virt->realArr) /* ignore empty virtuals */
                     continue;
 
                 for (ri = 0; ri < virt->realArr->len; ri++) {
                     real = g_ptr_array_index(virt->realArr, ri);
-                    if (CMP_ADDR(raddr, real->addr, real->ip_v) && real->port == rport) {
+                    if (real->addr == raddr && real->port == rport) {
                         /* this is where we actually set node values */
                         LOGINFO("\tSet real: %s:%s (%s:%d:%d:%d - %s:%d) to OFFLINE", 
                                 real->virt->name, real->name, real->virt->addrtxt,

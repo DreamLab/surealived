@@ -21,7 +21,7 @@
 typedef enum{
     BASIC_ATTR,
     EXTRA_ATTR
-} SD_ATTR_TYPE;
+} xml_attr_type;
 
 GPtrArray   *sd_xmlParseFile(gchar *filename);
 gint        sd_VCfgArr_free(GPtrArray *VCfgArr);
