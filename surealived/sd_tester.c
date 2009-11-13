@@ -226,10 +226,8 @@ static void sd_start_real(CfgReal *real) {
     real->end_time.tv_sec  = real->end_time.tv_usec = 0;  /* reset end_time */
     real->conn_time.tv_sec = real->conn_time.tv_usec = 0; /* reset connection time */
 
-    real->req = 0;              /* reset request */
     if (real->tester->mops->m_prepare)
         real->tester->mops->m_prepare(real);
-        
 
     if (real->tester->mops->m_test_protocol == SD_PROTO_TCP ||
         real->tester->mops->m_test_protocol == SD_PROTO_UDP) {

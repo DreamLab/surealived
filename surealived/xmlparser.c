@@ -41,7 +41,7 @@ static gchar* sd_xml_string(xmlNode       *node,
                             gchar         *attr, 
                             gchar         *dst, 
                             gint           maxlen, 
-                            SD_ATTR_TYPE  mandatory, 
+                            xml_attr_type  mandatory, 
                             gchar         *fmt, 
                             ...)
 {
@@ -76,7 +76,7 @@ static gchar* sd_xml_string(xmlNode       *node,
 static guint sd_xml_port(xmlNode       *node, 
                          gchar         *attr, 
                          u_int16_t     *port, 
-                         SD_ATTR_TYPE  mandatory, 
+                         xml_attr_type  mandatory, 
                          gchar         *fmt, 
                          ...)
 {
@@ -114,7 +114,7 @@ static guint sd_xml_port(xmlNode       *node,
 static guint sd_xml_guint(xmlNode       *node, 
                           gchar         *attr, 
                           guint         *i, 
-                          SD_ATTR_TYPE  mandatory, 
+                          xml_attr_type  mandatory, 
                           gchar         *fmt, 
                           ...)
 {
@@ -149,7 +149,7 @@ static guint sd_xml_guint(xmlNode       *node,
 static guint sd_xml_gint(xmlNode       *node, 
                          gchar         *attr, 
                          gint          *i, 
-                         SD_ATTR_TYPE  mandatory, 
+                         xml_attr_type  mandatory, 
                          gchar         *fmt, 
                          ...)
 {
@@ -184,7 +184,7 @@ static guint sd_xml_gint(xmlNode       *node,
 static guint sd_xml_gbool(xmlNode       *node, 
                           gchar         *attr, 
                           gboolean      *b, 
-                          SD_ATTR_TYPE  mandatory, 
+                          xml_attr_type  mandatory, 
                           gchar         *fmt, 
                           ...)
 {
@@ -389,9 +389,9 @@ static gint sd_parse_real(CfgVirtual *virt, xmlNode *node) {
         real->ssl = sd_SSL_new();
 
     if (real->tester && real->tester->mops->m_args != NULL) { /* check if real wants to overwrite some attributes */
-        real->moddata = real->tester->mops->m_alloc_args();
+        real->moddata = real->tester->mops->m_set_args();
         if (!real->tester->mops->m_args) {
-            LOGERROR("\t[-] (in real) m_alloc_args specified and no m_args struct!");
+            LOGERROR("\t[-] (in real) m_set_args specified and no m_args struct!");
             free_real(real, NULL);
             return 1;
         }
@@ -482,9 +482,9 @@ static CfgTester *sd_parse_tester(xmlNode *node) {
         tester->ssl -= '0';     /* convert to integer */
 
     if (tester->mops->m_args) {
-        tester->moddata = tester->mops->m_alloc_args();
+        tester->moddata = tester->mops->m_set_args();
         if (!tester->mops->m_args) {
-            LOGERROR("[-] m_alloc_args specified and no m_args struct!");
+            LOGERROR("[-] m_set_args specified and no m_args struct!");
             free_tester(tester);
             return NULL;
         }
@@ -601,7 +601,7 @@ static gint sd_parse_virtual(GPtrArray *VCfgArr, xmlNode *node) {
         return 1;
     }
     if ((tmp = xmlGetProp(node, BAD_CAST "pers")))
-        virt->ipvs_persistent = atoi(tmp);
+        virt->ipvs_persistent = (unsigned) atoi((const char *)tmp);
 
     if (!virt->ipvs_fwmark) {
         if (!inet_aton(virt->addrtxt, (struct in_addr *) &virt->addr)) {
