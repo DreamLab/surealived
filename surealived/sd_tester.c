@@ -482,11 +482,11 @@ static void sd_tester_process_virt(gpointer virtptr, gpointer dataptr) {
         gettimeofday(&ctime, NULL);
         if (virt->end_time.tv_sec && TIME_HAS_COME(virt->end_time, ctime)) { /* this virtual tester has expired */
             sd_tester_virtual_expired(sdtest, virt);
+            if (stop)
+                LOGINFO(" * reloading (SIGHUP) - tests running: %d", tests_running);
             tests_running--;
             sd_tester_set_virtual_time(virt);
             virt->state = READY_TO_GO;
-            if (stop)
-                LOGINFO(" * reloading (SIGHUP) - tests running: %d", tests_running);
         }
         else if (!virt->end_time.tv_sec) /* do we have some nodes left? */
             sd_tester_start_real(virt);
