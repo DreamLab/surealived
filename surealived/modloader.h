@@ -18,6 +18,7 @@
 
 #include <glib.h>
 #include <gmodule.h>
+#include <xmlparser.h>
 
 #if defined(offsetof)
 #define SDOFF(type, m) offsetof(type, m)
@@ -44,24 +45,24 @@ typedef struct {
     gchar           *name;
     SD_MODARG_TYPE  type;
     guint           param;
-    SD_MODARG_TYPE  mandatory;
+    SD_ATTR_TYPE    mandatory;
     unsigned long   offset;
 } mod_args;
 
 typedef struct mod_operations {
-    const gchar*    (*m_name) (void);
-    SDTestProtocol  m_test_protocol;
-    gpointer        (*m_set_args) (void);
-    mod_args        *m_args;
+    gpointer        (*m_alloc_args)(void);
+    void            (*m_free)(CfgReal *); /* free all real's memory */
     void            (*m_prepare)(CfgReal *);
     void            (*m_cleanup)(CfgReal *);
-    u_int32_t       (*m_process_event)(CfgReal *);
+    REQUEST         (*m_process_event)(CfgReal *);
     void            (*m_check)(CfgReal *); /* exec */
     void            (*m_start)(CfgReal *); /* exec */
-    void            (*m_free)(CfgReal *);  /* free all allocated memory for real! */
+    gchar           *m_name;
+    mod_args        *m_args;
+    SDTestProtocol  m_test_protocol;
 } mod_operations;
 
-typedef mod_operations (*InitModuleFunc) (gpointer data);
+typedef mod_operations (*InitModuleFunc) (void);
 
 mod_operations *module_lookup(const gchar *name);
 void            modules_load(gchar *modpath, gchar *modlist);

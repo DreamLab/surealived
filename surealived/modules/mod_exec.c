@@ -24,18 +24,12 @@
 #define PARAMS_LENGTH 1024
 static mod_operations mops;
 
-static const gchar *name = "exec";
-
 static mod_args m_args[]={
     { "params", STRING, PARAMS_LENGTH, EXTRA_ATTR, 0 },
     { NULL, 0,  0,  0,  0 },
 };
 
-static const gchar *module_name(void) {
-    return name;
-}
-
-static gpointer module_set_args(void) {
+static gpointer module_alloc_args(void) {
     gchar *params = (gchar *) malloc(PARAMS_LENGTH);
     memset(params, 0, PARAMS_LENGTH);
     return params;
@@ -120,13 +114,14 @@ static void module_free(CfgReal *real) {
     }
 }
 
-mod_operations __init_module(gpointer data) {
-    LOGINFO(" ** Init module: setting mod_operations for tester [%s]", name);
+mod_operations __init_module(void) {
+    LOGINFO(" ** Init module: setting mod_operations for tester [exec]");
 
-    mops.m_name             = module_name;
+    mops.m_name             = "exec";
     mops.m_test_protocol    = SD_PROTO_EXEC;
-    mops.m_set_args         = module_set_args;
     mops.m_args             = m_args;
+
+    mops.m_alloc_args       = module_alloc_args;
     mops.m_process_event    = NULL;
     mops.m_check            = module_check_real;
     mops.m_start            = module_start_real;
