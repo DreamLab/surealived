@@ -663,6 +663,8 @@ static gint sd_parse_virtual(GPtrArray *VCfgArr, xmlNode *node) {
 
     g_ptr_array_add(VCfgArr, (gpointer)virt);
     virt->state = NOT_READY;
+    if (!virt->realArr)
+       virt->tested = TRUE;
 
     LOGDEBUG("node: %s registered to tester: %s", virt->name, virt->tester->proto);
 
