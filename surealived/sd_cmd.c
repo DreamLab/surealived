@@ -202,15 +202,20 @@ static gchar *sd_cmd_rlist(GPtrArray *VCfgArr, GHashTable *ht) {
                            virt->name, sd_proto_str(virt->ipvs_proto), virt->addrtxt, ntohs(virt->port), 
                            virt->ipvs_fwmark, sd_rt_str(virt->ipvs_rt), virt->ipvs_sched);
     
-    for (i = 0; i < virt->realArr->len; i++) {
-        real = (CfgReal *) g_ptr_array_index(virt->realArr, i);
-        currwgt = sd_ipvssync_calculate_real_weight(real);
-        g_string_append_printf(s, "%d. rname=%s raddr=%s rport=%d currwgt=%d confwgt=%d ronline=%s rstate=%s\n",
-                               i+1,
-                               real->name, 
-                               real->addrtxt, ntohs(real->port),
-                               currwgt, real->ipvs_weight, GBOOLSTR(real->online), sd_rstate_str(real->rstate));
-    }
+    if (virt->realArr) {
+        for (i = 0; i < virt->realArr->len; i++) {
+            real = (CfgReal *) g_ptr_array_index(virt->realArr, i);
+            currwgt = sd_ipvssync_calculate_real_weight(real);
+            g_string_append_printf(s, "%d. rname=%s raddr=%s rport=%d currwgt=%d confwgt=%d ronline=%s rstate=%s\n",
+                                   i+1,
+                                   real->name, 
+                                   real->addrtxt, ntohs(real->port),
+                                   currwgt, real->ipvs_weight, GBOOLSTR(real->online), sd_rstate_str(real->rstate));
+        }
+    } 
+    else 
+        g_string_append_printf(s, "EMPTY LIST - no reals defined in virtual\n");
+
     return g_string_free(s, FALSE);
 }
 
@@ -251,6 +256,10 @@ static gchar *sd_cmd_stats(GPtrArray *VCfgArr) {
 
         for (i = 0; i < VCfgArr->len; i++) {
             virt = (CfgVirtual *) g_ptr_array_index(VCfgArr, i);
+            
+            if (!virt->realArr) //no reals in virtual
+                continue;
+
             for (j = 0; j < virt->realArr->len; j++) {
                 real = (CfgReal *) g_ptr_array_index(virt->realArr, j);
                 total_r++;
