@@ -49,6 +49,7 @@ extern gboolean    G_use_offline_dump;
 
 extern gchar      *G_override_dump;
 
+extern gchar      *G_listen_addr;
 extern u_int16_t   G_listen_port;
 extern u_int32_t   G_memlimit;
 

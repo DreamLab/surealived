@@ -439,24 +439,32 @@ static gchar *sd_cmd_rset(GPtrArray *VCfgArr, GHashTable *ht) {
 }
 
 /* ---------------------------------------------------------------------- */
-gint sd_cmd_listen_socket_create(u_int16_t lport) {
+gint sd_cmd_listen_socket_create(gchar *addr, u_int16_t lport) {
     struct sockaddr_in  sa;
     SDClient            *server = NULL;
+    gchar               *localhost = "127.0.0.1";
+    int                 reuseaddr = 1;
 
     LOGDETAIL("%s()", __PRETTY_FUNCTION__);
+
     listen_sock = sd_socket_nb(SOCK_STREAM);
     sd_socket_solinger(listen_sock);
+    if (setsockopt(listen_sock, SOL_SOCKET, SO_REUSEADDR, 
+                   (const void *) &reuseaddr, sizeof(int)) == -1) {
+        LOGERROR("Unable to reuse listen_sock [%s]", STRERROR);
+    }
+
+    if (!strlen(addr))
+        addr = localhost;
 
     sa.sin_family = PF_INET;
     sa.sin_port = htons(lport);
-    sa.sin_addr.s_addr = INADDR_ANY;
+    sa.sin_addr.s_addr = inet_addr(addr);
 
-    if (!logic_epoll)
-        logic_epoll = sd_epoll_new(MAX_CLIENTS+1);
-
+    LOGINFO("Binding cmd interface to [%s:%d]", addr, lport);
     if (bind(listen_sock, (struct sockaddr *)&sa, sizeof(sa))) {
-        LOGERROR("Unable to bind to socket: port %d", lport);
-        return -1;
+        LOGERROR("Unable to bind to socket: [%s:%d] [syserror = %s]", addr, lport, STRERROR);
+        exit(1);
     }
 
     if (listen(listen_sock, MAX_CLIENTS)) {
@@ -465,6 +473,9 @@ gint sd_cmd_listen_socket_create(u_int16_t lport) {
     }
     server = (SDClient *) malloc(sizeof(SDClient));
     server->fd = listen_sock;
+
+    if (!logic_epoll)
+        logic_epoll = sd_epoll_new(MAX_CLIENTS+1);
     sd_epoll_ctl(logic_epoll, EPOLL_CTL_ADD, listen_sock, server, EPOLLIN);
 
     return listen_sock;

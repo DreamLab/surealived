@@ -58,6 +58,7 @@ gboolean    G_use_offline_dump    = TRUE;
 gchar      *G_override_dump       = NULL;
 
 /* Cmd interface variables */
+gchar      *G_listen_addr         = NULL;
 u_int16_t   G_listen_port         = 1337;
 
 /* For watchdog (tester process memlimit) */
@@ -87,6 +88,7 @@ gboolean sd_maincfg_new(gchar *fname) {
     _set_default(Cfg, "logging",            "info");
     _set_default(Cfg, "modules_path",       "/usr/lib/surealived/modules/");
     _set_default(Cfg, "modules",            "all");
+    _set_default(Cfg, "listen_addr",        "127.0.0.1");
     _set_default(Cfg, "listen_port",        "1337");
     _set_default(Cfg, "memlimit",           "0"); /* unlimited */
 
@@ -172,6 +174,7 @@ gboolean sd_maincfg_new(gchar *fname) {
     }
 
     sscanf(g_hash_table_lookup(Cfg, "listen_port"), "%hu", &G_listen_port);
+    G_listen_addr = g_hash_table_lookup(Cfg, "listen_addr");
     sscanf(g_hash_table_lookup(Cfg, "memlimit"), "%u", &G_memlimit);
 
     sscanf(g_hash_table_lookup(Cfg, "loop_interval_ms"), "%u", &G_loop_interval_ms);

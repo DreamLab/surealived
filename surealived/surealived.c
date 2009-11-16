@@ -296,7 +296,7 @@ gint main(gint argc, gchar **argv) {
         sd_ipvssync_save_fullcfg(VCfgArr, TRUE); /* force writing full sync */
     
     Tester = sd_tester_create(VCfgArr);
-    sd_cmd_listen_socket_create(G_listen_port); /* set listen port and so on */
+    sd_cmd_listen_socket_create(G_listen_addr, G_listen_port); /* set listen addr and port */
 
     ret = sd_tester_master_loop(Tester);
 
