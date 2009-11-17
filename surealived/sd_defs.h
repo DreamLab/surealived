@@ -93,6 +93,7 @@ typedef struct {
     guint           retries2fail;
     guint           remove_on_fail;
     guint           debugcomm;            /* debug communication */
+    guint           logmicro;             /* save statistics in microseconds instead of miliseconds */
     gchar          *exec;                 /* command to execute for EXEC */
     gchar           ssl;
     gpointer        moddata;              /* module data (ie url for HTTP tester) */

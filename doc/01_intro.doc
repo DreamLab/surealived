@@ -5,7 +5,7 @@
 ~
 \begin{center}
   \epsfig{file=surealived-logo, width=8cm}
-  \textit{ver. 0.8.2}
+  \textit{ver. 0.8.7}
 \end{center}
 \newpage
 
@@ -18,7 +18,7 @@
 serwerów balansowania ruchu. W ¶rodowiskach, gdzie istniej±
 setki (jak nie tysi±ce) us³ug wpiêtych do \textit{LVS}, prawdziwym
 wyzwaniem staje siê ich przetestowanie i podjêcie w³a¶ciwej akcji
-(wypiêcie / wpiêcie serwera). Problemem skalowania w tej materii
+(wypiêcie / wpiêcie serwera). Problemem skalowania w~tej materii
 jest tak¿e niewielki wybór aplikacji testuj±cych, w szczegolno¶ci
 dla \textit{LVSów}, gdzie wpiêtych jest wiele serwerów a czêstotliwo¶æ
 testu nie powinna byæ d³u¿sza ni¿ kilka sekund. Takie za³o¿enie
@@ -131,7 +131,7 @@ Oto podstawowe cechy testera -- \textbf{surealived}:
 \item na starcie nastêpuje zapisanie stanu dla \textbf{ipvssync}
   i wymuszenie synchronizacji konfiguracji z tablic± \textit{IPVS},
 \item komunikacja z \textbf{ipvssync} odbywa siê poprzez plik
-  konfiguracji dla ipvssync (zapisywany co 60 sek.) oraz pliki
+  konfiguracji dla ipvssync (zapisywany co 60~sek.) oraz pliki
   ró¿nicowe, zapisywane przy ka¿dej zmianie,
 \item start testów roz³o¿ony jest w~czasie (1 sek.), co zmniejsza
   obci±¿enie CPU w~przypadku równoczesnego uruchomienia testów

@@ -34,7 +34,8 @@ static CfgTester  CfgDefault = {
     .retries2fail   = 1,
     .retries2ok     = 1,
     .remove_on_fail = 0,
-    .debugcomm      = 0
+    .debugcomm      = 0,
+    .logmicro       = 0
 };
 
 static gchar* sd_xml_string(xmlNode       *node, 
@@ -471,6 +472,7 @@ static CfgTester *sd_parse_tester(xmlNode *node) {
     sd_xml_guint(node, "retries2fail", &tester->retries2fail, EXTRA_ATTR, "\t[i] No retries2fail");
     sd_xml_guint(node, "remove_on_fail", &tester->remove_on_fail, EXTRA_ATTR, "\t[i] No remove_on_fail");
     sd_xml_guint(node, "debugcomm", &tester->debugcomm, EXTRA_ATTR, "\t[i] No debugcomm");
+    sd_xml_guint(node, "logmicro", &tester->logmicro, EXTRA_ATTR, "\t[i] No logmicro");
     sd_xml_string(node, "SSL", &tester->ssl, 1, EXTRA_ATTR, "");
 
     if (parse_error) {

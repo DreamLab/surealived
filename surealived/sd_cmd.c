@@ -27,6 +27,8 @@
 
 #define MAX_CLIENTS 16
 
+extern   gboolean daemonize; //surealived global flag (required to report parent and child)
+
 int      listen_sock;
 SDepoll *logic_epoll = NULL;
 int      connected_clients = 0;
@@ -281,6 +283,8 @@ static gchar *sd_cmd_stats(GPtrArray *VCfgArr) {
 
     g_string_append_printf(s, 
                            "=== global stats ===\n"
+                           "watchdog_pid   : %d\n"
+                           "tester_pid     : %d\n"
                            "virtuals       : %d\n"
                            "reals          : %d\n\n"
                            "=== real settings ===\n"
@@ -292,6 +296,8 @@ static gchar *sd_cmd_stats(GPtrArray *VCfgArr) {
                            "=== real stats ===\n"
                            "success        : %d\n"
                            "failed         : %d\n\n",
+                           daemonize ? getppid() : -1,
+                           getpid(),
                            total_v, total_r,
                            total_ronline, total_roffline, total_rdown,
                            sd_offline_hash_table_size(),

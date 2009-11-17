@@ -95,7 +95,6 @@ aplikacje zostaje przekopiowany do katalogu \textit{/etc/surealived}.
  \item \textit{/var/lib/surealived/stats} -- dla statystyk testów reali.
 \end{itemize}
 
-\epsfig{file=sd-diagram,width=14cm}
 [EN]
 \noindent After installation you will find following binaries in your system:
 \begin{itemize}
@@ -119,8 +118,6 @@ applications is copied into \textit{/etc/surealived}.
  \item \textit{/var/lib/surealived/diffs} -- \textbf{ipvssync} differential configuration
  \item \textit{/var/lib/surealived/stats} -- real's tests statistics
 \end{itemize}
-
-\epsfig{file=sd-diagram,width=14cm}
 
 [ALL]
 \newpage

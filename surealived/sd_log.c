@@ -21,6 +21,7 @@
 #include <sd_log.h>
 
 #define TIMEDIFF_MS(t1,t2) (((t2.tv_sec - t1.tv_sec)*1000000 + (int)((int)t2.tv_usec - (int)t1.tv_usec))/1000)
+#define TIMEDIFF_US(t1,t2) ((t2.tv_sec - t1.tv_sec)*1000000 + (int)((int)t2.tv_usec - (int)t1.tv_usec))
 
 void human_time(gchar *out, gint len, struct timeval t) {
     char buf[32];
@@ -92,16 +93,34 @@ gint sd_log_stats(CfgVirtual *virt) {
         timediff(&conn_time, real->start_time, real->conn_time);
         for (j = 0; j < 2; j++) /* -funroll-loops should help in this function! */
             if (farr[j]) {
-                fprintf(farr[j],
-                    "virt=%s:%d vproto=%s vaddr=%s:%d real=%s:%d raddr=%s:%d start=\"%s\" conntime=%ldms resptime=%ldms currtest=%s online=%s\n",
-                        virt->name, ntohs(virt->port), 
-                        sd_proto_str(virt->ipvs_proto),
-                        virt->addrtxt, ntohs(virt->port),
-                        real->name, ntohs(real->port), 
-                        real->addrtxt, ntohs(real->port),    
-                        htime, TIMEDIFF_MS(real->start_time, real->conn_time), TIMEDIFF_MS(real->start_time, real->end_time),
-                        GBOOLSTR(real->test_state),
-                        GBOOLSTR(real->online));
+                if (virt->tester->logmicro) 
+                    fprintf(farr[j],
+                            "virt=%s:%d vproto=%s vaddr=%s:%d real=%s:%d raddr=%s:%d start=\"%s\" "
+                            "conntime=%ldus resptime=%ldus currtest=%s online=%s\n",
+                            virt->name, ntohs(virt->port), 
+                            sd_proto_str(virt->ipvs_proto),
+                            virt->addrtxt, ntohs(virt->port),
+                            real->name, ntohs(real->port), 
+                            real->addrtxt, ntohs(real->port),    
+                            htime, 
+                            TIMEDIFF_US(real->start_time, real->conn_time), 
+                            TIMEDIFF_US(real->start_time, real->end_time),
+                            GBOOLSTR(real->test_state),
+                            GBOOLSTR(real->online));
+                else 
+                    fprintf(farr[j],
+                            "virt=%s:%d vproto=%s vaddr=%s:%d real=%s:%d raddr=%s:%d start=\"%s\" "
+                            "conntime=%ldms resptime=%ldms currtest=%s online=%s\n",
+                            virt->name, ntohs(virt->port), 
+                            sd_proto_str(virt->ipvs_proto),
+                            virt->addrtxt, ntohs(virt->port),
+                            real->name, ntohs(real->port), 
+                            real->addrtxt, ntohs(real->port),    
+                            htime, 
+                            TIMEDIFF_MS(real->start_time, real->conn_time), 
+                            TIMEDIFF_MS(real->start_time, real->end_time),
+                            GBOOLSTR(real->test_state),
+                            GBOOLSTR(real->online));
             }
     }
     human_time(htime, sizeof(htime), virt->end_time);

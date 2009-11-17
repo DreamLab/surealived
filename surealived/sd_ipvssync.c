@@ -160,19 +160,19 @@ void sd_ipvssync_diffcfg_real(CfgReal *real, gboolean override_change) {
     g_string_append_printf(s, "\n");
 
     if (do_del) {
-        LOGINFO("diffcfg: do_del [%s]", s->str);
+        LOGDEBUG("diffcfg: do_del [%s]", s->str);
         fprintf(diff_sync_file, "cmd=delreal ");
         fprintf(diff_sync_file, "%s", s->str);
     }
 
     if (do_add) {
-        LOGINFO("diffcfg: do_add [%s]", s->str);
+        LOGDEBUG("diffcfg: do_add [%s]", s->str);
         fprintf(diff_sync_file, "cmd=addreal ");
         fprintf(diff_sync_file, "%s", s->str);
     }
 
     if (do_chg) {
-        LOGINFO("diffcfg: do_chg [%s]", s->str);
+        LOGDEBUG("diffcfg: do_chg [%s]", s->str);
         fprintf(diff_sync_file, "cmd=chgreal ");
         fprintf(diff_sync_file, "%s", s->str);
     }

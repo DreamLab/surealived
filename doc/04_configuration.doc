@@ -50,6 +50,12 @@ w przeciwnym wypadku upewnij siê, ¿e u¿ytkownik mo¿e przestawiæ t± warto¶æ.}.
    limitu \textit{watchdog} zresetuje \textbf{surealived}, warto¶æ ta jest ignorowana
    gdy program nie jest uruchomiony jako demon.
 
+ \item \textbf{listen\_addr} -- adres interfejsu poleceñ (cmd) na którym mo¿na
+	pobraæ statystyki dzia³ania testera a tak¿e wykonaæ aktywne operacje takie
+	jak zmiana wagi reala oraz jego wpiêcie/wypiêcie (ONLINE/OFFLINE/DOWN), 
+	domy¶lnie \textit{127.0.0.1}.
+ \item \textbf{listen\_port} -- port interfejsu poleceñ (cmd), domy¶lnie \textit{1337}.
+
  \item \textbf{stats\_dir} -- ¶cie¿ka, gdzie zapisywane bêd± statystyki testów%
 \footnote{Mo¿na je wykorzystaæ do analizy czasów odpowiedzi poszczególnych serwerów, 
 	zbalansowania wirtuali, itp.}.
@@ -122,6 +128,11 @@ Here's a list of variables used by tester:
  \item \textbf{memlimit} -- \textbf{surealived''s} memory limit, if exceeded \textit{watchdog}
    will restart application, this value is ignored if \textbf{surealived} isn't run as daemon.
 
+ \item \textbf{listen\_addr} -- interface command address (cmd) on which you can
+	get tester statistics and execute active commands like real weight change
+	or set its state (ONLINE/OFFLINE/DOWN), default \textit{127.0.0.1}.
+ \item \textbf{listen\_port} -- interface command port, default 1337.
+
  \item \textbf{stats\_dir} -- directory path, describing where test stats should be saved%
 ¶cie¿ka, gdzie zapisywane bêd± statystyki testów%
 \footnote{it can be used to analyze each server answer time, virtual balancing, etc.}
@@ -163,7 +174,7 @@ Oto lista zmiennych wykorzystywanych przez synchronizator:
 \end{itemize}
 
 [EN]
-\subsubsection{ipvssync config variables}
+\subsubsection{Ipvssync config variables}
 Here's a list of variables used by synchronizer:
 \begin{itemize}
  \item \textbf{ipvssync\_log} -- path to synchronizer's log file or \textit{stderr}
@@ -201,3 +212,452 @@ Here is a list of variables used by both - tester and synchronizer:
    should be stored (files containing changes made after full synchronization).
 \end{itemize}
 
+[PL]
+\pagebreak
+\subsection{Konfiguracja serwisów}
+XMLowy plik konfiguruj±cy testowane przez \textbf{surealived} serwisy
+jest jego argumentem w~momencie uruchomienia. Mo¿e siê wiêc
+znajdowaæ w dowolnym miejscu, za³ó¿my wiêc, ¿e konfiguracja ta jest
+w pliku \textit{/etc/surealived/services.xml}.
+
+\subsubsection{Ogólny zarys konfiguracji serwisów}
+Plik konfiguruj±cy serwisy ma sk³adniê typu:
+[EN]
+\subsection{Services configuration}
+XML configuration file used by \textbf{surealived} is one its 
+arguments. Thats why it can be taken from any place. For simplyfy
+I assume, that is the file \textit{/etc/surealived/services.xml}.
+
+\subsubsection{Generic services configuration abstract}
+Services configuration file has syntax like:
+
+[ALL]
+{\small
+\begin{verbatim}
+<surealived>
+  <virtual ...>
+     <tester ... />
+     <real ... />
+     <real ... />
+     ...
+ </virtual>
+ 
+ <virtual ...>
+     <tester ... />
+     <real ... />
+     ...
+ </virtual>
+</surealived>
+\end{verbatim}
+}
+
+[PL]
+\noindent Atrybuty taga \texttt{<virtual>}:
+\begin{itemize}
+ \item \texttt{name=''string''} [obligatoryjny] -- (max 31 znaków, z zakresu [a-zA-Z0-9\_-]),
+ \item \texttt{addr=''ip''} [obligatoryjny je¶li atrybut fwmark nie jest ustawiony,
+			   w przeciwnym wypadku bêdzie u¿yty adres ''0.0.0.0''],
+ \item \texttt{port=''int16''} [0<=port<=65535, obligatoryjny je¶li nie jest ustawiony fwmark,
+			     w przeciwnym wypadku ''0''],
+ \item \texttt{proto=''tcp|udp|fwmark''} [obligatoryjny], 
+ \item \texttt{sched=''string''} [obligatoryjny] -- zostanie wykorzystany taki scheduler,
+ \item \texttt{rt=''dr|masq|tun''} [obligatoryjny], typ rutingu w IPVS
+ \item \texttt{fwmark=''int''} [opcjonalny, je¶li > 0 \texttt{proto=''fwmark''} powinien byæ ustawiony],
+ \item \texttt{pers=''int''} [opcjonalny] -- dla po³±czeñ persistent to jest warto¶æ timeoutu.
+\end{itemize}
+
+[EN]
+\noindent Tag \texttt{<virtual>} attributes:
+\begin{itemize}
+ \item \texttt{name=''string''} [mandatory] (max 31 chars, range [a-zA-Z0-9\_] is allowed),
+ \item \texttt{addr=''ip''} [mandatory if attribute fwmark is not set, if fwmark is set	
+                               ''0.0.0.0'' will be used],
+ \item \texttt{port=''int16''} [0<=port<=65535, mandatory if fwmark is not set, otherwise "0"],
+ \item \texttt{proto=''tcp|udp|fwmark''} [mandatory],
+ \item \texttt{sched=''string''} [mandatory] (such ipvs scheduler will be used),
+ \item \texttt{rt=''dr|masq|tun''} [mandatory], IPVS routing type,
+ \item \texttt{fwmark=''int''} [optional, if > 0 proto="fwmark" should be set],
+ \item \texttt{pers=''int''} [optional], for persistent connections - this is timeout value].
+\end{itemize}
+
+[PL]
+\noindent Atrybuty taga \texttt{<tester>}:
+\begin{itemize}
+ \item \texttt{loopdelay=''int''} [opcjonalny, domy¶lnie 3] -- okre¶la opó¼nienie w sekundach 
+				  pomiêdzy pêtlami testuj±cymi ten wirtual,
+ \item \texttt{timeout=''int''} [opcjonalny, domy¶lnie 5] -- czas w sekundach podczas którego
+			        ka¿dy real musi zwróciæ odpowied¼,
+ \item \texttt{retries2ok=''int''} [opcjonalny, domy¶lnie 1] -- ile testów musi siê powie¶æ
+				  by real by³ potraktowany jako online,
+ \item \texttt{retries2fail=''int''} [opcjonalny, domy¶lnie 1] -- ile testów musi siê zakoñczyæ
+				niepowodzeniem by real by³ potraktowany jako offline,
+ \item \texttt{remove\_on\_fail=''0|1''} [opcjonalnie, domy¶lnie 0 (fa³sz)] -- je¶li ''prawda''
+				real bêd±cy offline jest usuwany z IPVS,
+ \item \texttt{logmicro=''0|1''} [opcjonalny, domy¶lnie 0 (fa³sz)] -- zapisywaæ statystyki 
+				z mikrosekundow± dok³adno¶ci± do plików statystyk (dla ''prawda''),
+ \item \texttt{proto=''string''} [obligatoryjny] -- który modu³ zostanie u¿yty do testowania,
+ \item \texttt{testport=''int''} [obligatoryjny] -- który port ma byæ testowany (real mo¿e nadpisaæ
+ 				 t± warto¶æ u~siebie),
+ \item \texttt{SSL=''0|1''} [opcjonalnie, domy¶lnie 0] -- u¿yæ SSL czy te¿ nie.
+\end{itemize}
+
+[EN]
+\noindent Tag \texttt{<tester>} attributes:
+\begin{itemize}
+ \item \texttt{loopdelay=''int''} [optional, default 3] -- defines delay in seconds between
+		     next testing loop for this virtual,
+ \item \texttt{timeout=''int''} [optional, default 5] -- each real server must completly
+		  respond in this time],
+ \item \texttt{retries2ok=''int''} [optional, default 1] -- how much tests must succeed to 
+		     treat real as online,
+ \item \texttt{retries2fail=''int''} [optional, default 1] -- how much tests must fail to
+		       treat real as offline,
+ \item \texttt{remove\_on\_fail=''0|1''} [optional, default 0 (false)] -- if true and real
+			 is offline remove it from IPVS,
+ \item \texttt{debugcomm=''0|1''} [optional, default 0 (false)] -- enable dumping communication
+		    details for reals,
+ \item \texttt{logmicro=''0|1''} [optional, default 0 (false)] -- do use microseconds resolution
+				while saving the statistics,
+ \item \texttt{proto=''string''} [mandatory] -- which module is used as tester module,
+ \item \texttt{testport=''int''} [mandatory] -- which port is tested (can be differ than real port),
+ \item \texttt{SSL=''0|1''} [optional, default 0] -- use SSL or not.
+\end{itemize}
+
+[PL]
+\noindent Atrybuty taga \texttt{<real>}:
+\begin{itemize}
+ \item \texttt{name=''string''} [obligatoryjny] (max 31 znaków, z zakresu [a-zA-Z0-9\_-]),
+ \item \texttt{addr=''ip''} [obligatoryjny] -- adres IP reala,
+ \item \texttt{port=''int16''} [obligatoryjny] -- port IP reala w IPVS,
+ \item \texttt{weight=''int''} [obligatoryjny] -- waga reala w IPVS,
+ \item \texttt{uthresh=''int''} [opcjonalny, domy¶lnie 0 (brak limitu)] -- górny limit po³±czeñ reala w IPVS,
+ \item \texttt{lthresh=''int''} [opcjonalny, domy¶lnie 0 (brak limitu)] -- dolny limit po³±czeñ reala w IPVS,
+ \item \texttt{testport=''int16''} [opcjonalny] -- nadpisuje atrybut testera \texttt{''testport''}
+						   dla danego reala,
+ \item \texttt{rt=''string''} [opcjonalny] -- nadpisuje atrybut testera \texttt{''rt''} dla danego reala.
+\end{itemize}
+
+[EN]
+\noindent Tag \texttt{<real>} attributes:
+\begin{itemize}
+ \item \texttt{name=''string''} [mandatory] (max 31 chars, range [a-zA-Z0-9\_] is allowed),
+ \item \texttt{addr=''ip''} [mandatory] -- real IP address,
+ \item \texttt{port=''int16''} [mandatory] -- real port number in IPVS,
+ \item \texttt{weight=''int''} [mandatory] -- real weight in IPVS,
+ \item \texttt{uthresh=''int''} [optional, default 0 (no limit)] -- upper connection limit to the
+				real in IPVS,
+ \item \texttt{lthresh=''int''} [optional, default 0 (no limit)] -- lower connection limit to the
+				real in IPVS,
+ \item \texttt{testport=''int16''} [optional] -- overrides tester \texttt{''testport''} attribute
+				for the real,
+ \item \texttt{rt=''string''} [optional] -- overrides tester \texttt{''rt''} attribute for the real.
+\end{itemize}
+
+% --------------------------------------------------------------------------------
+[PL]
+\subsubsection{Tester HTTP}
+Gdy chcemy u¿yæ testera HTTP do przetestowania konkretnego reala, nale¿y ustawiæ
+\texttt{proto=''http''} w~tagu \texttt{tester} oraz atrybuty:
+\begin{itemize}
+  \item \texttt{url=''string''} [obligatoryjny, max 4095 znaków] -- okre¶laj±cy odpytywany obiekt na serwerze,
+  \item \texttt{host=''string''} [obligatoryjny, max 255 znaków] -- okre¶la nag³owek ''Host'',
+  \item \texttt{retcode=''string''} [opcjonalny, domy¶lnie ''200''] -- kod powrotu okre¶laj±cy, ¿e test siê powiód³,
+  \item \texttt{naive=''0|1''} [opcjonalny, domy¶lnie ''0'' (fa³sz) -- okre¶la czy nale¿y sci±gaæ obiekt
+	do koñca, czy wystarczy otrzymaæ kod powrotu.
+\end{itemize}
+
+\noindent Przyk³adowy plik XML:
+[EN]
+\subsubsection{HTTP Tester}
+If we want to use HTTP tester to checkout every real we have to set 
+\texttt{proto=''http''} in the \texttt{tester} tag and attributes:
+\begin{itemize}
+  \item \texttt{url=''string''} [mandatory, max 4095 chars] -- requested object,
+  \item \texttt{host=''string''} [mandatory, max 255 znaków] -- defines ''Host'' header,
+  \item \texttt{retcode=''string''} [optional, default ''200''] -- response code we expect,
+  \item \texttt{naive=''0|1''} [optional, default ''0'' (false) -- do we need to 
+		fetch whole object or response code is good enough to deceide does
+		a test is succeeded.
+\end{itemize}
+
+\noindent Example XML config file:
+[ALL]
+{\footnotesize
+\begin{verbatim}
+<surealived>
+ <virtual name="onet" addr="192.168.0.1" port="80" proto="tcp" sched="wrr" rt="dr">
+   <tester loopdelay="1" timeout="2" retries2fail="1" retries2ok="1"
+           proto="http" testport="80" url="/" host="www.onet.pl"/>
+   <real name="sg" addr="213.180.146.27" port="80" weight="10"/>
+ </virtual>
+</surealived>
+\end{verbatim}
+}
+
+% --------------------------------------------------------------------------------
+[PL]
+\subsubsection{Tester TCP}
+Najprostszy tester, sprawdza tylko otwarto¶æ portu TCP. Wymaga
+\texttt{proto=''tcp''} w~tagu \texttt{tester}. Nie wykorzystuje
+¿adnych dodatkowych atrybutów.
+
+\vspace{1em}
+
+\noindent Przyk³adowy plik XML:
+[EN]
+\subsubsection{TCP Tester}
+The simplest tester, it checks only TCP port availibility. 
+Requires \texttt{proto=''tcp''} in the \texttt{tester} tag. It
+doesn't use other attributes.
+
+\vspace{1em}
+
+\noindent Example XML config file:
+[ALL]
+{\footnotesize
+\begin{verbatim}
+<surealived>
+ <virtual name="onet" addr="192.168.0.1" port="22" proto="tcp" sched="wrr" rt="dr">
+   <tester loopdelay="1" timeout="2" retries2fail="1" retries2ok="1"
+           proto="tcp" testport="22" />
+   <real name="sg" addr="213.180.146.27" port="22" weight="10"/>
+ </virtual>
+</surealived>
+\end{verbatim}
+}
+
+% --------------------------------------------------------------------------------
+[PL]
+\subsubsection{Tester DNS}
+Tester UDP sprawdz±cy SOA dla podanej domeny. 
+Wymaga \texttt{proto=''dns''} w~tagu \texttt{tester}.
+Wykorzystuje tylko jeden dodatkowy atrybut:
+\begin{itemize}
+  \item \texttt{request=''string''} [obligatoryjny, max 255 znaków] -- 
+	okre¶la domenê dla której tester odpyta o~SOA.
+\end{itemize}
+
+\noindent Przyk³adowy plik XML:
+[EN]
+\subsubsection{DNS Tester}
+Tester which checks SOA for specified domain.
+Requires \texttt{proto=''dns''} in the \texttt{tester} tag.
+It uses only one attribute:
+\begin{itemize}
+  \item \texttt{request=''string''} [mandatory, max 255 chars] -- 
+	domain for which SOA request will be sent.
+\end{itemize}
+
+\noindent Example XML config file:
+[ALL]
+{\footnotesize
+\begin{verbatim}
+<surealived>
+ <virtual name="onetdns1" addr="192.168.0.1" port="53" proto="udp" sched="wrr" rt="dr">
+  <tester loopdelay="1" timeout="2" retries2fail="1" retries2ok="1"
+          proto="dns" testport="53" request="onet.pl" logmicro="1"/>
+  <real name="dns1" addr="213.180.128.240" port="53" weight="10"/>
+  <real name="dns2" addr="217.97.201.240" port="53" weight="11"/>
+ </virtual>
+</surealived>
+\end{verbatim}
+}
+
+% --------------------------------------------------------------------------------
+[PL]
+\subsubsection{Tester EXEC}
+Tester który wywo³uje dowolny zewnêtrzny program. 
+Wymaga \texttt{proto=''exec''} w~tagu \texttt{tester}. 
+Wykorzystuje dodatkowe atrybuty:
+
+\begin{itemize}
+  \item \texttt{exec=''string''} [obligatoryjny, max MAXPATHLEN-1 znaków czyli 1023] -- 
+		 nazwa programu do uruchomienia,
+  \item \texttt{params=''string''} [opcjonalny, max 1023 znaki] -- 
+		dodatkowe argumenty przekazywane programowi separowane spacjami.
+\end{itemize}
+
+\noindent W momencie wywo³ania lista argumentów z jak± wywo³ywany jest program to:
+\begin{itemize}
+ \item arg0 -- adres IP reala,
+ \item arg1 -- port (testport) dla reala,
+ \item arg2 -- params[0],
+ \item arg. -- params[...],
+ \item argn -- params[n].
+\end{itemize}
+
+\noindent Oczywi¶cie je¶li nie zostanie podany atrybut \texttt{params} aplikacja
+testuj±ca zostanie wywo³ana tylko z~dwoma argumentami.
+
+\vspace{.5em}
+Kod powrotu == 0 oznacza, ¿e test siê powiód³. Dowolny inny kod powrotu traktowany 
+jest jako b³±d testu.
+
+\vspace{.5em}
+\noindent Przyk³adowy plik XML:
+[EN]
+\subsubsection{EXEC Tester}
+Tester which executes external program to perform the test.
+Requires \texttt{proto=''exec''} in the \texttt{tester} tag. 
+Uses additional attributes:
+
+\begin{itemize}
+  \item \texttt{exec=''string''} [mandatory, max MAXPATHLEN-1 chars (1023 in my includes)] -- 
+	path to external program,
+  \item \texttt{params=''string''} [optional, max 1023 chars] -- additional space separated
+	arguments.
+\end{itemize}
+
+\noindent When external tester program is called argument list is created as:
+\begin{itemize}
+ \item arg0 -- real IP address,
+ \item arg1 -- real port (testport),
+ \item arg2 -- params[0],
+ \item arg. -- params[...],
+ \item argn -- params[n].
+\end{itemize}
+
+\noindent Of course if there is no \texttt{params} attribute an external program
+	will be executed only with two arguments.
+
+Return code == 0 means, that test succeed. Any response code not equal to 0 
+is treated as test fail.
+
+\noindent Example XML config file:
+[ALL]
+{\footnotesize
+\begin{verbatim}
+<surealived>
+ <virtual name="onetexec" proto="tcp"
+          addr="192.168.0.1" port="80" sched="wrr" rt="dr">
+  <tester loopdelay="1" timeout="5" retries2fail="1" retries2ok="1" testport="80"
+          proto="exec" exec="/usr/lib/surealived/scripts/testexec.pl"
+          params="www.onet.pl /0" />
+  <real name="sg" addr="213.180.146.27" port="80" weight="10" rt="dr"/>
+ </virtual>
+</surealived>
+\end{verbatim}
+}
+
+% --------------------------------------------------------------------------------
+[PL]
+\subsubsection{Pseudotester NO-TEST}
+Pseudotester traktuj±cy serwer jako zawsze online.
+Wymaga \texttt{proto=''no-test''} w~tagu \texttt{tester}.
+
+\vspace{1em}
+\noindent Przyk³adowy plik XML:
+[EN]
+\subsubsection{NO-TEST Pseudotester}
+Pseudotester which always treats real servers as online.
+Requires \texttt{proto=''no-test''} in the \texttt{tester} tag.
+
+\vspace{1em}
+\noindent Example XML config file:
+[ALL]
+{\footnotesize
+\begin{verbatim}
+<surealived>
+ <virtual name="onet" addr="192.168.0.1" port="80" proto="tcp" sched="wrr" rt="dr">
+   <tester loopdelay="1" timeout="2" retries2fail="1" retries2ok="1"
+           proto="no-test" testport="80" />
+   <real name="sg" addr="213.180.146.27" port="80" weight="10"/>
+ </virtual>
+</surealived>
+\end{verbatim}
+}
+
+% --------------------------------------------------------------------------------
+[PL]
+\subsection{Interfejs CMD}
+Aplikacja \textbf{surealived} umo¿liwia odczyt pewnych parametrów
+pracy programu oraz nadpisywanie niektórych ustawieñ serwerów real
+w locie bez konieczno¶ci modyfikacji pliku \textit{services.xml}.
+Domy¶lnie na loopbacku (\textit{127.0.0.1}) i porcie \textit{1337}
+nas³uchuje interfejs cmd. Obecnie mo¿na wykonaæ nastêpuj±ce akcje:
+
+\begin{itemize}
+ \item \textbf{vlist} [pasywny] -- wylistowuje wirtuale zdefiniowane
+	w pamiêci testera,
+ \item \textbf{rlist} [pasywny] -- wylistowuje reale zdefiniowane
+	dla konkretnego wirtuala w pamiêci testera,
+ \item \textbf{stats} [pasywny] -- pokazuje statystyki dzia³ania 
+	aplikacji, ilo¶æ zdefioniowanych wirtuali, reali i wiele 
+        innych,
+ \item \textbf{rset} [aktywny] -- umo¿liwia dynamiczne zarz±dzanie
+	wagami oraz ustawiania serwera w stan OFFLINE (waga = 0) 
+	lub DOWN (serwer jest usuwany z IPVS).
+\end{itemize}
+
+\noindent Przyk³ady:
+
+[EN]
+\subsection{CMD interface}
+\textbf{Surealived} allows to read some application running parameters
+and overrides some real servers settings in runtime without 
+\textit{services.xml} reconfiguration. Interface is listening
+at loopback from default (\textit{127.0.0.1}) at port \textit{1337}.
+Currently there can be performed specified actions:
+
+\begin{itemize}
+ \item \textbf{vlist} [passive] -- lists virtuals defined in tester memory,
+ \item \textbf{rlist} [passive] -- lists reals defined in tester memory
+	for selected virtual,
+ \item \textbf{stats} [passive] -- shows runtime statystics and performance
+	counters,
+ \item \textbf{rset} [active] -- allows dynamicaly weight change for 
+	selected real or set its state to OFFLINE (weight = 0) 
+	or DOWN (remove real from IPVS).
+\end{itemize}
+
+\noindent Examples:
+
+[ALL]
+{\scriptsize
+\begin{verbatim}
+> printf "vlist\n" | nc -q 1 localhost 1337
+0. vname=onet vproto=tcp vaddr=192.168.0.1 vport=80 vfwmark=0 vrt=dr vsched=wrr
+1. vname=wp vproto=tcp vaddr=192.168.0.2 vport=80 vfwmark=0 vrt=dr vsched=wrr
+
+> printf "rlist vproto=tcp vaddr=192.168.0.2 vport=80\n" | nc -q 1 localhost 1337
+1. raddr=212.77.100.101 rport=80 currwgt=11 confwgt=11 ronline=TRUE rstate=ONLINE
+
+> printf "rset vproto=tcp vaddr=192.168.0.2 vport=80 raddr=212.77.100.101 rport=80 rweight=1\%\%\n" \
+	 | nc -q 1 localhost 1337
+Set: rstate=ONLINE, weight=1, inpercent=TRUE
+
+> printf "rset vproto=tcp vaddr=192.168.0.2 vport=80 raddr=212.77.100.101 rport=80 rstate=OFFLINE\n" \
+	 | nc -q 1 localhost 1337
+Set: rstate=OFFLINE, weight=-1, inpercent=FALSE
+
+> printf "rlist vproto=tcp vaddr=192.168.0.2 vport=80\n" | nc -q 1 localhost 1337
+1. raddr=212.77.100.101 rport=80 currwgt=0 confwgt=11 ronline=TRUE rstate=OFFLINE
+
+> printf "stats\n" | nc -q 1 localhost 1337
+... statistics here ... 
+\end{verbatim}
+}
+
+[PL]
+Polecenie aktywne \textbf{rset} umo¿liwia zmianê wagi równie¿ jako procent 
+domy¶lnie skonfigurowanej warto¶ci. Trzeba pamiêtaæ, ¿e dla 1\% zostanie ustawiona
+waga minimum równa 1%
+\footnote{Zak³adaj±c, ¿e wagi s± ustawiane w zale¿no¶ci od wype³nienia cache,
+przy wadze ustawionej na 10 i pustym cache 1\% zawsze równa³by siê 0 i nigdy do takiego reala
+nie poszed³by ruch.}.
+
+Wszelkie zmiany modyfikowane z wykorzystaniem \textit{cmd} zapisywane s± w pliku
+\textit{override.dump}. Takie podej¶cie umo¿liwia przetrwanie nadpisanych przez
+nas ustawieñ w przypadku modyfikacji konfiguracji xml lub zrestartowaniu surealived.
+
+[EN]
+Active command \textbf{rset} allows weight change also as percent of weight configurated
+in xml services file. You need to remember, that for 1\% runtime weight will be
+set to minimum 1%
+\footnote{If we assume, that runtime weights are set depending on some cache 
+fill, having weight set to 10 and empty cache on such real server it would
+always be equal to 0 and no connections would be directed to it.}.
+
+All changes modified by \textit{cmd} are save in \textit{override.dump} file.
+That means, all our overrides will survive even xml services change or
+surealived restarts will be performed in the meantime.

@@ -143,7 +143,7 @@ void diffs_apply(Config *conf, gboolean sync_to_ipvs) {
 
         /* jump to next diff */
         if (sscanf(line, "DIFF file=%s", fname) == 1) {
-            LOGDEBUG("Switch to next diff [%s]", fname);
+            LOGINFO("Switch to next diff [%s]", fname);
             fclose(df);
             g_free(conf->diff_filename);
             conf->diff_filename = g_strdup(fname);

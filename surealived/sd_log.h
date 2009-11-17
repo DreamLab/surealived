@@ -17,6 +17,5 @@
 #define __SD_LOG_H
 
 gint sd_log_stats(CfgVirtual *virt);
-//void human_time(gchar *out, gint len, struct timeval t);
 
 #endif

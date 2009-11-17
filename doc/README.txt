@@ -115,6 +115,8 @@ I'll explain semantics on following example:
 			 is offline remove it from ipvs
   * debugcomm="0|1" [optional, default 0 (false)] - enable dumping communication
 		    details for reals
+  * logmicro="0|1"} [optional, default 0 (false)] - do use microseconds resolution
+				while saving the statistics
   * proto="string" [mandatory] - which module is used as tester module
   * testport="int" [mandatory] - which port is tested (can be differ than
 		   real port)
