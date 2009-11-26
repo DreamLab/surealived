@@ -105,7 +105,7 @@ Here's a list of variables used by tester:
  \item \textbf{modules\_path} -- path to tester's binary modules.
  \item \textbf{modules} -- comma-separated list of modules
    (\textbf{WARNING} -- there must be no space after comma) or \textit{all},
-   which forces loading of all modules from path set in \textbf{modules\_path}.	
+   which forces loading all modules from path set in \textbf{modules\_path}.	
 
  \item \textbf{epoll\_size} -- minimum epoll size, if there is more services to test
    than this value describes, it will be overwritten
@@ -118,7 +118,7 @@ Here's a list of variables used by tester:
    start times of \textit{reals} tests are spread in that period (default: \textit{1000})
  
  \item \textbf{debug\_comm} -- binary flag (0/1) determining if dumping
-   communication with reals inside given virtual should be enabled.
+   communication with reals, inside given virtual, should be enabled.
    Setting this value to 1 is insufficient prerequisite to dump communication%
    \footnote{You also need to set \textit{debugcomm=''1''} attribute inside
      <tester> tag in xml configuration.}.
@@ -134,7 +134,6 @@ Here's a list of variables used by tester:
  \item \textbf{listen\_port} -- interface command port, default 1337.
 
  \item \textbf{stats\_dir} -- directory path, describing where test stats should be saved%
-¶cie¿ka, gdzie zapisywane bêd± statystyki testów%
 \footnote{it can be used to analyze each server answer time, virtual balancing, etc.}
 
  \item \textbf{log\_stats} -- setting this value to \textit{true} will enable
@@ -224,9 +223,9 @@ w pliku \textit{/etc/surealived/services.xml}.
 Plik konfiguruj±cy serwisy ma sk³adniê typu:
 [EN]
 \subsection{Services configuration}
-XML configuration file used by \textbf{surealived} is one its 
-arguments. Thats why it can be taken from any place. For simplyfy
-I assume, that is the file \textit{/etc/surealived/services.xml}.
+XML configuration file used by \textbf{surealived} is one of its 
+arguments. Thats why it can be taken from any place. To keep things
+simple let's assume, that it's \textit{/etc/surealived/services.xml}.
 
 \subsubsection{Generic services configuration abstract}
 Services configuration file has syntax like:
@@ -306,11 +305,11 @@ Services configuration file has syntax like:
 \begin{itemize}
  \item \texttt{loopdelay=''int''} [optional, default 3] -- defines delay in seconds between
 		     next testing loop for this virtual,
- \item \texttt{timeout=''int''} [optional, default 5] -- each real server must completly
+ \item \texttt{timeout=''int''} [optional, default 5] -- each real server must
 		  respond in this time],
- \item \texttt{retries2ok=''int''} [optional, default 1] -- how much tests must succeed to 
+ \item \texttt{retries2ok=''int''} [optional, default 1] -- how many tests must succeed to 
 		     treat real as online,
- \item \texttt{retries2fail=''int''} [optional, default 1] -- how much tests must fail to
+ \item \texttt{retries2fail=''int''} [optional, default 1] -- how many tests must fail to
 		       treat real as offline,
  \item \texttt{remove\_on\_fail=''0|1''} [optional, default 0 (false)] -- if true and real
 			 is offline remove it from IPVS,
@@ -319,8 +318,8 @@ Services configuration file has syntax like:
  \item \texttt{logmicro=''0|1''} [optional, default 0 (false)] -- do use microseconds resolution
 				while saving the statistics,
  \item \texttt{proto=''string''} [mandatory] -- which module is used as tester module,
- \item \texttt{testport=''int''} [mandatory] -- which port is tested (can be differ than real port),
- \item \texttt{SSL=''0|1''} [optional, default 0] -- use SSL or not.
+ \item \texttt{testport=''int''} [mandatory] -- which port is tested (can be different than real port),
+ \item \texttt{SSL=''On|Off''} [optional, default Off] -- use SSL or not.
 \end{itemize}
 
 [PL]
@@ -362,22 +361,22 @@ Gdy chcemy u¿yæ testera HTTP do przetestowania konkretnego reala, nale¿y ustawiæ
   \item \texttt{url=''string''} [obligatoryjny, max 4095 znaków] -- okre¶laj±cy odpytywany obiekt na serwerze,
   \item \texttt{host=''string''} [obligatoryjny, max 255 znaków] -- okre¶la nag³owek ''Host'',
   \item \texttt{retcode=''string''} [opcjonalny, domy¶lnie ''200''] -- kod powrotu okre¶laj±cy, ¿e test siê powiód³,
-  \item \texttt{naive=''0|1''} [opcjonalny, domy¶lnie ''0'' (fa³sz) -- okre¶la czy nale¿y sci±gaæ obiekt
+  \item \texttt{naive=''True|False''} [opcjonalny, domy¶lnie ''False'' (fa³sz) -- okre¶la czy nale¿y sci±gaæ obiekt
 	do koñca, czy wystarczy otrzymaæ kod powrotu.
 \end{itemize}
 
 \noindent Przyk³adowy plik XML:
 [EN]
 \subsubsection{HTTP Tester}
-If we want to use HTTP tester to checkout every real we have to set 
+If we want to use HTTP tester to check specific real we have to set 
 \texttt{proto=''http''} in the \texttt{tester} tag and attributes:
 \begin{itemize}
   \item \texttt{url=''string''} [mandatory, max 4095 chars] -- requested object,
   \item \texttt{host=''string''} [mandatory, max 255 znaków] -- defines ''Host'' header,
   \item \texttt{retcode=''string''} [optional, default ''200''] -- response code we expect,
-  \item \texttt{naive=''0|1''} [optional, default ''0'' (false) -- do we need to 
-		fetch whole object or response code is good enough to deceide does
-		a test is succeeded.
+  \item \texttt{naive=''True|False''} [optional, default ''False'' -- do we need to 
+		fetch whole object or response code is good enough to decide whether
+		test was successful.
 \end{itemize}
 
 \noindent Example XML config file:
@@ -497,18 +496,18 @@ jest jako b³±d testu.
 \noindent Przyk³adowy plik XML:
 [EN]
 \subsubsection{EXEC Tester}
-Tester which executes external program to perform the test.
+Tester which executes external program to perform test.
 Requires \texttt{proto=''exec''} in the \texttt{tester} tag. 
 Uses additional attributes:
 
 \begin{itemize}
-  \item \texttt{exec=''string''} [mandatory, max MAXPATHLEN-1 chars (1023 in my includes)] -- 
+  \item \texttt{exec=''string''} [mandatory, max MAXPATHLEN-1 chars (1023 in includes)] -- 
 	path to external program,
-  \item \texttt{params=''string''} [optional, max 1023 chars] -- additional space separated
+  \item \texttt{params=''string''} [optional, max 1023 chars] -- additional space-separated
 	arguments.
 \end{itemize}
 
-\noindent When external tester program is called argument list is created as:
+\noindent When external tester program is called, argument list is created as:
 \begin{itemize}
  \item arg0 -- real IP address,
  \item arg1 -- real port (testport),
@@ -518,10 +517,9 @@ Uses additional attributes:
 \end{itemize}
 
 \noindent Of course if there is no \texttt{params} attribute an external program
-	will be executed only with two arguments.
+	will be executed only with first two arguments.
 
-Return code == 0 means, that test succeed. Any response code not equal to 0 
-is treated as test fail.
+Return code == 0 means, that test was successful. Any other response is treated as test fail.
 
 \noindent Example XML config file:
 [ALL]
@@ -593,19 +591,19 @@ nas³uchuje interfejs cmd. Obecnie mo¿na wykonaæ nastêpuj±ce akcje:
 
 [EN]
 \subsection{CMD interface}
-\textbf{Surealived} allows to read some application running parameters
-and overrides some real servers settings in runtime without 
+\textbf{Surealived} allows to read application parameters
+and override some real servers settings in runtime without 
 \textit{services.xml} reconfiguration. Interface is listening
-at loopback from default (\textit{127.0.0.1}) at port \textit{1337}.
+at loopback from default (\textit{127.0.0.1}) on \textit{1337} port.
 Currently there can be performed specified actions:
 
 \begin{itemize}
  \item \textbf{vlist} [passive] -- lists virtuals defined in tester memory,
  \item \textbf{rlist} [passive] -- lists reals defined in tester memory
 	for selected virtual,
- \item \textbf{stats} [passive] -- shows runtime statystics and performance
+ \item \textbf{stats} [passive] -- shows runtime statistics and performance
 	counters,
- \item \textbf{rset} [active] -- allows dynamicaly weight change for 
+ \item \textbf{rset} [active] -- allows changing weight for 
 	selected real or set its state to OFFLINE (weight = 0) 
 	or DOWN (remove real from IPVS).
 \end{itemize}
@@ -651,13 +649,13 @@ Wszelkie zmiany modyfikowane z wykorzystaniem \textit{cmd} zapisywane s± w pliku
 nas ustawieñ w przypadku modyfikacji konfiguracji xml lub zrestartowaniu surealived.
 
 [EN]
-Active command \textbf{rset} allows weight change also as percent of weight configurated
+Active command \textbf{rset} allows us to change weight also as percent of weight configurated
 in xml services file. You need to remember, that for 1\% runtime weight will be
 set to minimum 1%
 \footnote{If we assume, that runtime weights are set depending on some cache 
 fill, having weight set to 10 and empty cache on such real server it would
 always be equal to 0 and no connections would be directed to it.}.
 
-All changes modified by \textit{cmd} are save in \textit{override.dump} file.
-That means, all our overrides will survive even xml services change or
-surealived restarts will be performed in the meantime.
+All changes modified by \textit{cmd} are saved in \textit{override.dump} file.
+That means, all our overrides will survive even xml services changes or
+surealived restarts performed in the meantime.

@@ -34,7 +34,7 @@ przewrotnie \textit{SureAliveD}, ze wzglêdu na to, i¿ chcemy byæ pewni,
 \section{Introduction}
 \textit{Linux Virtual Server (LVS)} is one of the most efficient
 traffic balancing server. In environments containing hundreds (if not thousands)
-services plugged to \textit{LVS} it's becoming a challenge to
+services plugged into \textit{LVS} it's becoming a challenge to
 test services and make the right decision about plugging the server in or out.
 Another problem about scalability in this matter is the lack of testing applications
 especially for \textit{LVS}, where there are many servers plugged in and test 
@@ -44,7 +44,7 @@ list of usable applications, because they have to be based on multiplexed IO
 was \textit{keepalived}. Because of it's bugs and lack of some functionalities
 in \textit{keepalived} we decided to write a new service tester from scratch.
 We called it \textit{SureAliveD}, because we wanted to make \underline{sure}
-that services plugged to \textit{LVS} are working.
+that services plugged into \textit{LVS} are working.
 
 [PL]
 \subsection{Czym jest i jak dzia³a \textit{SureAliveD}?}
