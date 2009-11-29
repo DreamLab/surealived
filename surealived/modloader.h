@@ -45,7 +45,7 @@ typedef struct {
     gchar           *name;
     SD_MODARG_TYPE  type;
     guint           param;
-    SD_ATTR_TYPE    attr_type;
+    SD_ATTR_TYPE    mandatory;
     unsigned long   offset;
 } mod_args;
 

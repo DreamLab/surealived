@@ -37,33 +37,33 @@ wpinane z wag± = 0 do IPVS.
 Plik, który równie¿ przes³ania konfiguracjê to \textit{override.dump}. Mo¿e 
 byæ on modyfikowany przez u¿ytkownika poprzez interfejs \textit{cmd} widoczny
 po lewej stronie diagramu. Jest to wystawiony nas³uchuj±cy port umo¿liwiaj±cy
-wykonanie kilku interesuj±cych poleceñ na dzia³aj±cym testerze. Co szczegó³owo
-mo¿na wykonaæ opiszê w~nastêpnym rozdziale.
+wykonanie kilku interesuj±cych poleceñ na dzia³aj±cym testerze. Co dok³adnie
+mo¿na wykonaæ zosta³o opisane w~nastêpnym rozdziale.
 
 [EN]
-\noindent On the diagram left side there is tester (surealived),
-composite by two processes -- \textbf{watchdog} and~\textbf{tester}.
-On the right side there's oneprocess \textbf{synchronizer} (ipvssync) connected
+\noindent On the left side of diagram there is tester (surealived),
+composed of two processes -- \textbf{watchdog} and~\textbf{tester}.
+On the right there's one process \textbf{synchronizer} (ipvssync) connected
 to IPVS.
 On the middle there are files and directories directly related in data exchange
 between tester and synchronizer.
 
-Most important file common both to tester and synchronizer is 
-\textit{surealived.cfg}, which detail syntax will be explained in next section.
+Most important file common to both -- tester and synchronizer is 
+\textit{surealived.cfg}, which detailed syntax will be explained in the next section.
 This is simple \textit{''key value''} file which describes runtime parameters
-for mentioned aplications.
+for mentioned applications.
 
 Tester takes it's services definitions from \textit{services.xml} file%
-\footnote{Of course this file can be named completely different, for that
-doc we assumed that is \textit{services.xml}.}. 
-Reals view, their weights and its online/offline states are overrides by
+\footnote{Of course this file can be named completely different, here
+we assumed that it's named \textit{services.xml}.}. 
+Reals view, their weights and its online/offline states are overrided by
 two files -- \textit{offline.dump} and \textit{override.dump}. Tester
-saves failed reals to the \textit{offline.dump}. After restart this file
+saves offline reals to the \textit{offline.dump}. After restart this file
 is honoured so previously offlined real will be offline at start.
 Second file which overrides xml config is \textit{override.dump}. It can be
 modified by \textit{cmd} interface which was drawn at left side of the diagram.
-It is listening port using which you can perform some interesting command
-on running tester application. I'll describe in next section.
+It is implemented as listening port using which you can perform some interesting
+commands on running tester application. It is described in next section.
 
 [PL]
 Podczas startu tester \textit{wymusza} zbudowanie konfiguracji synchronizatora
@@ -78,7 +78,7 @@ konfiguracji -- \textit{ipvsfull.reload}. Po restarcie testera stan IPVS
 z jego punktu widzenia jest nieznany, dlatego te¿ po zbudowaniu konfiguracji
 \textit{ipvsfull.cfg} wskazuje on konieczno¶æ pe³nej modyfikacji IPVS poprzez
 za³o¿enie pliku \textit{ipvsfull.reload}. Tego pliku regularnie poszukuje 
-\textbf{ipvssync} i przypadku znalezienia czyta now± konfiguracjê, wprowadza
+\textbf{ipvssync} i w przypadku znalezienia czyta now± konfiguracjê, wprowadza
 zmiany do IPVS po czym usuwa zbiór \textit{ipvsfull.reload}. Podczas dzia³ania
 \textbf{ipvssync} wie w którym pliku ró¿nicowym siê znajduje i usuwa z katalogu
 \textit{diffs} wszystkie stare zbiory. 
@@ -93,45 +93,44 @@ zbiorów poprzez ustawienie ''\textit{log\_stats false}'' w~pliku
 \textit{surealived.cfg}.}.
 
 [EN]
-When tester starts it \textit{enforces} synchronizer configuration
-\textit{ipvsfull.cfg} rebuild and initiates saving diffs files in 
+When tester starts it \textit{enforces} rebuilding synchronizer configuration
+\textit{ipvsfull.cfg} and initiates saving diffs files in 
 \textit{diffs} directory. When real server will fail there's no point
 to save whole configuration but the difference only. That's why 
 \textit{ipvsfull.cfg} file is changing every 60 seconds and all changes
-to this file in the last, current difference file. Other two important
+ to main configuration are in last, current difference file. Other two important
 files are mutex file \textit{ipvsfull.lock} and reload flag \textit{ipvsfull.reload}.
 After tester restart IPVS state is unknown from its point of view, that's why
 after \textit{ipvsfull.cfg} rebuild it points to synchronizer to reconfigure
 whole IPVS table. File \textit{ipvsfull.reload} is constantly searched by
 \textbf{ipvssync} and if it will find that file it will read new configuration,
 synchronize to IPVS and remove the flag. When synchronizer works it 
-also checks older than current different file in \textit{diffs} directory
+also looks for old difference files in \textit{diffs} directory
 and removes them.
 
-Tester also gives you possibilities to save test statistics in \textit{stats}
-directory. It can saves to one common file \textit{sd\_fullstats.log} as well as to 
+Tester also gives you possibility to save test statistics in \textit{stats}
+directory. It can save stats to one common file \textit{sd\_fullstats.log} as well as to 
 separated \textit{sd\_virtstats*.TIMESTAMP} files. When you deceide to use
 single tests statistics files be careful -- \textit{stats} directory will
-be grown very fast%
+grow very fast%
 \footnote{You can configure files removal in your cron or you can disable
 saving to these files by setting ''\textit{log\_stats false}'' in  
 \textit{surealived.cfg} config file.}.
 
 [PL]
 \subsection{Uruchamianie testera}
-Zanim zostanie uruchomiony po raz pierwszy synchronizator 
-musi zostaæ uruchomiony tester, zwi±zane jest to z utworzeniem
-konfiguracji \textit{ipvsfull.cfg}.
+Przed uruchomieniem synchronizatora po raz pierwszy, konieczne jest
+uruchomienie testera, zwi±zane jest to z utworzeniem konfiguracji \textit{ipvsfull.cfg}
 
 By uzyskaæ listê mo¿liwych opcji przy uruchamianiu testera
 wystarczy u¿yæ opcji \textbf{-h}.
 
 [EN]
 \subsection{Starting the tester}
-Before you start synchronizer first time there must be started
-tester due to create synchronizer \textit{ipvsfull.cfg} config file.
+Due to creating synchronizer's config file \textit{ipvsfull.cfg},
+it's necessary to run tester before running synchronizer for the first time,
 
-To see whole possible tester options try to use \textbf{-h} switch.
+To see all possible tester options use \textbf{-h} switch.
 
 [ALL]
 {
@@ -183,17 +182,16 @@ check services xml config syntax. Return codes are standard
 
 ~
 
-\noindent In production environment tester will be executed as demonized:
-W normalnym produkcyjnym ¶rodowisku zazwyczaj tester bêdzie uruchamiany
+\noindent In production environment tester will be run as daemon:
 \begin{verbatim}
 wegorz@zaphod:~$ surealived -d /etc/surealived/services.xml
 \end{verbatim}
 
-You need to remember, that in executing tester as daemonized all error 
-messages will be saved to \textit{/var/log/surealived/surealived.log}
-only if tester can write to that file. Thats why I suggest to run tester
-in foreground to find out if there won't be problem when it will be 
-executed as daemonized:
+You need to remember, that executing tester as daemon will cause all error 
+messages to be saved to \textit{/var/log/surealived/surealived.log}
+only if tester can write to that file. Therefore it's recommended to run tester
+in foreground to find out if there won't be problems when it will be 
+executed as daemon:
 \begin{verbatim}
 wegorz@zaphod:~$ surealived -vvv /etc/surealived/services.xml
 \end{verbatim}
@@ -201,7 +199,7 @@ wegorz@zaphod:~$ surealived -vvv /etc/surealived/services.xml
 [PL]
 \subsection{Uruchamianie synchronizatora}
 Je¶li istnieje plik konfiguracyjny dla synchronizatora mo¿emy 
-go uruchomiæ -- koniecznie z uprawnieniami roota, gdy¿ modyfikuje
+go (synchronizator) uruchomiæ -- koniecznie z uprawnieniami roota, gdy¿ modyfikuje
 on IPVS.
 
 By uzyskaæ listê mo¿liwych opcji przy uruchamianiu synchronizatora
@@ -209,8 +207,8 @@ wystarczy u¿yæ opcji \textbf{-h}.
 
 [EN]
 \subsection{Starting the synchronizer}
-If configuration file for synchronizer exists we can start it
--- mandatory from root account, because it need to modify IPVS.
+Only if configuration file for synchronizer exists we can start it
+-- mandatory from root account, because it needs to modify IPVS.
 
 To see all possible options which can be use at synchronizer start
 use \textbf{-h} switch.
@@ -241,21 +239,21 @@ pliku \textit{ipvsfull.cfg} wykorzystuj±c opcjê \textbf{-t}.
 Standardowo kody wyj¶cia z programu oznaczaj±: 0 -- ok, ró¿ny od 0 -- b³±d. 
 
 Opcje które zmieniaj± zachowanie synchronizatora to \textbf{-u} oraz \textbf{-k}.
-Pierwsza z nich powoduje, ¿e \textbf{ipvssync} dzia³a w takim trybie, ¿e pozbywa
-siê wszystkich niezdefiniowanych w pliku \textit{ipvsfull.cfg} wirtuali. Je¶li wiêc
-dodasz co¶ z rêki do IPVS przy prze³adowaniu konfiguracji synchronizator usunie
+Pierwsza z nich powoduje, ¿e \textbf{ipvssync} dzia³a trybie usuwania
+wszystkich niezdefiniowanych w pliku \textit{ipvsfull.cfg} wirtuali. Je¶li wiêc
+zostanie co¶ dodane ''z rêki'' do IPVS przy prze³adowaniu konfiguracji synchronizator usunie
 to z tablicy. Druga wspomniana opcja wy³±cza usuwanie plików ró¿nicowych w katalogu
 \textit{diffs}. 
 
 [EN]
-\noindent Before we'll start the synchronize we can check \textit{ipvsfull.cfg}
+\noindent Before we'll start the synchronizer we can check \textit{ipvsfull.cfg}
 syntax using \textbf{-t} option.
 Return exit codes are standard: 0 -- ok, not equal to 0 -- error.
 
 Options which changes synchronization runtime behaviour are \textbf{-u} oraz \textbf{-k}.
-First of them causes, that \textbf{ipvssync} removes all virtuals not listed in its
-configuration file. So if you'll add a virtual to IPVS by hand when synchronizer
-will be reloaded your changes will be removed from IPVS. Second mentioned options
+First of them causes, \textbf{ipvssync} to remove all virtuals not listed in its
+configuration file. So if you add virtual to IPVS by hand then when synchronizer
+will be reloaded your changes will be removed from IPVS. Second mentioned option
 turns off removing old diff files from \textit{diffs} directory.
 
 [PL]
@@ -270,11 +268,11 @@ ich w tryb demona.
 [EN]
 \subsection{Some notes about starting applications}
 
-The most preferred logging type is to use \textit{info} detail. You'll get 
+The most preferred logging type is to use \textit{info} detail level. You'll get 
 most useful informations about running tester as well as synchronizer.
-When you'll try to start these applications to checkout what's going on start them
-in foreground use \textit{'-vvv'}. That will suppress to start them in daemonized
-environment giving you important messages about them.
+When you'll try to start these applications to check what's going on start them
+in foreground and use \textit{'-vvv'}. That will suppress starting them as daemons
+giving you important messages about them.
 
 [ALL]
 \newpage

@@ -1,7 +1,0 @@
-/usr/bin/surealived
-/etc/surealived/surealived.cfg
-/usr/lib/surealived/scripts/testexec.pl
-/usr/lib/surealived/modules/mod_http.so
-/usr/lib/surealived/modules/mod_tcp.so
-/usr/lib/surealived/modules/mod_dns.so
-/usr/lib/surealived/modules/mod_exec.so
