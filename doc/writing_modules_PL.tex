@@ -28,147 +28,6 @@
 
 \tableofcontents
 \newpage
-\section{Słowo wstępu}
-Dzięki \textbf{LVS} możemy balansować dowolne
-usługi od DNS przez HTTP/HTTPS do SSH. Musimy też mieć sposób na sprawdzanie
-dostępności poszczególnych usług na \textit{realach}, tutaj do akcji wkracza
-\textbf{SureAliveD}.\\
-Standardowo do programu dołączone są następującetestery:
-\begin{itemize}
-  \item \textbf{TCP} -- najprostszy tester sprawdzający jedynie otwartość portu
-  \item \textbf{DNS} -- tester serwerów DNS
-  \item \textbf{HTTP} -- sprawdzanie dostępności serwera WWW; należy przy tym wspomnieć,
-    że ten tester obsługuje także \textbf{HTTPS} - obsługa SSL jest transparentna,
-    moduł interesuje się tylko procesem komunikacji na poziomie przekazywania komunikatów
-    abstrahując od warstwy transportowej.
-  \item \textbf{EXEC} -- moduł udostępniający użycie zewnętrznych testerów (plików binarnych)
-  \item \textbf{NO\_TEST} -- tester który zakłada, że dany serwer jest ONLINE
-\end{itemize}
-
-Moduły testujące w \textbf{SureAliveD} to biblioteki ładowane dynamicznie podczas
-startu programu, dzięki temu dodawanie nowych testerów jest ekstremalnie łatwe.
-\textbf{SureAliveD} udostępnia modułom proste API aby mogły w łatwy sposób integrować
-się z programem.
-
-\newpage
-
-\section{Zaimplementowane testery}
-\subsection{Tester TCP}
-Tester TCP jest najprostszym testerem, w związku z tym jego możliwości są bardzo ograniczone.
-Podczas testu TCP sprawdzane jest tylko, czy uda się nawiązać połączenie z danym portem.
-w katalogu examples znajduje się przykładowy plik konfiguracyjny testujący połączenie z portem \textbf{22}
-czyli usługę \textbf{SSH}.
-\newline
-\\\underline{\textbf{Atrybuty}}: \textbf{BRAK}\\
-\\Przykładowa konfiguracja:
-{\footnotesize
-\begin{verbatim}
-<surealived>
-
-<virtual name="onet" addr="192.168.0.1" port="22" proto="tcp" sched="wrr" rt="dr">
-  <tester loopdelay="1" timeout="2" retries2fail="1" retries2ok="1"
-          proto="tcp" testport="22" />
-  <real name="sg" addr="213.180.146.27" port="22" weight="10"/>
-</virtual>
-
-</surealived>
-\end{verbatim}
-}
-Moduł sprawdza otwartość portu zdefiniowanego w \textit{testport}.
-
-\subsection{Tester DNS}
-Ten tester umożliwia sprawdzanie rekordów DNS w najprostszej (najszybszej) możliwej postaci.\newline
-\\\underline{\textbf{Atrybuty}}:
-\begin{itemize}
-  \item \textbf{request} -- obowiązkowy, nazwa domeny o którą należy pytać \textit{reali}.
-\end{itemize}
-Przykładowa konfiguracja odpytująca dwa serwery DNS o strefę SOA dla domeny ``onet.pl''
-{\footnotesize
-\begin{verbatim}
-<surealived>
-
-<virtual name="onetdns1" addr="192.168.0.1" port="53"
- proto="udp" sched="wrr" rt="dr">
-  <tester loopdelay="1" timeout="2" retries2fail="1" retries2ok="1"
-          proto="dns" testport="53" request="onet.pl" />
-  <real name="dns1" addr="213.180.128.240" port="53" weight="10"/>
-  <real name="dns2" addr="217.97.201.240" port="53" weight="11"/>
-</virtual>
-
-</surealived>
-\end{verbatim}
-}
-\newpage
-\subsection{Tester HTTP/HTTPS}
-Usługa HTTP jest prawdopodobnie najczęściej testowaną usługą, dlatego też tester HTTP posiada więcej opcji
-konfiguracyjnych niż poprzednie testery.\\
-\\\underline{\textbf{Atrybuty}}:
-\begin{itemize}
-  \item \textbf{url} -- \underline{obowiązkowy}, określający \textit{URL} o który mamy odpytać serwer WWW
-  \item \textbf{host} -- \underline{obowiązkowy}, nazwa hosta wysyłana w nagłówku HTTP
-  \item \textbf{retcode} -- \underline{opcjonalny}, kod statusu jakiego spodziewamy się od serwera WWW (standardowo ``200'')
-  \item \textbf{naive} -- \underline{opcjonalny}, wartość logiczna (0/1) która określa, czy moduł ma zakończyć testowanie
-    po otrzymaniu nagłówka (\textit{naive=''1''}), czy też ma czekać do zakończenia transmisji
-    (\textit{naive=''0''}) standardowo moduł czeka do zakończenia transmisji.
-\end{itemize}
-Przykładowy plik XML:
-{\footnotesize
-\begin{verbatim}
-<surealived>
-
-<virtual name="onet" addr="192.168.0.1" port="80" proto="tcp" sched="wrr" rt="dr">
-  <tester loopdelay="1" timeout="2" retries2fail="1" retries2ok="1"
-          proto="http" testport="80" url="/" host="www.onet.pl" debugcomm="1"/>
-  <real name="sg" addr="213.180.146.27" port="80" weight="10"/>
-</virtual>
-
-</surealived>
-\end{verbatim}
-}
-
-Tester HTTP może też testować połączenia HTTPS, wystarczy, że w tagu <tester> umieścimy parametr:
-\textbf{SSL=''1''}, wtedy wszystkie reale w obrębie virtuala będą testowane poprzez SSL.
-\newpage
-\subsection{Tester EXEC}
-Niestety nie wszystkie protokoły da się testować w tak prosty sposób.\\
-Niektóre z nich posiadają własne testery w postaci plików wykonywalnych lub skryptów.
-Możemy użyć tych zewnętrznych testerów używając modułu testującego -- EXEC.\\
-\\\underline{\textbf{Atrybuty}}:
-\begin{itemize}
-  \item \textbf{exec} -- \underline{obowiązkowy}, nazwa programu do uruchomienia.
-  \item \textbf{params} -- \underline{opcjonalny}, dodatkowe parametry przekazywane programowi (od \textit{argv[3]} w górę)
-\end{itemize}
-
-\textbf{SureAliveD} przekazuje do zewnętrznego programu dwa dodatkowe argumenty 
-(\textit{argv[1]} oraz \textit{argv[2]}) są to kolejno: \textbf{numer IP}
-testowanego \textit{reala} oraz \textbf{numer portu}\\
-\\
-Przykładowa konfiguracja używająca tego testera:
-{\footnotesize
-\begin{verbatim}
-<surealived>
-
-<virtual name="onetexec" proto="tcp"
- addr="192.168.0.1" port="80" sched="wrr" rt="dr">
-  <tester loopdelay="1" timeout="5" retries2fail="1" retries2ok="1" testport="80"
-          proto="exec" exec="/usr/lib/surealived/scripts/testexec.pl"
-          params="www.onet.pl /0" />
-  <real name="sg" addr="213.180.146.27" port="80" weight="10" rt="dr"/>
-</virtual>
-
-</surealived>
-\end{verbatim}
-}
-Zewnętrzny tester musi zwracać do środowiska wartość \textbf{0} gdy test się powiódł i liczbę niezerową
-w przypadku błędu.
-
-\subsection{Tester NO\_TEST}
-Wartość proto=''NO\_TEST'' oznacza, że dany real powinien być ZAWSZE traktowany jako dostępny,
-dzięki temu znajdzie się on w pliku synchronizacyjnym dla \textbf{ipvssync} jednak nigdy
-nie zostanie faktycznie sprawdzony na dostępność. W związku z tym, że nie zachodzi potrzeba
-testowania reali, tester ten nie pobiera żadnych parametrów.\\
-\\\underline{\textbf{Atrybuty}}: \textbf{BRAK}
-\newpage
 
 \section{Pisanie własnego modułu}
 Moduły testujące (zwane dalej \textit{testerami}) udostępniają \textbf{surealived} funkcje
@@ -232,7 +91,7 @@ mod_operations __init_module(void) {
     mops.m_alloc_args       = module_alloc_args;
     mops.m_prepare          = module_test_prepare;
     mops.m_process_event    = module_process_event;
-    mops.m_cleanup          = module_cleanup;
+    mops.m_free             = module_free;
     return mops;
 }
 \end{verbatim}
@@ -264,7 +123,7 @@ typedef struct {
     gchar           *name;        /* attribute name */
     SD_MODARG_TYPE  type;         /* type (STRING/INT/...) */
     guint           param;        /* optional parameter (default value or length) */
-    SD_ATTR_TYPE    mandatory;    /* BASIC_ATTR (necessary) or EXTRA_ATTR */
+    SD_ATTR_TYPE    attr_type;    /* BASIC_ATTR (necessary) or EXTRA_ATTR */
     unsigned long   offset;       /* Use SDOFF makro to define offset */
 } mod_args;
 \end{verbatim}
@@ -273,7 +132,7 @@ typedef struct {
   \item \textit{name} -- określa nazwę atrybutu w konfiguracji XML.
   \item \textit{type} -- typ argumentu, możliwe typy to: \textbf{STRING, PORT, UINT, INT, BOOL}
   \item \textit{param} -- określa maksymalną długość dla STRING lub domyślną wartość dla innych typów.
-  \item \textit{mandatory} -- określa czy argument jest konieczny do konfiguracji czy też dodatkowy.
+  \item \textit{attr\_type} -- określa czy argument jest konieczny do konfiguracji czy też dodatkowy.
   \item \textit{offset} -- przesunięcie zmiennej względem struktury w której się znajduje, tutaj najlepiej
     jest użyć makra SDOFF podając jako pierwszy argument nazwę struktury a jako drugi nazwę zmiennej.
 \end{itemize}
@@ -353,17 +212,17 @@ Ewentualny błąd (np w wypadku zerwania połączenia) ustawiany jest w zmiennej
 Funkcja ta powinna implementować obsługę zdarzeń, musi też zwracać żądanie (\textbf{REQUEST})do \textbf{surealived}
 możliwe żądania to:
 \begin{itemize}
-  \item \textbf{WANT\_READ(\textit{n})} -- żądanie odczytania DOKŁADNIE \textit{n} bajtów od reala
-  \item \textbf{WANT\_WRITE(\textit{n})} -- żądanie wysłania DOKŁADNIE \textit{n} bajtów do reala
+  \item \textbf{WANT\_READ(\textit{n})} -- żądanie odczytania DOKŁADNIE \textit{n} bajtów
+  \item \textbf{WANT\_WRITE(\textit{n})} -- żądanie wysłania DOKŁADNIE \textit{n} bajtów
   \item \textbf{WANT\_READ\_AV(\textit{n})} -- żądanie odczytania NAJWYŻEJ \textit{n} bajtów, jednak moduł
-    zostanie poinformowany po odebraniu jednego komunikatu.
+    zostanie poinformowany po odebraniu pierwszego komunikatu
   \item \textbf{WANT\_EOF} -- moduł żąda poinformowania gdy na socket będzie pusty (brak danych),
-    \newline wszystkie dane nie będą nigdzie zapisywane
+    \newline wszystkie odczytane dane są tracone
   \item \textbf{WANT\_END} -- moduł zakończył testowanie i komunikację z realem należy zakończyć
 \end{itemize}
 \textit{\textbf{UWAGA!} W przypadku funkcji odczytujących/zapisujących wszystkie operacje
 są wykonywane na wskaźniku \textit{buf} ze struktury CfgReal.
-W intencji modułu jest ustawienie tego wskaźnika na faktyczny obszar w pamięci.}
+W intencji modułu jest ustawienie tego wskaźnika na poprawny obszar w pamięci.}
 
 \subsection{Sprzątanie po teście}
 \begin{verbatim}
@@ -491,10 +350,10 @@ static REQUEST module_process_event(CfgReal *real) {
 Początek funkcji obsługi zdarzeń sprawdza czy nie wystąpił błąd (zerwane połączenie) jeżeli tak, natychmiast
 kończy test zwracająć żądanie WANT\_END.
 \newline
-Jeżeli jednak nie wystąpił błąd to sprawdzany jest stan \textit{reala},
-jeżeli dopiero nastąpiło połączenie (CONNECTED) to zmienia stan na REQUEST\_SENT i ustawia wskaźnik bufora
+Jeżeli jednak nie wystąpił błąd sprawdzany jest stan \textit{reala},
+jeżeli dopiero nastąpiło połączenie (CONNECTED) moduł zmienia stan na REQUEST\_SENT i ustawia wskaźnik bufora
 na prywatny bufor żądania dla \textit{reala} następnie sprawdza czy został już ustalony request dla reala,
-jeżeli tak to żąda wysłania requestu do reala, jeżeli nie to alokuje request podając potrzebne dane (url i host)
+jeżeli tak to żąda wysłania requestu do reala, jeżeli nie -- alokuje request podając potrzebne dane (url i host)
 i zwraca żądanie zapisu.
 \newline
 {\small
@@ -509,8 +368,8 @@ i zwraca żądanie zapisu.
     }
 \end{verbatim}
 }
-Jeżeli real znajduje się jednak w stanie REQUEST\_SENT (czyli dane zostały wysłane), to moduł zmienia bufor operacji
-na prywatny bufor reala odpowiedzialny za trzymanie odpowiedzi, zeruje pamięć w buforze.
+Jeżeli real znajduje się w stanie REQUEST\_SENT (dane zostały wysłane), to moduł zmienia bufor operacji
+na prywatny bufor reala odpowiedzialny za trzymanie odpowiedzi, oraz zeruje pamięć w buforze.
 Zmienia stan reala na REQUEST\_RECEIVED i zwraca żądanie odczytania dokładnie ``sizeof(t->ans)'' bajtów.
 \newpage
 {\small
@@ -544,14 +403,16 @@ Funkcja \textit{module\_process\_event} zostanie uruchomiona gdy zakończy się 
 Przypadek ten zostanie obsłużony przez ostatniego ``else'a''.
 
 \begin{verbatim}
-static void module_cleanup(CfgReal *real) {
+static void module_free(CfgReal *real) {
     TestHTTP    *t = (TestHTTP *)real->moddata;
     if (t->request)
         free(t->request);
     t->request = NULL;
 }
 \end{verbatim}
-Funkcja \textit{module\_cleanup} zwalnia zaalokowaną pamięć po zakończeniu testu.
+Funkcja \textit{module\_free} zwalnia zaalokowaną pamięć. Funkcja ta wywoływana jest
+w momencie usuwania reala z konfiguracji. NIE jest to funkcja m\_cleanup, która wywoływana
+jest po zakończeniu każdego testu.
 \newpage
 {\small
 \begin{verbatim}
@@ -573,7 +434,7 @@ mod_operations __init_module(void) {
 Funkcja \textit{\_\_init\_module} inicjalizuje strukturę mod\_operations,
 ustawia nazwę modułu, protokół komunikacji i strukturę zawierającą opis
 argumentów przekazywanych modułowi. Ustawia też wskaźniki na funkcje obsługujące test
-po czym zwraca tą strukturę \textbf{surealived}.
+po czym zwraca strukturę do \textbf{surealived}.
 Ta funkcja MUSI mieć dokładnie taką nazwę.
 
 \section{Kompilacja modułu}
