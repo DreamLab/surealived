@@ -1,0 +1,99 @@
+#!/bin/bash 
+### BEGIN INIT INFO
+# Provides:             ipvssync
+# Required-Start:       $network $local_fs $remote_fs
+# Required-Stop:        $network $local_fs $remote_fs
+# Default-Start:        2 3 4 5
+# Default-Stop:         0 1 6
+# Short-Description:    SureAliveD - effective LVS service tester
+### END INIT INFO
+
+PATH=/sbin:/bin:/usr/sbin:/usr/bin
+DAEMON=/usr/sbin/ipvssync
+NAME=ipvssync
+DESC=ipvssync
+# should we start at boot ? (this value can be overwritten by $DEFAULT file)
+AUTOSTART=false
+
+DEFAULT=/etc/default/surealived
+CONFIG=/etc/surealived/surealived.cfg
+
+# variables are overwritten by $DEFAULT file
+test -r "$DEFAULT" && . "$DEFAULT"
+
+IPVSSYNC_RELOAD="`cat $CONFIG 2>/dev/null | grep 'full\_reload\_file' | awk '{print $2}'`"
+
+TEST="$DAEMON -t"
+RUN="$DAEMON -d -u"
+
+if [ ! -f "$CONFIG" ]; then
+    echo "No config file: $CONFIG"
+    exit 0
+fi
+if [ ! -f "$DAEMON" ]; then
+    echo "No executable: $DAEMON"
+    exit 0
+fi
+
+ipvssync_start () {
+        if [ "$AUTOSTART" != "true" ] && [ ! -z "$RUNLEVEL" ]; then
+            echo "Not starting surealived's $NAME - check $DEFAULT"
+            exit 0;
+        fi
+       echo -n "Testing if ipvssync isn't running:   "
+       pgrep -f $DAEMON 1>/dev/null
+       if [ $? -eq 0 ]; then
+ 	  echo "FAIL"
+	  echo -n "ipvssync pid: "
+	  pgrep -f $DAEMON
+          exit 1
+       fi
+       echo "OK"
+
+       $TEST 2>/tmp/ipvssync.log && $RUN
+       if [ $? -eq 0 ]; then
+          echo "Starting $DESC OK"
+       else 
+	  echo "FAIL"
+          echo "=== log error ==="
+	  cat /tmp/ipvssync.log
+	  rm /tmp/ipvssync.log	  
+       fi
+}
+
+ipvssync_stop () {
+       echo -n "Stopping $DESC:   "
+       pkill -INT -f $DAEMON
+       if [ $? -eq 0 ]; then
+          echo "OK"
+       else 
+          echo "FAIL"
+       fi
+}
+
+case "$1" in
+  start|stop)
+	ipvssync_${1}
+       ;;
+
+  reload|force-reload)
+       $TEST 
+       if [ $? -eq 0 ]; then
+          echo "Reloading $DESC."
+          touch $IPVSSYNC_RELOAD
+       else 
+          echo "FAIL"
+       fi
+       ;;
+  restart)
+	ipvssync_stop
+	ipvssync_start
+       ;;
+  
+  *)
+       echo "Usage: /etc/init.d/$NAME {start|stop|restart|reload|force-reload}" >&2
+       exit 1
+       ;;
+esac
+
+exit 0

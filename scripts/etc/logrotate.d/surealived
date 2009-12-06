@@ -1,0 +1,23 @@
+/var/lib/surealived/stats/sd_full*.log {
+        hourly
+        missingok
+        size 512M
+        rotate 32
+	dateext
+        compress
+        delaycompress
+        notifempty
+        create 640 root adm
+}
+
+/var/log/surealived/*.log {
+	daily
+        missingok
+        size 512M
+        rotate 32
+	dateext
+        compress
+        delaycompress
+        notifempty
+        create 640 root adm
+}

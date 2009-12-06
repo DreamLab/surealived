@@ -1,0 +1,10 @@
+# SureAliveD config options
+
+# start surealived at startup?
+AUTOSTART=false
+
+# surealived configuration
+CONFIG="/etc/surealived/surealived.cfg"
+
+# configuration file for checker
+CHECKER_CONFIG="/etc/surealived/services.xml"

@@ -28,7 +28,21 @@ add_executable(ipvssync ${ipvssyncSrcs})
 add_library(ipvs STATIC ../libipvs/libipvs.c)
 add_definitions("-DHAVE_NET_IP_VS_H")
 target_link_libraries(ipvssync ipvs glib-2.0)
-include_directories(/usr/src/linux/include . ../libipvs)
+
+IF (CMAKE_SYSTEM_PROCESSOR MATCHES "i.86")
+    SET (PROCTYPE "x86")
+ELSE (CMAKE_SYSTEM_PROCESSOR MATCHES "i.86")
+    IF (CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64")
+        SET (PROCTYPE "x86")
+    ELSE (CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64")
+        SET (PROCTYPE "${CMAKE_SYSTEM_PROCESSOR}")
+    ENDIF (CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64")
+ENDIF (CMAKE_SYSTEM_PROCESSOR MATCHES "i.86")
+
+include_directories("/lib/modules/${CMAKE_SYSTEM_VERSION}/build/include")
+include_directories("/lib/modules/${CMAKE_SYSTEM_VERSION}/build/include/net")
+include_directories("/lib/modules/${CMAKE_SYSTEM_VERSION}/build/arch/${PROCTYPE}/include")
+include_directories("." "../libipvs")
 
 install(TARGETS ipvssync 
   DESTINATION "/usr/sbin")
