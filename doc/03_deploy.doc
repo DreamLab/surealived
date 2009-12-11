@@ -135,7 +135,7 @@ To see all possible tester options use \textbf{-h} switch.
 \small
 \begin{verbatim}
 wegorz@zaphod:~$ surealived -h
-=== SureAliveD v.0.8.7 ===
+=== SureAliveD v.0.8.9 ===
 Usage: surealived [options] <xml_config_file>
 Ex   : surealived -c /root/sd_new.conf -vv -d test_http.xml
 
@@ -215,7 +215,7 @@ use \textbf{-h} switch.
 \small
 \begin{verbatim}
 zaphod:~# ipvssync -h
-=== IPVSSync v.0.8.7 ===
+=== IPVSSync v.0.8.9 ===
 Usage: ipvssync [options]
 Ex   : ipvssync -c /home/surealived/surealived.cfg
 
