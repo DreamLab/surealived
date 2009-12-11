@@ -63,6 +63,21 @@ void ipvsfuncs_initialize(void) {
 }
 
 /* ------------------------------------------------------------ */
+void ipvsfuncs_reinitialize(void) {
+    int ret;
+
+    ipvs_close();
+	ret = ipvs_init();
+	if (ret) {
+		LOGERROR("%s\n", ipvs_strerror(errno));
+		if (ipvsfuncs_modprobe_ipvs() || ipvs_init()) {
+			LOGERROR("Can't initialize ipvs [%s]", ipvs_strerror(errno));
+			exit(1);
+		}
+	}
+}
+
+/* ------------------------------------------------------------ */
 ipvs_service_t *ipvsfuncs_set_svc(u_int16_t protocol, char *taddr, char *tport,
 								  u_int32_t fwmark, char *sched_name, unsigned  flags,
 								  unsigned  timeout, __be32 netmask, ipvs_service_t *svc)
@@ -252,7 +267,15 @@ int ipvsfuncs_del_unmanaged_services(ipvs_service_t **managed_svc, gint *is_in_i
 
 	ipvs_service_t **m;
 	struct ip_vs_service_entry *se;
-	struct ip_vs_get_services *vs = ipvs_get_services();
+	struct ip_vs_get_services *vs;
+
+    ipvsfuncs_reinitialize(); //if someone clears IPVS ipvs_get_services returns vs table which contains crap inside
+    vs = ipvs_get_services();
+    if (!vs) 
+        return -1;
+
+    LOGDETAIL("vs = %x, vs->num_services = %d", vs, vs->num_services);
+
 	for (i = 0; i < vs->num_services; i++) {
 		se = &vs->entrytable[i];
         LOGDETAIL("del_umanaged_services check: [%d], ip=%x, port=%d, protocol=%d, fwmark=%d", 

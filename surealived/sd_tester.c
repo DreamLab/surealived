@@ -244,8 +244,11 @@ static void sd_start_real(CfgReal *real) {
         if (real->ssl && sd_bind_ssl(real))
             LOGWARN("Unable to bind ssl to socket (real = [%s:%s]!", real->virt->name, real->name);
     }
-    else if (real->tester->mops->m_test_protocol == SD_PROTO_EXEC)
+    else if (real->tester->mops->m_test_protocol == SD_PROTO_EXEC) {
+        gettimeofday(&real->start_time, NULL);  /* set real's start time */
+        real->conn_time = real->start_time;
         real->tester->mops->m_start(real);
+    }
 
     if (G_debug_comm == TRUE)
         sd_unlink_commlog(real);

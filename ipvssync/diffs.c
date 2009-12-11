@@ -194,7 +194,7 @@ gint diffs_clean_old_files(Config *conf) {
     while ((de = g_dir_read_name(dir))) {
         if (strcmp(de, diffname) >= 0)
             continue;
-        LOGDEBUG("diff file [%s] < current diff [%s], removing", de, diffname);
+        LOGINFO("diff file [%s] < current diff [%s], removing", de, diffname);
 
         ffname = g_build_filename(G_diff_sync_dir, de, NULL);
         if (unlink(ffname))
@@ -208,7 +208,7 @@ gint diffs_clean_old_files(Config *conf) {
     g_dir_close(dir);
     conf->last_diffs_cleanup = ctime;
 
-    LOGDEBUG("diffs cleanup, matched %d files", matched);
+    LOGINFO("diffs cleanup, matched %d files", matched);
 
     return matched;
 }

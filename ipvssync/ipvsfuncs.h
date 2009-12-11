@@ -23,6 +23,7 @@
 
 int ipvsfuncs_modprobe_ipvs(void);
 void ipvsfuncs_initialize(void);
+void ipvsfuncs_reinitialize(void);
 
 ipvs_service_t *ipvsfuncs_set_svc(u_int16_t protocol, char *taddr, char *tport,
                                   u_int32_t fwmark, char *sched_name, unsigned  flags,

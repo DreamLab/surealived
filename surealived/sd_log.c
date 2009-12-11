@@ -95,29 +95,31 @@ gint sd_log_stats(CfgVirtual *virt) {
             if (farr[j]) {
                 if (virt->tester->logmicro) 
                     fprintf(farr[j],
-                            "virt=%s:%d vproto=%s vaddr=%s:%d real=%s:%d raddr=%s:%d start=\"%s\" "
-                            "conntime=%ldus resptime=%ldus currtest=%s online=%s\n",
+                            "%s virt=%s:%d vproto=%s vaddr=%s:%d real=%s:%d raddr=%s:%d "
+                            "conntime=%ldus resptime=%ldus totaltime=%ldus currtest=%s online=%s\n",
+                            htime,
                             virt->name, ntohs(virt->port), 
                             sd_proto_str(virt->ipvs_proto),
                             virt->addrtxt, ntohs(virt->port),
                             real->name, ntohs(real->port), 
                             real->addrtxt, ntohs(real->port),    
-                            htime, 
-                            TIMEDIFF_US(real->start_time, real->conn_time), 
+                            TIMEDIFF_US(real->start_time, real->conn_time),
+                            TIMEDIFF_US(real->conn_time,  real->end_time),  
                             TIMEDIFF_US(real->start_time, real->end_time),
                             GBOOLSTR(real->test_state),
                             GBOOLSTR(real->online));
                 else 
                     fprintf(farr[j],
-                            "virt=%s:%d vproto=%s vaddr=%s:%d real=%s:%d raddr=%s:%d start=\"%s\" "
-                            "conntime=%ldms resptime=%ldms currtest=%s online=%s\n",
+                            "%s virt=%s:%d vproto=%s vaddr=%s:%d real=%s:%d raddr=%s:%d "
+                            "conntime=%ldms resptime=%ldms totaltime=%ldms currtest=%s online=%s\n",
+                            htime,
                             virt->name, ntohs(virt->port), 
                             sd_proto_str(virt->ipvs_proto),
                             virt->addrtxt, ntohs(virt->port),
                             real->name, ntohs(real->port), 
                             real->addrtxt, ntohs(real->port),    
-                            htime, 
                             TIMEDIFF_MS(real->start_time, real->conn_time), 
+                            TIMEDIFF_MS(real->conn_time,  real->end_time), 
                             TIMEDIFF_MS(real->start_time, real->end_time),
                             GBOOLSTR(real->test_state),
                             GBOOLSTR(real->online));

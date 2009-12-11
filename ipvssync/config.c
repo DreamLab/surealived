@@ -416,7 +416,7 @@ gint config_synchronize(Config *conf, gboolean flush, gboolean del_unmanaged_vir
             config_ipvs_del_unmanaged_virtuals(conf);
 
         config_ipvs_update_virtuals(conf); //add and update virtuals
-        config_ipvs_update_reals(conf); //remove unmanaged and add absent reals
+        config_ipvs_update_reals(conf);    //remove unmanaged and add absent reals
     }
 
     ipvs_close();
