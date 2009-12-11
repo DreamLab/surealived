@@ -24,7 +24,7 @@ You will need the following Debian packages to be able to compile \textbf{SureAl
  \item glib2-dev
  \item libxml2-dev
  \item libssl-dev
- \item kernel sources (or \textit{linux-headers} packet)
+ \item kernel sources (or \textit{linux-headers} package)
 \end{itemize}    
 
 [PL]
@@ -44,21 +44,21 @@ siê nastêpuj±ce podkatalogi:
 
 [EN]
 \noindent After unpacking \textit{surealived-x.y.z.tar.gz} you will find
-these directories:
+following directories:
 \begin{itemize}
  \item \textit{common} -- directory containing source files used by
    both \textbf{surealived} and \textbf{ipvssync}
  \item \textit{doc} -- documentation
- \item \textit{examples} -- \textbf{surealived} xml configuration files examples
+ \item \textit{examples} -- \textbf{surealived} xml configuration file examples
  \item \textit{ipvssync} -- synchronizer source files
- \item \textit{libipvs} -- library (by Wensong Zhang) used to communicate with \textit{IPVS}
+ \item \textit{libipvs} -- library (by Wensong Zhang) used by synchronizer to communicate with \textit{IPVS}
  \item \textit{surealived} -- tester's source files
 \end{itemize}
 
 [PL]
 \noindent Kompilacjê + instalacjê nale¿y wykonaæ z konta \textit{root}:
 [EN]
-\noindent Compiling and installation must be executed from \textit{root} account:
+\noindent Compilation and installation must be executed from \textit{root} account:
 [ALL]
 \begin{verbatim}
    # tar xzvf surealived-x.y.z.tar.gz
@@ -102,21 +102,21 @@ aplikacje zostaje przekopiowany do katalogu \textit{/etc/surealived}.
  \item \textbf{/usr/bin/surealived}
 \end{itemize}
 
-\noindent Main configuration file \textit{surealived.cfg} used by both
+\noindent The main configuration file (\textit{surealived.cfg}) used by both
 applications is copied into \textit{/etc/surealived}.
 
 \pagebreak
-\noindent Furthermore following directories are created:
+\noindent Furthermore, the following directories are created:
 \begin{itemize}
  \item \textit{/var/log/surealived} -- log files for tester and synchronizer
  \item \textit{/var/log/surealived/comm} -- communication dump files for virtuals with
 	\textit{debugcomm=''1''} attribute set
- \item \textit{/var/lib/surealived} -- for dynamic configuration files used by \textbf{surealived}% tester
+ \item \textit{/var/lib/surealived} -- dynamic configuration files used by \textbf{surealived}% tester
 \footnote{Files \textit{offline.dump} and \textit{override.dump}.}
-       and for \textbf{ipvssync}% configuration
+       \textbf{ipvssync}% configuration
 \footnote{File \textit{ipvsfull.cfg}, differential config files are inside \textit{diffs} directory.}
  \item \textit{/var/lib/surealived/diffs} -- \textbf{ipvssync} differential configuration
- \item \textit{/var/lib/surealived/stats} -- real's tests statistics
+ \item \textit{/var/lib/surealived/stats} -- reals' tests statistics
 \end{itemize}
 
 [ALL]

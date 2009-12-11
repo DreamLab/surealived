@@ -5,7 +5,7 @@
 Na poni¿szym diagramie przedstawiony jest schemat przep³ywu
 danych pomiêdzy testerem a~synchronizatorem.
 [EN]
-\section{Deploy}
+\section{Deployment}
 \subsection{Flow diagram}
 
 [ALL]
@@ -41,29 +41,28 @@ wykonanie kilku interesuj±cych poleceñ na dzia³aj±cym testerze. Co dok³adnie
 mo¿na wykonaæ zosta³o opisane w~nastêpnym rozdziale.
 
 [EN]
-\noindent On the left side of diagram there is tester (surealived),
+\noindent Diagram below illustrates information flow between tester and synchronizer.
+On the left side of the diagram we see the tester (surealived), 
 composed of two processes -- \textbf{watchdog} and~\textbf{tester}.
-On the right there's one process \textbf{synchronizer} (ipvssync) connected
-to IPVS.
-On the middle there are files and directories directly related in data exchange
-between tester and synchronizer.
+On the right side we have the \textbf{synchronizer} (ipvssync), composed of a single
+process, connected to IPVS.
+And in the middle are the files and directories directly involved in data exchange
+between the tester and the synchronizer.
 
-Most important file common to both -- tester and synchronizer is 
-\textit{surealived.cfg}, which detailed syntax will be explained in the next section.
-This is simple \textit{''key value''} file which describes runtime parameters
-for mentioned applications.
+The most important file, common to both the tester and the synchronizer, is 
+\textit{surealived.cfg}, whose syntax will be explained in detail in the next chapter.
+It is a simple key-value pair TODO(usunalem jakis tag tutaj) file which defines runtime parameters
+for both applications mentioned above.
 
-Tester takes it's services definitions from \textit{services.xml} file%
-\footnote{Of course this file can be named completely different, here
+Tester reads its service definitions from \textit{services.xml} file%
+\footnote{this file could be named completely different of course, here
 we assumed that it's named \textit{services.xml}.}. 
-Reals view, their weights and its online/offline states are overrided by
+Reals view, their weights and their online/offline states are overridden by
 two files -- \textit{offline.dump} and \textit{override.dump}. Tester
-saves offline reals to the \textit{offline.dump}. After restart this file
-is honoured so previously offlined real will be offline at start.
+saves TODO(lista?) the list of offline reals to the \textit{offline.dump}, and after restart, info from this file will cause previously-offlined reals to remain offlined.
 Second file which overrides xml config is \textit{override.dump}. It can be
-modified by \textit{cmd} interface which was drawn at left side of the diagram.
-It is implemented as listening port using which you can perform some interesting
-commands on running tester application. It is described in next section.
+modified by \textit{cmd} interface (drawn on the left side of the diagram),
+which also listens on a port, allowing you to perform some intersting commands on the tester while it's running.  It is described in next chapter.
 
 [PL]
 Podczas startu tester \textit{wymusza} zbudowanie konfiguracji synchronizatora
@@ -93,28 +92,27 @@ zbiorów poprzez ustawienie ''\textit{log\_stats false}'' w~pliku
 \textit{surealived.cfg}.}.
 
 [EN]
-When tester starts it \textit{enforces} rebuilding synchronizer configuration
-\textit{ipvsfull.cfg} and initiates saving diffs files in 
-\textit{diffs} directory. When real server will fail there's no point
-to save whole configuration but the difference only. That's why 
+When the tester starts, it \textit{forces} rebuilding of synchronizer configuration
+\textit{ipvsfull.cfg} and initiates saving of diff files in 
+\textit{diffs} directory. The point is to only save the difference (rather than the entire configuration file) for every time a real server goes down.
+. That's why 
 \textit{ipvsfull.cfg} file is changing every 60 seconds and all changes
- to main configuration are in last, current difference file. Other two important
-files are mutex file \textit{ipvsfull.lock} and reload flag \textit{ipvsfull.reload}.
-After tester restart IPVS state is unknown from its point of view, that's why
-after \textit{ipvsfull.cfg} rebuild it points to synchronizer to reconfigure
-whole IPVS table. File \textit{ipvsfull.reload} is constantly searched by
-\textbf{ipvssync} and if it will find that file it will read new configuration,
-synchronize to IPVS and remove the flag. When synchronizer works it 
-also looks for old difference files in \textit{diffs} directory
-and removes them.
+ relative to the main configuration are kept in TODO(nie rozumiem): last, current difference file. The other two important
+files are the mutex file \textit{ipvsfull.lock} and the reload flag \textit{ipvsfull.reload}.
+After tester restart, IPVS state is unknown from tester's point of view, that's why
+after rebuilding \textit{ipvsfull.cfg} it flags to synchronizer via creation of file \textbf{ipvssync} to reconfigure the
+whole IPVS table. Presence of file \textit{ipvsfull.reload} is constantly searched for by
+\textbf{ipvssync} and if it finds that file it will read in the new configuration,
+synchronize IPVS and remove the flag.  During its operation, synchronizer remembers which diff file it is working on (current diff file) and removes all old
+diff files in \textit{diffs} directory.
 
-Tester also gives you possibility to save test statistics in \textit{stats}
+Tester also has an ability to save test statistics in \textit{stats}
 directory. It can save stats to one common file \textit{sd\_fullstats.log} as well as to 
-separated \textit{sd\_virtstats*.TIMESTAMP} files. When you deceide to use
-single tests statistics files be careful -- \textit{stats} directory will
+separate \textit{sd\_virtstats*.TIMESTAMP} files. When you deceide to use
+single test statistics files be careful -- \textit{stats} directory will
 grow very fast%
-\footnote{You can configure files removal in your cron or you can disable
-saving to these files by setting ''\textit{log\_stats false}'' in  
+\footnote{You can configure file removal in your cron or you can disable
+logging statistics to these files by setting ''\textit{log\_stats false}'' in  
 \textit{surealived.cfg} config file.}.
 
 [PL]
@@ -127,8 +125,8 @@ wystarczy u¿yæ opcji \textbf{-h}.
 
 [EN]
 \subsection{Starting the tester}
-Due to creating synchronizer's config file \textit{ipvsfull.cfg},
-it's necessary to run tester before running synchronizer for the first time,
+In order to create synchronizer's config file \textit{ipvsfull.cfg},
+it is necessary to run tester at least once before running synchronizer for the first time,
 
 To see all possible tester options use \textbf{-h} switch.
 
@@ -137,7 +135,7 @@ To see all possible tester options use \textbf{-h} switch.
 \small
 \begin{verbatim}
 wegorz@zaphod:~$ surealived -h
-=== SureAliveD v.0.8.8 ===
+=== SureAliveD v.0.8.7 ===
 Usage: surealived [options] <xml_config_file>
 Ex   : surealived -c /root/sd_new.conf -vv -d test_http.xml
 
@@ -176,21 +174,21 @@ wegorz@zaphod:~$ surealived -vvv /etc/surealived/services.xml
 \end{verbatim}
 
 [EN]
-\noindent Very useful is \textbf{-t} option, which allows you to 
-check services xml config syntax. Return codes are standard
+\noindent \textbf{-t} is a very useful option - it allows you to 
+check services TODO:(s?) xml config syntax. Return codes are standard
 0 -- ok, not equal to 0 -- error. 
 
 ~
 
-\noindent In production environment tester will be run as daemon:
+\noindent Typically in production environment, the tester will be running as a daemon:
 \begin{verbatim}
 wegorz@zaphod:~$ surealived -d /etc/surealived/services.xml
 \end{verbatim}
 
-You need to remember, that executing tester as daemon will cause all error 
+You need to remember, that executing tester as a daemon will cause all error 
 messages to be saved to \textit{/var/log/surealived/surealived.log}
-only if tester can write to that file. Therefore it's recommended to run tester
-in foreground to find out if there won't be problems when it will be 
+only if tester can write to that file. Therefore it's recommended to run the tester
+in the foreground first to make sure it won't be running into problems when it will be 
 executed as daemon:
 \begin{verbatim}
 wegorz@zaphod:~$ surealived -vvv /etc/surealived/services.xml
@@ -207,17 +205,17 @@ wystarczy u¿yæ opcji \textbf{-h}.
 
 [EN]
 \subsection{Starting the synchronizer}
-Only if configuration file for synchronizer exists we can start it
--- mandatory from root account, because it needs to modify IPVS.
+The synchronizer can only be started if its configuration file exists.  
+It needs to be run from the root account, because it needs root priviledges to modify IPVS.
 
-To see all possible options which can be use at synchronizer start
+To see the list of all possible options which can be used during synchronizer start-up
 use \textbf{-h} switch.
 [ALL]
 {
 \small
 \begin{verbatim}
 zaphod:~# ipvssync -h
-=== IPVSSync v.0.8.8 ===
+=== IPVSSync v.0.8.7 ===
 Usage: ipvssync [options]
 Ex   : ipvssync -c /home/surealived/surealived.cfg
 
@@ -246,14 +244,13 @@ to z tablicy. Druga wspomniana opcja wy³±cza usuwanie plików ró¿nicowych w katal
 \textit{diffs}. 
 
 [EN]
-\noindent Before we'll start the synchronizer we can check \textit{ipvsfull.cfg}
+\noindent Before we start the synchronizer, we can validate \textit{ipvsfull.cfg}
 syntax using \textbf{-t} option.
 Return exit codes are standard: 0 -- ok, not equal to 0 -- error.
 
-Options which changes synchronization runtime behaviour are \textbf{-u} oraz \textbf{-k}.
+Options which change synchronization runtime behaviour are \textbf{-u} and \textbf{-k}.
 First of them causes, \textbf{ipvssync} to remove all virtuals not listed in its
-configuration file. So if you add virtual to IPVS by hand then when synchronizer
-will be reloaded your changes will be removed from IPVS. Second mentioned option
+configuration file. So if you add a virtual to IPVS by hand, your changes will be removed from IPVS when synchronizer reloads its configuration. Second mentioned option
 turns off removing old diff files from \textit{diffs} directory.
 
 [PL]
@@ -268,11 +265,10 @@ ich w tryb demona.
 [EN]
 \subsection{Some notes about starting applications}
 
-The most preferred logging type is to use \textit{info} detail level. You'll get 
-most useful informations about running tester as well as synchronizer.
-When you'll try to start these applications to check what's going on start them
-in foreground and use \textit{'-vvv'}. That will suppress starting them as daemons
-giving you important messages about them.
+It is recommended to set logging to \textit{info} detail level in production environments. This level will provide you with 
+most useful information regarding tester's and synchronizer's runtime status.
+When trying out a configuration, it's better to start these applications 
+in foreground and use \textit{'-vvv'} and have all messages written to stdout (TODO dobrze mowie?).
 
 [ALL]
 \newpage

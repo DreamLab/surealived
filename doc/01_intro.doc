@@ -5,14 +5,7 @@
 ~
 \begin{center}
   \epsfig{file=surealived-logo, width=8cm}
-  \textit{ver. 0.8.8}
-\end{center}
-\begin{center}
-  \textbf{\Large USER'S MANUAL}\\
-  \vspace{2em}
-  \large
-  Zbigniew Kempczyñski\\
-  Bartosz Ponurkiewicz
+  \textit{ver. 0.8.7}
 \end{center}
 \newpage
 
@@ -40,16 +33,16 @@ przewrotnie \textit{SureAliveD}, ze wzglêdu na to, i¿ chcemy byæ pewni,
 [EN]
 \section{Introduction}
 \textit{Linux Virtual Server (LVS)} is one of the most efficient
-traffic balancing server. In environments containing hundreds (if not thousands)
-services plugged into \textit{LVS} it's becoming a challenge to
+traffic-balancing servers. In environments containing hundreds (if not thousands)
+of services plugged into \textit{LVS}, it's becoming a challenge to
 test services and make the right decision about plugging the server in or out.
-Another problem about scalability in this matter is the lack of testing applications
-especially for \textit{LVS}, where there are many servers plugged in and test 
+Another problem regarding scalability in this matter is the lack of testing applications
+TODO especially for \textit{LVS}, where there are many servers plugged in and test 
 frequency should not be longer than few seconds. That requirement reduces
 list of usable applications, because they have to be based on multiplexed IO
-(select/poll/epoll). So far the only application satisfying this requirements
-was \textit{keepalived}. Because of it's bugs and lack of some functionalities
-in \textit{keepalived} we decided to write a new service tester from scratch.
+(select/poll/epoll). So far the only application satisfying these requirements
+was \textit{keepalived}. Because of its bugs and lack of some functionalities
+we decided to write a new service tester from scratch.
 We called it \textit{SureAliveD}, because we wanted to make \underline{sure}
 that services plugged into \textit{LVS} are working.
 
@@ -64,11 +57,11 @@ testuj±cej od modyfikuj±cej zmiany w~j±drze linuksa (w~tablicy
 
 [EN]
 \subsection{What \textit{SureAliveD} is and how it works?}
-\textit{SureAliveD} is very effective \textit{real} servers tester
-plugged to LVS. We decided to separate testing layer from the one
+\textit{SureAliveD} is a very effective \textit{real} server tester
+plugged into LVS. We decided to separate testing layer from the one
 modifying linux kernel (in \textit{IPVS} table). Application which
 tests real's availability is called \textbf{surealived}, and \textit{IPVS}
-changes synchronizer is called \textbf{ipvssync}.
+which changes synchronizer is called \textbf{ipvssync}.
 
 [PL]
 Podstawowym za³o¿eniem aplikacji by³o zast±pienie stosowanego do
@@ -93,12 +86,12 @@ b³êdy takie jak:
 \end{itemize}
 
 [EN]
-Our main goal was to replace \textit{keepalived} in testing part.
+Our main goal was to replace \textit{keepalived} in its testing duty.
 \textit{Keepalived} works great where there is no need to change
 configuration frequently. In big environments, where there are hundreds
-services plugged to LVS, it's problematic to reload whole configuration
-each time (even if we need to change just one server's weight).
-Frequent configuration reloading highlights bugs in \textbf{KeepaliveD} such as:
+services plugged into LVS, it's problematic to reload the whole configuration
+each time (even if all we need is to change just one server's weight).
+Frequent configuration reloading brings out the bugs in \textbf{KeepaliveD} such as:
 \begin{itemize}
   \item failure to test some services
   \item tester's segfaulting
@@ -106,9 +99,9 @@ Frequent configuration reloading highlights bugs in \textbf{KeepaliveD} such as:
   \item lack of config file validation
   \item clearing \textit{IPVS} table%
     \footnote{There is indeed an option to start \textbf{keepalived} and
-      leave old entries, but from that moment \textbf{keepalived} is no
+      leave old entries, but from that moment on \textbf{keepalived} is no
       longer ''interested'' in servers which are not in the configuration
-      but exist in \textit{IPVS} table -- but it leaves them intact with
+      but still remain in \textit{IPVS} table -- but it leaves them intact with
       previously set weight instead of removing them.}.
 \end{itemize}
       
@@ -156,34 +149,34 @@ Oto podstawowe cechy testera -- \textbf{surealived}:
 These are the main \textbf{surealived} tester features:
 \begin{itemize}
 \item based on epoll
-\item flexible XML configuration (parsed by module)
+\item has flexible XML configuration (parsed by module)
 \item service testers are in fact dynamically loaded modules
-  (DSO - Dynamic Shared Object) -- it allows us to easily
-  implement and add new service testers.
-\item currently implemented testing modules are TCP protocol, HTTP,
+  (DSO - Dynamic Shared Object) -- it allows us to
+  implement and add new service testers easily.
+\item currently, testing modules are available for TCP protocol, HTTP,
   DNS, exec (executing external tester) and no-test (always treat server
   as available)
-\item built-in transparent SSL support (just set SSL=''1'' attribute
+\item has built-in transparent SSL support (just set SSL=''1'' attribute
   in tester configuration)
 \item writes connection statistics for each server
   (time of connection and answer time)
-\item two additional servers state table -- first holds info
-  about servers that failed the test, and second keeps temporary
+\item has two additional server state tables -- first holds info
+  about servers that failed the test, and second maintains temporary
   configuration which overrides configuration from XML (server state
   and weight), those states are honoured after restart
-\item on start configuration for \textbf{ipvssync} is saved
+\item during start-up, configuration for \textbf{ipvssync} is saved
   and synchronization with \textit{IPVS} table is forced.
 \item communication with \textbf{ipvssync} takes place via full
   synchronization file (written every 60 seconds) and via differential 
-  configuration (written after every change)
-\item tests start is spread in time (1 sec.), which reduces CPU load
-  in case of simultaneous tests start for hundreds of reals
-\item possibility to check configuration syntax (-t parameter)
+  configuration files (written after every change)
+\item start-up of tests is spread out in time (1 sec.), which reduces CPU load
+  in case of simultaneous tests starting for hundreds of reals
+\item allows checking configuration syntax (-t parameter)
 \item application restart is not a problem
-\item \textbf{surealived} can work just as service tester without
+\item \textbf{surealived} can work just as a service tester without
   synchronizing with \textit{IPVS}
-\item opens a management port (1337 by default), allowing us
-  to make some actions without application restart
+\item opens and listens on a management port (1337 by default), allowing us
+  to perform certain actions without to restart the application
 \end{itemize}
 
 [PL]
@@ -205,16 +198,16 @@ Oto cechy synchronizatora \textbf{ipvssync}:
 
 [EN]
 \subsection{\textbf{ipvssync} characteristics}
-These are \textbf{ipvssync} synchronizator features:
+Outlined below are \textbf{ipvssync} synchronizer features:
 \begin{itemize}
-\item uses configuration generated by \textbf{surealived}, i.e.
-  \textit{ipvsfull.cfg} and differential config files.
-\item allows to leave or delete unmanaged \textit{virtuals}
+\item uses configuration generated by \textbf{surealived}, (i.e.
+  \textit{ipvsfull.cfg}) and differential config files.
+\item allows leaving or deleting unmanaged \textit{virtuals}
   from \textbf{IPVS}, in case of \textit{reals} full synchronization
-  takes place
+  always takes place
 \item application restart is not a problem (as in the case of
   \textbf{surealived} restart, full synchronization with \textit{IPVS}
-  is forced
+  will be forced
 \item needs root privileges
 \end{itemize}
 \newpage
