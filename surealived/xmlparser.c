@@ -84,7 +84,7 @@ static void *sd_xml_attr(xmlNode *node, gchar *attr, void *dst, SD_MODARG_TYPE a
             free(tmp);
             return NULL;
         }
-        *(u_int16_t *)dst = htons(p);
+        *(u_int16_t *)dst = htons((u_int16_t)p);
 
         break;
     case UINT:
