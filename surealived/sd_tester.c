@@ -40,7 +40,8 @@ guint        G_stats_test_failed  = 0;
 guint        G_stats_online_set   = 0; //counter (switch to online)
 guint        G_stats_offline_set  = 0; //counter (switch to offline)
 guint        G_stats_conn_problem = 0; //counter (if arp reply is ok (no EPOLLERR occured in connect function) that means there's no SYN,ACK segment)
-guint        G_stats_arp_problem  = 0; //counter (if EPOLLERR occured before connect - suppose, there's no arp reply for that host)
+guint        G_stats_arp_problem  = 0; //counter (if EPOLLERR occured before connect - suppose, there's no arp reply for that host, (difftime > 2.5s))
+guint        G_stats_rst_problem  = 0; //counter (if EPOLLERR occured before connect - RST problem)
 guint        G_stats_bytes_rcvd   = 0;
 guint        G_stats_bytes_sent   = 0;
 
@@ -397,10 +398,11 @@ static void sd_tester_virtual_expired(SDTester *sdtest, CfgVirtual *virt) {
            # net.ipv4.neigh.IFACE.retrans_time_ms == 1000 
            # net.ipv4.neigh.IFACE.mcast_solicit == 3
            
-           if (conn_time.tv_sec == 0) we have 2 possible situations:
+           if (conn_time.tv_sec == 0) we have 3 possible situations:
            - tester timeout <= 3 sec:
              a) no ARP response (EPOLLERR occured on descriptor)
              b) we have ARP, but SYN frame was dropped in the network
+             c) RST received
            - tester timeout > 3 sec:
              we have ARP but SYN frame was dropped elsewhere (that's why
              conn_time.sec == 0)
@@ -564,7 +566,9 @@ static void sd_tester_process_events(gint nr_events) {
     gchar   s[32];
     gint    err;
     int     i;
-
+    struct  timeval ctime;
+    
+    gettimeofday(&ctime, NULL);
     for (i = 0; i < nr_events; i++) {
         uint32_t ev = sd_epoll_event_events(epoll, i);
         real = (CfgReal *) sd_epoll_event_dataptr(epoll, i);
@@ -581,10 +585,16 @@ static void sd_tester_process_events(gint nr_events) {
 
             /* If EPOLLERR occured and conn_time wasn't already set - this perhaps
                means, we have arp problem to the real server */
-            if (!real->conn_time.tv_sec) {
+            if (!real->conn_time.tv_sec) {                
                 real->conn_time = real->start_time;
-                real->conn_time.tv_usec -= 2000; //arp problem?
-                G_stats_arp_problem++;
+                
+                if (TIMEDIFF_MS(real->conn_time, ctime) < 1000) {
+                    real->conn_time.tv_usec -= 3000; //rst problem?
+                    G_stats_rst_problem++;
+                } else {
+                    real->conn_time.tv_usec -= 2000; //arp problem?
+                    G_stats_arp_problem++;
+                }
             }
 
             LOGDEBUG("Eval: process events (EPOLLERR)");

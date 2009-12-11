@@ -20,9 +20,6 @@
 #include <sd_maincfg.h>
 #include <sd_log.h>
 
-#define TIMEDIFF_MS(t1,t2) (((t2.tv_sec - t1.tv_sec)*1000000 + (int)((int)t2.tv_usec - (int)t1.tv_usec))/1000)
-#define TIMEDIFF_US(t1,t2) ((t2.tv_sec - t1.tv_sec)*1000000 + (int)((int)t2.tv_usec - (int)t1.tv_usec))
-
 void human_time(gchar *out, gint len, struct timeval t) {
     char buf[32];
     strftime(buf, 32, "%F %T", localtime(&t.tv_sec));
