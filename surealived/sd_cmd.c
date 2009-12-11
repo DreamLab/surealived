@@ -312,6 +312,7 @@ static gchar *sd_cmd_stats(GPtrArray *VCfgArr) {
                            "t_offline_set  : %u\n"
                            "t_conn_problem : %u\n"
                            "t_arp_problem  : %u\n"
+                           "t_rst_problem  : %u\n"
                            "t_bytes_rcvd   : %u\n"
                            "t_bytes_sent   : %u\n\n",
                            G_stats_test_success,
@@ -320,6 +321,7 @@ static gchar *sd_cmd_stats(GPtrArray *VCfgArr) {
                            G_stats_offline_set,
                            G_stats_conn_problem,
                            G_stats_arp_problem,
+                           G_stats_rst_problem,
                            G_stats_bytes_rcvd,
                            G_stats_bytes_sent);
 

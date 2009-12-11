@@ -16,6 +16,9 @@
 #if !defined __SD_LOG_H
 #define __SD_LOG_H
 
+#define TIMEDIFF_MS(t1,t2) (((t2.tv_sec - t1.tv_sec)*1000000 + (int)((int)t2.tv_usec - (int)t1.tv_usec))/1000)
+#define TIMEDIFF_US(t1,t2) ((t2.tv_sec - t1.tv_sec)*1000000 + (int)((int)t2.tv_usec - (int)t1.tv_usec))
+
 gint sd_log_stats(CfgVirtual *virt);
 
 #endif
