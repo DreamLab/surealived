@@ -43,6 +43,7 @@ extern guint G_stats_online_set;
 extern guint G_stats_offline_set;
 extern guint G_stats_conn_problem;
 extern guint G_stats_arp_problem;
+extern guint G_stats_rst_problem;
 extern guint G_stats_bytes_rcvd;
 extern guint G_stats_bytes_sent;
 
