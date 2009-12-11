@@ -42,7 +42,7 @@ static void *sd_xml_attr(xmlNode *node, gchar *attr, void *dst, SD_MODARG_TYPE a
     gchar       errmsg[256];
     xmlChar     *tmp;
     va_list     args;
-    u_int16_t   p;
+    u_int32_t   p;
 
     va_start(args, error_fmt);
     vsnprintf(errmsg, 256, error_fmt, args);
