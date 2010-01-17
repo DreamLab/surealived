@@ -62,7 +62,7 @@ install(TARGETS
   mod_exec
   DESTINATION "/usr/lib/surealived/modules")
 
-if (${LUA_FOUND})
+if (LUA_FOUND)
   install(TARGETS 
   mod_lua
   DESTINATION "/usr/lib/surealived/modules")
