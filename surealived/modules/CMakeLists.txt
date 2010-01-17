@@ -43,8 +43,6 @@ set_target_properties(mod_dns PROPERTIES PREFIX "")
 
 if (LUA_FOUND)
   MESSAGE(STATUS "\nCompiling and linking mod_lua (5.1)")
-  MESSAGE(STATUS "LUA_INCLUDE_DIR ${LUA_INCLUDE_DIR}")
-  MESSAGE(STATUS "LUA_LIBRARIES ${LUA_LIBRARIES}")
   add_library(mod_lua SHARED mod_lua.c)
   set_target_properties(mod_lua PROPERTIES PREFIX "")
   set_target_properties(mod_lua PROPERTIES COMPILE_FLAGS "-I${LUA_INCLUDE_DIR}")
