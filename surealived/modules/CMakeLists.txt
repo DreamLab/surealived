@@ -16,9 +16,16 @@ if (NOT ${GLIBMODULE2_FOUND})
 endif()
 
 include(FindLua51)
-pkg_search_module(LUAMODULE Lua51=5.1)
-if (NOT ${LUAMODULE_FOUND})
-	MESSAGE(STATUS "\nCan't find lua5.1, skipping building mod_lua\n")
+MESSAGE(STATUS "LUA_INCLUDE_DIR ${LUA_INCLUDE_DIR}")
+MESSAGE(STATUS "LUA_LIBRARIES ${LUA_LIBRARIES}")
+if (LUA_INCLUDE_DIR)
+  MESSAGE(STATUS "\nlua5.1 found, setting LUA_FOUND to TRUE\n")
+  SET (LUA_FOUND "TRUE")
+endif()
+MESSAGE(STATUS "LUA_FOUND ${LUA_FOUND}")
+
+if (NOT LUA_FOUND)
+  MESSAGE(STATUS "\nCan't find lua5.1, skipping building mod_lua\n")
 endif()
 
 
@@ -34,8 +41,10 @@ set_target_properties(mod_http PROPERTIES PREFIX "")
 set_target_properties(mod_tcp PROPERTIES PREFIX "")
 set_target_properties(mod_dns PROPERTIES PREFIX "")
 
-if (${LUAMODULE_FOUND})
-  MESSAGE(STATUS "\nCompiling and linking mod_lua (5.1)\n")
+if (LUA_FOUND)
+  MESSAGE(STATUS "\nCompiling and linking mod_lua (5.1)")
+  MESSAGE(STATUS "LUA_INCLUDE_DIR ${LUA_INCLUDE_DIR}")
+  MESSAGE(STATUS "LUA_LIBRARIES ${LUA_LIBRARIES}")
   add_library(mod_lua SHARED mod_lua.c)
   set_target_properties(mod_lua PROPERTIES PREFIX "")
   set_target_properties(mod_lua PROPERTIES COMPILE_FLAGS "-I${LUA_INCLUDE_DIR}")
@@ -53,7 +62,7 @@ install(TARGETS
   mod_exec
   DESTINATION "/usr/lib/surealived/modules")
 
-if (${LUAMODULE_FOUND})
+if (${LUA_FOUND})
   install(TARGETS 
   mod_lua
   DESTINATION "/usr/lib/surealived/modules")
