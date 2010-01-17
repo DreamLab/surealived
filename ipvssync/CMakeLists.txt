@@ -2,6 +2,7 @@ PROJECT(ipvssync C)
 cmake_minimum_required(VERSION 2.6)
 #add_definitions("-Wall -Werror -ggdb")
 add_definitions("-Wall -Werror -Wformat=2")
+add_definitions("-D_FILE_OFFSET_BITS=64")
 
 message(STATUS "\n=== configuring ipvssync ===")
 

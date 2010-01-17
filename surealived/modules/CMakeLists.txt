@@ -50,6 +50,11 @@ install(TARGETS
   mod_http 
   mod_tcp 
   mod_dns 
-  mod_lua
   mod_exec
   DESTINATION "/usr/lib/surealived/modules")
+
+if (${LUAMODULE_FOUND})
+  install(TARGETS 
+  mod_lua
+  DESTINATION "/usr/lib/surealived/modules")
+endif()
