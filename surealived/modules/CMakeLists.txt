@@ -15,6 +15,13 @@ if (NOT ${GLIBMODULE2_FOUND})
 	MESSAGE(FATAL_ERROR "\nCan't find gmodule2.0\n")
 endif()
 
+include(FindLua51)
+pkg_search_module(LUAMODULE Lua51=5.1)
+if (NOT ${LUAMODULE_FOUND})
+	MESSAGE(STATUS "\nCan't find lua5.1, skipping building mod_lua\n")
+endif()
+
+
 add_definitions(${GLIB2_CFLAGS})
 add_definitions(${GMODULE2_CFLAGS})
 
@@ -26,6 +33,15 @@ add_library(mod_exec SHARED mod_exec.c)
 set_target_properties(mod_http PROPERTIES PREFIX "")
 set_target_properties(mod_tcp PROPERTIES PREFIX "")
 set_target_properties(mod_dns PROPERTIES PREFIX "")
+
+if (${LUAMODULE_FOUND})
+  MESSAGE(STATUS "\nCompiling and linking mod_lua (5.1)\n")
+  add_library(mod_lua SHARED mod_lua.c)
+  set_target_properties(mod_lua PROPERTIES PREFIX "")
+  set_target_properties(mod_lua PROPERTIES COMPILE_FLAGS "-I${LUA_INCLUDE_DIR}")
+  target_link_libraries(mod_lua lua5.1)
+endif()
+
 set_target_properties(mod_exec PROPERTIES PREFIX "")
 include_directories(.)
 include_directories(../../common)
@@ -34,5 +50,6 @@ install(TARGETS
   mod_http 
   mod_tcp 
   mod_dns 
+  mod_lua
   mod_exec
   DESTINATION "/usr/lib/surealived/modules")

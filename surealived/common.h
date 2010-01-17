@@ -43,8 +43,8 @@ inline void time_inc(struct timeval *, guint, guint);
 #endif
 
 gboolean sd_unlink_commlog(CfgReal *real);
-gboolean sd_append_to_file(gchar *fname, gchar *buf, gint bufsiz);
-gboolean sd_append_to_commlog(CfgReal *real, gchar *buf, gint bufsiz);
+gboolean sd_append_to_file(gchar *fname, gchar *buf, gint bufsiz, gchar *usertxt);
+gboolean sd_append_to_commlog(CfgReal *real, gchar *buf, gint bufsiz, gchar *usertxt);
 gchar *sd_proto_str(SDIPVSProtocol proto);
 SDIPVSProtocol sd_proto_no(gchar *str);
 gchar *sd_rt_str(SDIPVSRt rt);

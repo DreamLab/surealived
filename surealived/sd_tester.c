@@ -56,14 +56,14 @@ static gint sd_read(CfgReal *real) {
     while (brk && real->pos < len) {
         if (!real->ssl && (ret = read(real->fd, real->buf + real->pos, len - real->pos)) > 0) {
             if (G_debug_comm == TRUE && real->tester->debugcomm && ret > 0)
-                sd_append_to_commlog(real, real->buf + real->pos, ret);
+                sd_append_to_commlog(real, real->buf + real->pos, ret, " sd_read <-\n");
             real->pos += ret;
             G_stats_bytes_rcvd += ret;
             brk--;
         }
         else if (real->ssl && (ret = SSL_read(real->ssl, real->buf + real->pos, len - real->pos)) > 0) {
             if (G_debug_comm == TRUE && real->tester->debugcomm && ret > 0)
-                sd_append_to_commlog(real, real->buf + real->pos, ret);
+                sd_append_to_commlog(real, real->buf + real->pos, ret, " sd_read <-\n");
             real->pos += ret;
             G_stats_bytes_rcvd += ret;
             brk--;
@@ -110,6 +110,7 @@ static gint sd_read_av(CfgReal *real) { /* read and return after one read */
     if (ret > 0) {
         real->bytes_read = ret;
         G_stats_bytes_rcvd += ret;
+        sd_append_to_commlog(real, real->buf, ret, " sd_read_av <-\n");
         return 0;               /* some data read */
     }
 
@@ -138,14 +139,14 @@ static gint sd_write(CfgReal *real) {
     while (brk && real->pos < len) {
         if (!real->ssl && (ret = write(real->fd, real->buf + real->pos, len - real->pos)) > 0) {
             if (G_debug_comm == TRUE && real->tester->debugcomm && ret > 0)
-                sd_append_to_commlog(real, real->buf + real->pos, ret);
+                sd_append_to_commlog(real, real->buf + real->pos, ret, " sd_write ->\n");
             real->pos += ret;
             G_stats_bytes_sent += ret;
             brk--;
         }
         else if (real->ssl && (ret = SSL_write(real->ssl, real->buf + real->pos, len-real->pos)) > 0) {
             if (G_debug_comm == TRUE && real->tester->debugcomm && ret > 0)
-                sd_append_to_commlog(real, real->buf + real->pos, ret);
+                sd_append_to_commlog(real, real->buf + real->pos, ret, " sd_write ->\n");
             real->pos += ret;
             G_stats_bytes_sent += ret;
             brk--;
@@ -184,7 +185,7 @@ static gint sd_eof(CfgReal *real) {
               real->virt->name, real->name);
 
     if (G_debug_comm == TRUE && real->tester->debugcomm && ret > 0)
-        sd_append_to_commlog(real, buf, ret);
+        sd_append_to_commlog(real, buf, ret, " sd_eof <-\n");
 
     real->bytes_read += ret;
     G_stats_bytes_rcvd += ret;

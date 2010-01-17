@@ -1,0 +1,13 @@
+<surealived>
+
+<virtual name="sunsiteftp" addr="192.168.0.1" port="21" proto="tcp" sched="wrr" rt="dr">
+  <tester loopdelay="1" timeout="5" retries2fail="1" retries2ok="1"
+          proto="lua" testport="21"
+	  script="/usr/lib/surealived/scripts/sunsite.lua"
+	  params="username=anonymous; password=test@"
+	  debugcomm="1"
+	/>
+  <real name="ftp1" addr="193.219.28.2" port="21" weight="10"/>
+</virtual>
+
+</surealived>

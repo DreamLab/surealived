@@ -56,7 +56,7 @@ gboolean sd_unlink_commlog(CfgReal *real) {
   \param bufsiz A buffer message len
   \return \a TRUE if \a bufsiz length write succeed, otherwise \a FALSE
 */
-gboolean sd_append_to_file(gchar *fname, gchar *buf, gint bufsiz) {
+gboolean sd_append_to_file(gchar *fname, gchar *buf, gint bufsiz, gchar *usertxt) {
     struct timeval tv;
     gchar buft[32];
     gchar micro[16];
@@ -74,6 +74,9 @@ gboolean sd_append_to_file(gchar *fname, gchar *buf, gint bufsiz) {
     snprintf(micro, 16, "%06d] ", (int) tv.tv_usec);
     fprintf(out, "%s", micro);
 
+    if (usertxt) 
+        fprintf(out, "%s", usertxt);
+
     w = fwrite(buf, bufsiz, 1, out);
     fprintf(out, "\n");
     fclose(out);
@@ -89,12 +92,12 @@ gboolean sd_append_to_file(gchar *fname, gchar *buf, gint bufsiz) {
   \param buf A buffer to write to the communication log
   \param bufsiz A buffer length
 */
-gboolean sd_append_to_commlog(CfgReal *real, gchar *buf, gint bufsiz) {
+gboolean sd_append_to_commlog(CfgReal *real, gchar *buf, gint bufsiz, gchar *usertxt) {
     gchar fname[BUFSIZ];
 
     sd_commlog_fname(real, fname);
 
-    return sd_append_to_file(fname, buf, bufsiz);
+    return sd_append_to_file(fname, buf, bufsiz, usertxt);
 }
 
 gchar *sd_proto_str(SDIPVSProtocol proto) {
