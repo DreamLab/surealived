@@ -23,6 +23,8 @@
         ((t2.tv_sec - t1.tv_sec == 0) && (t2.tv_usec - t1.tv_usec > 0)) ? TRUE : FALSE )
 #endif
 
+#define STATS_SAMPLES   20
+
 #define MAXNAME         128
 #define MAXIPTXT        16          /* 123.567.901.345 */
 #define MAXPORTTXT      8           /* 65535 */
@@ -84,6 +86,54 @@ typedef enum {
 } RState;
 
 typedef struct {
+    /* single real statistics */
+    guint           test_success;
+    guint           test_failed; 
+    guint           online_set;
+    guint           offline_set;
+    guint           conn_problem;
+    guint           arp_problem;
+    guint           rst_problem;
+    guint           bytes_rcvd;
+    guint           bytes_sent;
+
+    /* last response */
+    gint            last_conntime_ms;
+    gint            last_resptime_ms;
+    gint            last_totaltime_ms;
+    gint            last_conntime_us;
+    gint            last_resptime_us;
+    gint            last_totaltime_us;
+
+    gint            arridx; //index at which position in the array we need to write
+    gint            arrlen; //length
+    gint            conntime_ms_arr[STATS_SAMPLES];
+    gint            resptime_ms_arr[STATS_SAMPLES];
+    gint            totaltime_ms_arr[STATS_SAMPLES];
+    gint            conntime_us_arr[STATS_SAMPLES];
+    gint            resptime_us_arr[STATS_SAMPLES];
+    gint            totaltime_us_arr[STATS_SAMPLES];
+
+    /* average - calculated from _arr */
+    gint            avg_conntime_ms;
+    gint            avg_resptime_ms;
+    gint            avg_totaltime_ms;
+    gint            avg_conntime_us;
+    gint            avg_resptime_us;
+    gint            avg_totaltime_us;
+} RealStats;
+
+typedef struct {
+    /* average - calculated from all reals _arr */
+    gint            avg_conntime_ms;
+    gint            avg_resptime_ms;
+    gint            avg_totaltime_ms;
+    gint            avg_conntime_us;
+    gint            avg_resptime_us;
+    gint            avg_totaltime_us;
+} VirtualStats;
+
+typedef struct {
     gchar           proto[MAXPROTO];
     struct mod_operations  *mops;
     guint           loopdelay;
@@ -94,6 +144,7 @@ typedef struct {
     guint           remove_on_fail;
     guint           debugcomm;            /* debug communication */
     guint           logmicro;             /* save statistics in microseconds instead of miliseconds */
+    guint           stats_samples;        /* how much statistic samples will be kept */
     gchar          *exec;                 /* command to execute for EXEC */
     gchar           ssl;
     gpointer        moddata;              /* module data (ie url for HTTP tester) */
@@ -125,6 +176,8 @@ typedef struct {
     gchar           ipvs_sched[MAXSCHED]; /* ipvs scheduler - wrr/wrc/...*/
     unsigned        ipvs_persistent;      /* persistent timeout (0 by default) */
     u_int32_t       ipvs_fwmark;          /* ipvs fwmark - (0 by default) */
+
+    VirtualStats    stats;
 } CfgVirtual;
 
 typedef struct CfgReal {
@@ -173,6 +226,8 @@ typedef struct CfgReal {
     in_addr_t       bindaddr;
 
     gpointer        moddata;              /* real's private data (if different from tester's) */
+
+    RealStats       stats;
 } CfgReal;
 
 #endif

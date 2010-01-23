@@ -35,7 +35,8 @@ static CfgTester  CfgDefault = {
     .retries2ok     = 1,
     .remove_on_fail = 0,
     .debugcomm      = 0,
-    .logmicro       = 0
+    .logmicro       = 0,
+    .stats_samples  = STATS_SAMPLES
 };
 
 static void *sd_xml_attr(xmlNode *node, gchar *attr, void *dst, SD_MODARG_TYPE arg_type, int param, SD_ATTR_TYPE attr_type, gchar *error_fmt, ...) {
@@ -208,6 +209,8 @@ static gint sd_parse_real(CfgVirtual *virt, xmlNode *node) {
     real->last_online  = TRUE;
     parse_error        = FALSE;
 
+    memset(&real->stats, 0, sizeof(RealStats));
+
     sd_xml_attr(node, "name", real->name, STRING, MAXNAME, BASIC_ATTR, "\t[-] No name specified for real!");
     LOGDEBUG("\t[i] Parsing real: %s",real->name);
     sd_xml_attr(node, "addr", real->addrtxt, STRING, MAXIPTXT, BASIC_ATTR, "\t[-] Real (%s): No addr specified!", real->name);
@@ -361,6 +364,7 @@ static CfgTester *sd_parse_tester(xmlNode *node) {
     sd_xml_attr(node, "remove_on_fail", &tester->remove_on_fail, UINT, 0, EXTRA_ATTR, "\t[i] No remove_on_fail");
     sd_xml_attr(node, "debugcomm", &tester->debugcomm, UINT, 0, EXTRA_ATTR, "\t[i] No debugcomm");
     sd_xml_attr(node, "logmicro", &tester->logmicro, UINT, 0, EXTRA_ATTR, "\t[i] No logmicro");
+    sd_xml_attr(node, "stats_samples", &tester->stats_samples, UINT, 0, EXTRA_ATTR, "\t[i] No stats_samples");
     sd_xml_attr(node, "SSL", &tester->ssl, BOOL, 0, EXTRA_ATTR, "");
 
     if (parse_error) {
@@ -370,6 +374,9 @@ static CfgTester *sd_parse_tester(xmlNode *node) {
 
     if (tester->ssl)
         tester->ssl -= '0';     /* convert to integer */
+
+    if (tester->stats_samples > STATS_SAMPLES || tester->stats_samples == 0)
+        tester->stats_samples = STATS_SAMPLES;
 
     if (tester->mops->m_args) {
         tester->moddata = tester->mops->m_alloc_args();

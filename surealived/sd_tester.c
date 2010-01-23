@@ -59,6 +59,7 @@ static gint sd_read(CfgReal *real) {
                 sd_append_to_commlog(real, real->buf + real->pos, ret, " sd_read <-\n");
             real->pos += ret;
             G_stats_bytes_rcvd += ret;
+            real->stats.bytes_rcvd += ret;
             brk--;
         }
         else if (real->ssl && (ret = SSL_read(real->ssl, real->buf + real->pos, len - real->pos)) > 0) {
@@ -66,6 +67,7 @@ static gint sd_read(CfgReal *real) {
                 sd_append_to_commlog(real, real->buf + real->pos, ret, " sd_read <-\n");
             real->pos += ret;
             G_stats_bytes_rcvd += ret;
+            real->stats.bytes_rcvd += ret;
             brk--;
         }
         else
@@ -110,6 +112,7 @@ static gint sd_read_av(CfgReal *real) { /* read and return after one read */
     if (ret > 0) {
         real->bytes_read = ret;
         G_stats_bytes_rcvd += ret;
+        real->stats.bytes_rcvd += ret;
         sd_append_to_commlog(real, real->buf, ret, " sd_read_av <-\n");
         return 0;               /* some data read */
     }
@@ -142,6 +145,7 @@ static gint sd_write(CfgReal *real) {
                 sd_append_to_commlog(real, real->buf + real->pos, ret, " sd_write ->\n");
             real->pos += ret;
             G_stats_bytes_sent += ret;
+            real->stats.bytes_sent += ret;
             brk--;
         }
         else if (real->ssl && (ret = SSL_write(real->ssl, real->buf + real->pos, len-real->pos)) > 0) {
@@ -149,6 +153,7 @@ static gint sd_write(CfgReal *real) {
                 sd_append_to_commlog(real, real->buf + real->pos, ret, " sd_write ->\n");
             real->pos += ret;
             G_stats_bytes_sent += ret;
+            real->stats.bytes_sent += ret;
             brk--;
         }
         else
@@ -189,6 +194,7 @@ static gint sd_eof(CfgReal *real) {
 
     real->bytes_read += ret;
     G_stats_bytes_rcvd += ret;
+    real->stats.bytes_rcvd += ret;
 
     if (ret < 0 && errno != EAGAIN)
         real->error = errno;
@@ -318,13 +324,19 @@ static gboolean sd_tester_eval_state(CfgReal *real) {
         if (real->retries_ok != real->tester->retries2ok)
             real->retries_ok++;
         real->retries_fail = 0;
-        G_stats_test_success++;
+        if (real->fd != -1) {
+            G_stats_test_success++;
+            real->stats.test_success++;
+        }
     }
     else {
         if (real->retries_fail != real->tester->retries2fail)
             real->retries_fail++;
         real->retries_ok = 0;
-        G_stats_test_failed++;
+        if (real->fd != -1) {
+            G_stats_test_failed++;
+            real->stats.test_failed++;
+        }
     }
 
     LOGDEBUG("eval state, real = %s:%s, last_online=%s, online=%s, rok=%d r2ok=%d rfail=%d r2fail=%d", 
@@ -337,6 +349,7 @@ static gboolean sd_tester_eval_state(CfgReal *real) {
         if (real->last_online != real->online) {
             real->diff = TRUE;
             G_stats_online_set++;
+            real->stats.online_set++;
             LOGINFO("Real: [%s:%s - %s:%d:%s %s:%d] changed its test state to ONLINE (rstate = %s)", 
                     real->virt->name, real->name,
                     real->virt->addrtxt, ntohs(real->virt->port),
@@ -353,6 +366,7 @@ static gboolean sd_tester_eval_state(CfgReal *real) {
         if (real->last_online != real->online) { 
             real->diff = TRUE;
             G_stats_offline_set++;
+            real->stats.offline_set++;
             LOGINFO("Real: [%s:%s - %s:%d:%s %s:%d] changed its test state to OFFLINE (rstate = %s)", 
                     real->virt->name, real->name,
                     real->virt->addrtxt, ntohs(real->virt->port),
@@ -422,6 +436,7 @@ static void sd_tester_virtual_expired(SDTester *sdtest, CfgVirtual *virt) {
             real->conn_time = real->start_time; //perhaps connection established fail
             real->conn_time.tv_usec -= 1000;    //if timeout > 3sec - this means that no SYN,ACK
             G_stats_conn_problem++;
+            real->stats.conn_problem++;
         }
 
         /* last_online - useful when online status change - only this real need to be
@@ -578,9 +593,10 @@ static void sd_tester_process_events(gint nr_events) {
 
         if (ev & EPOLLERR) {
             LOGDETAIL("EPOLLERR: closing descriptor for real = %s, fd = %d\n", real->virt->name, real->name, real->fd);
+
             if (real->fd != -1)
                 close(real->fd);
-            real->fd = -1; //to avoid closing descriptor which belongs to another connection
+
             if (real->ssl)
                 SSL_clear(real->ssl);
 
@@ -592,9 +608,11 @@ static void sd_tester_process_events(gint nr_events) {
                 if (TIMEDIFF_MS(real->conn_time, ctime) < 1000) {
                     real->conn_time.tv_usec -= 3000; //rst problem?
                     G_stats_rst_problem++;
+                    real->stats.rst_problem++;
                 } else {
                     real->conn_time.tv_usec -= 2000; //arp problem?
                     G_stats_arp_problem++;
+                    real->stats.arp_problem++;
                 }
             }
 
@@ -603,6 +621,7 @@ static void sd_tester_process_events(gint nr_events) {
                 LOGDEBUG("ipvssync diffcfg real (EPOLLERR)");
                 sd_ipvssync_diffcfg_real(real, FALSE); 
             }
+            real->fd = -1; //if real->fd != 0 eval_state will increment statistics (only once)
             continue;
         }
 
@@ -666,7 +685,7 @@ static void sd_tester_process_events(gint nr_events) {
             LOGDEBUG("Requesting END (real = %s:%s, fd = %d)", real->virt->name, real->name, real->fd);
             if (real->fd != -1)
                 close(real->fd);
-            real->fd = -1;
+
             if (real->ssl)
                 SSL_clear(real->ssl);
             gettimeofday(&real->end_time, NULL); /* set real's end time */
@@ -676,6 +695,7 @@ static void sd_tester_process_events(gint nr_events) {
                 LOGDEBUG("ipvssync diffcfg real (request end)");
                 sd_ipvssync_diffcfg_real(real, FALSE); 
             }
+            real->fd = -1;
         }
         else if (REQ_WRITE(real->req))
             sd_epoll_ctl(epoll, EPOLL_CTL_MOD, real->fd, real, EPOLLOUT);
