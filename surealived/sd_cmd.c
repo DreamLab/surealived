@@ -1,5 +1,5 @@
 /*
- * Copyright 2009 DreamLab Onet.pl Sp. z o.o.
+ * Copyright 2009-2010 DreamLab Onet.pl Sp. z o.o.
  * 
  *   This program is distributed in the hope that it will be useful,
  *   but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -446,6 +446,74 @@ static gchar *sd_cmd_rset(GPtrArray *VCfgArr, GHashTable *ht) {
     return g_string_free(s, FALSE);
 }
 
+/* Returns allocated string */
+static gchar *sd_cmd_connstats(GPtrArray *VCfgArr) {
+    GString      *s = g_string_new_len(NULL, BUFSIZ);
+    CfgVirtual   *virt;
+    VirtualStats *vs;
+    CfgReal      *real;
+    gint          i, j;
+
+    for (i = 0; i < VCfgArr->len; i++) {
+        virt = (CfgVirtual *) g_ptr_array_index(VCfgArr, i);
+        vs = &virt->stats;
+        g_string_append_printf(s, "%d. vname=%s vproto=%s vaddr=%s vport=%d vfwmark=%d vrt=%s vsched=%s\n",
+                               i,
+                               virt->name, 
+                               sd_proto_str(virt->ipvs_proto),
+                               virt->addrtxt, ntohs(virt->port), 
+                               virt->ipvs_fwmark,
+                               sd_rt_str(virt->ipvs_rt),
+                               virt->ipvs_sched);
+        if (virt->tester->logmicro)
+            g_string_append_printf(s, "\tsamples=%d  avgconn=%dus avgresp=%dus avgtotal=%dus ",
+                                   virt->tester->stats_samples,
+                                   vs->avg_conntime_us,
+                                   vs->avg_resptime_us, 
+                                   vs->avg_totaltime_us);
+        else
+            g_string_append_printf(s, "\tsamples=%d  avgconn=%dms avgresp=%dms avgtotal=%dms ",
+                                   virt->tester->stats_samples,
+                                   vs->avg_conntime_ms,
+                                   vs->avg_resptime_ms, 
+                                   vs->avg_totaltime_ms);
+
+        g_string_append_printf(s, "\tconnprob=%d arpprob=%d rstprob=%d\n",
+                               vs->conn_problem, vs->arp_problem, vs->rst_problem);
+
+
+        if (virt->realArr) {
+            for (j = 0; j < virt->realArr->len; j++) {
+                real = (CfgReal *) g_ptr_array_index(virt->realArr, j);
+//                currwgt = sd_ipvssync_calculate_real_weight(real);
+                g_string_append_printf(s, "\t* rname=%s raddr=%s rport=%d ",
+                                       real->name, 
+                                       real->addrtxt, ntohs(real->port));
+
+                if (real->tester->logmicro) 
+                    g_string_append_printf(s, "avgconn=%dus avgresp=%dus avgtotal=%dus ",
+                                           real->stats.avg_conntime_us, 
+                                           real->stats.avg_resptime_us, 
+                                           real->stats.avg_totaltime_us);
+                else 
+                    g_string_append_printf(s, "avgconn=%dms avgresp=%dms avgtotal=%dms ",
+                                           real->stats.avg_conntime_ms, 
+                                           real->stats.avg_resptime_ms, 
+                                           real->stats.avg_totaltime_ms);
+
+                g_string_append_printf(s, "connprob=%d arpprob=%d rstprob=%d\n",
+                                       real->stats.conn_problem, real->stats.arp_problem, real->stats.rst_problem);
+
+            }
+        } 
+        else 
+            g_string_append_printf(s, "\t* EMPTY\n");
+
+        g_string_append_printf(s, "\n");
+    }
+    return g_string_free(s, FALSE);
+}
+
 /* ---------------------------------------------------------------------- */
 gint sd_cmd_listen_socket_create(gchar *addr, u_int16_t lport) {
     struct sockaddr_in  sa;
@@ -543,6 +611,10 @@ static void sd_cmd_execute(SDClient *client, GPtrArray *VCfgArr) {
     }
     else if (!strncmp(cmd, "rset", 4)) {
         client->wbuf = sd_cmd_rset(VCfgArr, ht);        
+    }
+    else if (!strncmp(cmd, "connstats", 9)) {
+        client->wbuf = sd_cmd_connstats(VCfgArr);
+        goto cleanup;
     }
     else{
         client->wbuf = g_strdup_printf("Invalid request! [%s]\n", cmd);

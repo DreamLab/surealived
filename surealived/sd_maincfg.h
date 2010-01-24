@@ -1,5 +1,5 @@
 /*
- * Copyright 2009 DreamLab Onet.pl Sp. z o.o.
+ * Copyright 2009-2010 DreamLab Onet.pl Sp. z o.o.
  * 
  *   This program is distributed in the hope that it will be useful,
  *   but WITHOUT ANY WARRANTY; without even the implied warranty of

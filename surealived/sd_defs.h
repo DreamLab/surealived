@@ -1,5 +1,5 @@
 /*
- * Copyright 2009 DreamLab Onet.pl Sp. z o.o.
+ * Copyright 2009-2010 DreamLab Onet.pl Sp. z o.o.
  * 
  *   This program is distributed in the hope that it will be useful,
  *   but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -23,7 +23,8 @@
         ((t2.tv_sec - t1.tv_sec == 0) && (t2.tv_usec - t1.tv_usec > 0)) ? TRUE : FALSE )
 #endif
 
-#define STATS_SAMPLES   20
+#define TIMEDIFF_MS(t1,t2) (((t2.tv_sec - t1.tv_sec)*1000000 + (int)((int)t2.tv_usec - (int)t1.tv_usec))/1000)
+#define TIMEDIFF_US(t1,t2) ((t2.tv_sec - t1.tv_sec)*1000000 + (int)((int)t2.tv_usec - (int)t1.tv_usec))
 
 #define MAXNAME         128
 #define MAXIPTXT        16          /* 123.567.901.345 */
@@ -85,6 +86,10 @@ typedef enum {
     REAL_DOWN,
 } RState;
 
+
+/* === Detailed statistics === */
+#define STATS_SAMPLES   20
+
 typedef struct {
     /* single real statistics */
     guint           test_success;
@@ -131,6 +136,9 @@ typedef struct {
     gint            avg_conntime_us;
     gint            avg_resptime_us;
     gint            avg_totaltime_us;
+    guint           conn_problem;
+    guint           arp_problem;
+    guint           rst_problem;
 } VirtualStats;
 
 typedef struct {
