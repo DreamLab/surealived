@@ -27,11 +27,14 @@ void sd_stats_dump_save(GPtrArray *VCfgArr) {
     VirtualStats *vs;
     RealStats    *rs;
     gint          vi, ri;
+
+    if (!G_gather_stats)
+        return;
     
     dump = fopen(G_stats_dump, "w");
 
     if (!dump)
-        LOGWARN("Unable to open dump file - %s", G_stats_dump);
+        LOGWARN("Unable to open stats dump file - %s", G_stats_dump);
     assert(dump);
 
     for (vi = 0; vi < VCfgArr->len; vi++) {
@@ -59,10 +62,12 @@ void sd_stats_dump_save(GPtrArray *VCfgArr) {
 
             fprintf(dump, "rstats %s:%d - ", real->addrtxt, ntohs(real->port));
 
-            fprintf(dump, "%d - %d:%d:%d - %d:%d:%d - %d:%d:%d\n",
+            fprintf(dump, "%d - %d:%d:%d - %d:%d:%d - %lld:%lld:%lld - %lld:%lld:%lld - %d:%d:%d\n",
                     rs->total,
                     rs->avg_conntime_ms, vs->avg_resptime_ms, vs->avg_totaltime_ms,
                     rs->avg_conntime_us, vs->avg_resptime_us, vs->avg_totaltime_us,
+                    rs->total_conntime_ms, rs->total_resptime_ms, rs->total_totaltime_ms, 
+                    rs->total_conntime_us, rs->total_resptime_us, rs->total_totaltime_us, 
                     rs->conn_problem, vs->arp_problem, vs->rst_problem);
         }
         fprintf(dump, "\n");
@@ -74,6 +79,9 @@ void sd_stats_dump_save(GPtrArray *VCfgArr) {
 void sd_stats_update_real(CfgReal *real) {
     RealStats *s = &real->stats;
     gint i;
+
+    if (!G_gather_stats)
+        return;
 
     if (s->arrlen < real->tester->stats_samples)
         s->arrlen++;
@@ -129,6 +137,7 @@ void sd_stats_update_real(CfgReal *real) {
     s->avg_resptime_us  /= s->arrlen;
     s->avg_totaltime_us /= s->arrlen;
 
+/*
     for (i = 0; i < s->arrlen; i++)
         LOGINFO("i = %d, %d", i, s->conntime_ms_arr[i]);
 
@@ -142,15 +151,19 @@ void sd_stats_update_real(CfgReal *real) {
             real->name, 
             s->last_conntime_ms, s->last_resptime_ms, s->last_totaltime_ms,
             s->last_conntime_us, s->last_resptime_us, s->last_totaltime_us);
-
+*/
     s->arridx = (s->arridx + 1) % real->tester->stats_samples;
-    LOGINFO("Arridx = %d, stats_samples = %d", s->arridx, real->tester->stats_samples);
+
+//    LOGINFO("Arridx = %d, stats_samples = %d", s->arridx, real->tester->stats_samples);
 }
 
 void sd_stats_update_virtual(CfgVirtual *virt) {
     VirtualStats *s = &virt->stats;
     CfgReal *real;
     gint i, rlen;
+
+    if (!G_gather_stats)
+        return;
 
     s->total++; //update how many tests were performed 
     s->avg_conntime_ms  = 0;
@@ -176,11 +189,12 @@ void sd_stats_update_virtual(CfgVirtual *virt) {
             s->arp_problem++;
         else if (real->stats.last_conntime_ms == -3)
             s->rst_problem++;
-        
+        /*
         LOGINFO("VReal: %s, avg ms: %d,%d,%d, avg us: %d,%d,%d",
                 real->name, 
                 real->stats.avg_conntime_ms, real->stats.avg_resptime_ms, real->stats.avg_totaltime_ms,
                 real->stats.avg_conntime_us, real->stats.avg_resptime_us, real->stats.avg_totaltime_us);
+        */
     }
 
     if (rlen) {
@@ -192,6 +206,7 @@ void sd_stats_update_virtual(CfgVirtual *virt) {
         s->avg_totaltime_us /= rlen;
     }
 
+/*
     LOGINFO("Virtual: %s, rlen = %d, avg ms: %d,%d,%d, avg us: %d,%d,%d",
             virt->name, 
             rlen,
@@ -200,5 +215,5 @@ void sd_stats_update_virtual(CfgVirtual *virt) {
 
     LOGINFO(" * conn problem: %d, arp problem: %d, rst problem %d",
             s->conn_problem, s->arp_problem, s->rst_problem);
-                
+*/              
 }

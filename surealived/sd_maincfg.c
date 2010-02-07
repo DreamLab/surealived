@@ -58,6 +58,7 @@ gboolean    G_use_offline_dump    = TRUE;
 gchar      *G_override_dump       = NULL;
 
 /* stats.dump */
+gboolean    G_gather_stats        = TRUE;
 gchar      *G_stats_dump          = NULL;
 gint        G_stats_dump_savesec  = 60;
 
@@ -115,6 +116,8 @@ gboolean sd_maincfg_new(gchar *fname) {
     _set_default(Cfg, "offline_dump",       "/var/lib/surealived/offline.dump");
     _set_default(Cfg, "use_offline_dump",   "true");
     _set_default(Cfg, "override_dump",      "/var/lib/surealived/override.dump");
+
+    _set_default(Cfg, "gather_stats",       "true");
     _set_default(Cfg, "stats_dump",         "/var/lib/surealived/stats.dump");
     _set_default(Cfg, "stats_dump_savesec", "60");
 
@@ -211,6 +214,11 @@ gboolean sd_maincfg_new(gchar *fname) {
 
     G_offline_dump = g_hash_table_lookup(Cfg, "offline_dump");
     G_override_dump = g_hash_table_lookup(Cfg, "override_dump");
+
+    if (toupper(((gchar *)g_hash_table_lookup(Cfg, "gather_stats"))[0]) == 'T')
+        G_gather_stats = TRUE;
+    else
+        G_gather_stats = FALSE;
     G_stats_dump = g_hash_table_lookup(Cfg, "stats_dump");
     sscanf(g_hash_table_lookup(Cfg, "stats_dump_savesec"), "%u", &G_stats_dump_savesec);
 

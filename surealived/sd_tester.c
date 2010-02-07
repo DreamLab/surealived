@@ -758,7 +758,7 @@ gint sd_tester_master_loop(SDTester *sdtest) {
         } 
         else if (!stop) {
             if (ctime.tv_sec - stats_dump_savetime.tv_sec > G_stats_dump_savesec) {
-                LOGINFO("Saving statistics every %d seconds", G_stats_dump_savesec);
+                LOGINFO("Saving statistics (every %d seconds)", G_stats_dump_savesec);
                 sd_stats_dump_save(sdtest->VCfgArr);
                 stats_dump_savetime = ctime;
             }

@@ -173,7 +173,7 @@ static gchar *sd_cmd_vlist(GPtrArray *VCfgArr) {
 
     for (i = 0; i < VCfgArr->len; i++) {
         virt = (CfgVirtual *) g_ptr_array_index(VCfgArr, i);
-        g_string_append_printf(s, "%d. vname=%s vproto=%s vaddr=%s vport=%d vfwmark=%d vrt=%s vsched=%s\n",
+        g_string_append_printf(s, "v:%d vname=%s vproto=%s vaddr=%s vport=%d vfwmark=%d vrt=%s vsched=%s\n",
                                i,
                                virt->name, 
                                sd_proto_str(virt->ipvs_proto),
@@ -208,8 +208,8 @@ static gchar *sd_cmd_rlist(GPtrArray *VCfgArr, GHashTable *ht) {
         for (i = 0; i < virt->realArr->len; i++) {
             real = (CfgReal *) g_ptr_array_index(virt->realArr, i);
             currwgt = sd_ipvssync_calculate_real_weight(real);
-            g_string_append_printf(s, "%d. rname=%s raddr=%s rport=%d currwgt=%d confwgt=%d ronline=%s rstate=%s\n",
-                                   i+1,
+            g_string_append_printf(s, "r:%d rname=%s raddr=%s rport=%d currwgt=%d confwgt=%d ronline=%s rstate=%s\n",
+                                   i,
                                    real->name, 
                                    real->addrtxt, ntohs(real->port),
                                    currwgt, real->ipvs_weight, GBOOLSTR(real->online), sd_rstate_str(real->rstate));
@@ -466,6 +466,11 @@ static gchar *sd_cmd_connstats(GPtrArray *VCfgArr) {
     CfgReal      *real;
     gint          i, j;
 
+    if (!G_gather_stats) {
+        g_string_append_printf(s, "Gathering statistics is OFF\n");
+        return g_string_free(s, FALSE);
+    }
+
     /* description:
        s - samples
        t - total 
@@ -534,6 +539,20 @@ static gchar *sd_cmd_connstats(GPtrArray *VCfgArr) {
                                        real->stats.conn_problem, real->stats.arp_problem, real->stats.rst_problem);
 
                 /* Statistics for samples */
+                g_string_append_printf(s, "r:%d.%d lstats_ms  ", i, j);
+                _connstats_string_append_virtual(s, virt);
+                _connstats_string_append_real(s, real);
+
+                g_string_append_printf(s, "lastconn=%dms lastresp=%dms lasttotal=%dms\n",
+                                       real->stats.last_conntime_ms, real->stats.last_resptime_ms, real->stats.last_totaltime_ms);
+
+                g_string_append_printf(s, "r:%d.%d lstats_us  ", i, j);
+                _connstats_string_append_virtual(s, virt);
+                _connstats_string_append_real(s, real);
+
+                g_string_append_printf(s, "lastconn=%dus lastresp=%dus lasttotal=%dus\n",
+                                       real->stats.last_conntime_us, real->stats.last_resptime_us, real->stats.last_totaltime_us);
+
                 g_string_append_printf(s, "r:%d.%d sstats_ms  ", i, j);
                 _connstats_string_append_virtual(s, virt);
                 _connstats_string_append_real(s, real);
@@ -571,9 +590,9 @@ static gchar *sd_cmd_connstats(GPtrArray *VCfgArr) {
             }
             g_string_append_printf(s, "-----\n");
         } 
-
         g_string_append_printf(s, "\n");
     }
+
     return g_string_free(s, FALSE);
 }
 
