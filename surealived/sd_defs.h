@@ -129,6 +129,7 @@ typedef struct {
     gint            avg_resptime_us;
     gint            avg_totaltime_us;
 
+    /* all calculated time for all tests */
     gint64          total_conntime_ms;
     gint64          total_resptime_ms;
     gint64          total_totaltime_ms;
@@ -136,6 +137,12 @@ typedef struct {
     gint64          total_resptime_us;
     gint64          total_totaltime_us;
 
+    gint            total_avg_conntime_ms;
+    gint            total_avg_resptime_ms;
+    gint            total_avg_totaltime_ms;
+    gint            total_avg_conntime_us;
+    gint            total_avg_resptime_us;
+    gint            total_avg_totaltime_us;
 } RealStats;
 
 typedef struct {

@@ -446,6 +446,18 @@ static gchar *sd_cmd_rset(GPtrArray *VCfgArr, GHashTable *ht) {
     return g_string_free(s, FALSE);
 }
 
+
+/* ---------------------------------------------------------------------- */
+inline static void _connstats_string_append_virtual(GString *s, CfgVirtual *virt) {
+    g_string_append_printf(s, "vname=%s vproto=%s vaddr=%s vport=%d vfwmark=%d ",
+                           virt->name, sd_proto_str(virt->ipvs_proto), virt->addrtxt, ntohs(virt->port), virt->ipvs_fwmark);
+}
+
+inline static void _connstats_string_append_real(GString *s, CfgReal *real) {
+    g_string_append_printf(s, "rname=%s raddr=%s rport=%d total=%d ", real->name, real->addrtxt, ntohs(real->port), real->stats.total);
+}
+
+
 /* Returns allocated string */
 static gchar *sd_cmd_connstats(GPtrArray *VCfgArr) {
     GString      *s = g_string_new_len(NULL, BUFSIZ);
@@ -454,9 +466,32 @@ static gchar *sd_cmd_connstats(GPtrArray *VCfgArr) {
     CfgReal      *real;
     gint          i, j;
 
+    /* description:
+       s - samples
+       t - total 
+
+       virtual:
+       savgconn  - samples avg conntime
+       savgresp  - samples avg resptime
+       savgtotal - samples avg totaltime
+
+       real:
+       savgconn  - samples avg conntime
+       savgresp  - samples avg resptime
+       savgtotal - samples avg totaltime
+       tconn     - total conntime (sum - 64bit integer)
+       tresp     - total resptime 
+       ttotal    - total totaltime
+       tavgconn  - total avg conntime (total conntime / total samples)
+       tavgresp  - total avg resptime (total resptime / total samples)
+       tavgtotal - total avg totaltime (total totaltime / total samples)
+    */
+       
+
     for (i = 0; i < VCfgArr->len; i++) {
         virt = (CfgVirtual *) g_ptr_array_index(VCfgArr, i);
         vs = &virt->stats;
+        g_string_append_printf(s, "Virtual:\n");
         g_string_append_printf(s, "v:%d vname=%s vproto=%s vaddr=%s vport=%d vfwmark=%d vrt=%s vsched=%s ",
                                i,
                                virt->name, 
@@ -466,48 +501,75 @@ static gchar *sd_cmd_connstats(GPtrArray *VCfgArr) {
                                sd_rt_str(virt->ipvs_rt),
                                virt->ipvs_sched);
         if (virt->tester->logmicro)
-            g_string_append_printf(s, "samples=%d total=%d avgconn=%dus avgresp=%dus avgtotal=%dus ",
+            g_string_append_printf(s, "samples=%d total=%d savgconn=%dus savgresp=%dus savgtotal=%dus ",
                                    virt->tester->stats_samples,
                                    vs->total,
                                    vs->avg_conntime_us,
                                    vs->avg_resptime_us, 
                                    vs->avg_totaltime_us);
         else
-            g_string_append_printf(s, "samples=%d total=%d avgconn=%dms avgresp=%dms avgtotal=%dms ",
+            g_string_append_printf(s, "samples=%d total=%d savgconn=%dms savgresp=%dms savgtotal=%dms ",
                                    virt->tester->stats_samples,
                                    vs->total,
                                    vs->avg_conntime_ms,
                                    vs->avg_resptime_ms, 
                                    vs->avg_totaltime_ms);
 
-        g_string_append_printf(s, "connprob=%d arpprob=%d rstprob=%d\n",
+        g_string_append_printf(s, "connprob=%d arpprob=%d rstprob=%d\n\n",
                                vs->conn_problem, vs->arp_problem, vs->rst_problem);
 
 
+        g_string_append_printf(s, "Reals:\n");
         if (virt->realArr) {
             for (j = 0; j < virt->realArr->len; j++) {
                 real = (CfgReal *) g_ptr_array_index(virt->realArr, j);
 //                currwgt = sd_ipvssync_calculate_real_weight(real);
-                g_string_append_printf(s, "r:%d.%d rname=%s raddr=%s rport=%d ",
-                                       i, j,
-                                       real->name, 
-                                       real->addrtxt, ntohs(real->port));
 
-                if (real->tester->logmicro) 
-                    g_string_append_printf(s, "avgconn=%dus avgresp=%dus avgtotal=%dus ",
-                                           real->stats.avg_conntime_us, 
-                                           real->stats.avg_resptime_us, 
-                                           real->stats.avg_totaltime_us);
-                else 
-                    g_string_append_printf(s, "avgconn=%dms avgresp=%dms avgtotal=%dms ",
-                                           real->stats.avg_conntime_ms, 
-                                           real->stats.avg_resptime_ms, 
-                                           real->stats.avg_totaltime_ms);
+                /* Statistics for connection problems */
+                g_string_append_printf(s, "r:%d.%d real-stats ", i, j);
+                _connstats_string_append_virtual(s, virt);
+                _connstats_string_append_real(s, real);
 
                 g_string_append_printf(s, "connprob=%d arpprob=%d rstprob=%d\n",
                                        real->stats.conn_problem, real->stats.arp_problem, real->stats.rst_problem);
 
+                /* Statistics for samples */
+                g_string_append_printf(s, "r:%d.%d sstats_ms  ", i, j);
+                _connstats_string_append_virtual(s, virt);
+                _connstats_string_append_real(s, real);
+
+                g_string_append_printf(s, "savgconn=%dms savgresp=%dms savgtotal=%dms\n",
+                                       real->stats.avg_conntime_ms, real->stats.avg_resptime_ms, real->stats.avg_totaltime_ms);
+
+                g_string_append_printf(s, "r:%d.%d sstats_us  ", i, j);
+                _connstats_string_append_virtual(s, virt);
+                _connstats_string_append_real(s, real);
+
+                g_string_append_printf(s, "savgconn=%dus savgresp=%dus savgtotal=%dus\n",
+                                       real->stats.avg_conntime_us, real->stats.avg_resptime_us, real->stats.avg_totaltime_us);
+
+                /* Statistics for total ms/us */
+                g_string_append_printf(s, "r:%d.%d tstats_ms  ", i, j);
+                _connstats_string_append_virtual(s, virt);
+                _connstats_string_append_real(s, real);
+
+                g_string_append_printf(s, "tavgconn=%dms tavgresp=%dms tavgtotal=%dms\n",
+                                       real->stats.total_avg_conntime_ms, 
+                                       real->stats.total_avg_resptime_ms, 
+                                       real->stats.total_avg_totaltime_ms);
+
+                g_string_append_printf(s, "r:%d.%d tstats_us  ", i, j);
+                _connstats_string_append_virtual(s, virt);
+                _connstats_string_append_real(s, real);
+
+                g_string_append_printf(s, "tavgconn=%dus tavgresp=%dus tavgtotal=%dus\n",
+                                       real->stats.total_avg_conntime_us, 
+                                       real->stats.total_avg_resptime_us, 
+                                       real->stats.total_avg_totaltime_us);
+
+                g_string_append_printf(s, "\n");
             }
+            g_string_append_printf(s, "-----\n");
         } 
 
         g_string_append_printf(s, "\n");

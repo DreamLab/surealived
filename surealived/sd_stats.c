@@ -96,6 +96,22 @@ void sd_stats_update_real(CfgReal *real) {
     s->resptime_us_arr[s->arridx]  = s->last_resptime_us;
     s->totaltime_us_arr[s->arridx] = s->last_totaltime_us;
 
+    /* total us/ms for all real tests */
+    s->total_conntime_ms  += s->conntime_ms_arr[s->arridx];
+    s->total_resptime_ms  += s->resptime_ms_arr[s->arridx];
+    s->total_totaltime_ms += s->totaltime_ms_arr[s->arridx];
+    s->total_conntime_us  += s->conntime_us_arr[s->arridx];
+    s->total_resptime_us  += s->resptime_us_arr[s->arridx];
+    s->total_totaltime_us += s->totaltime_us_arr[s->arridx];
+
+    s->total_avg_conntime_ms  = s->total_conntime_ms / s->total;
+    s->total_avg_resptime_ms  = s->total_resptime_ms / s->total;
+    s->total_avg_totaltime_ms = s->total_totaltime_ms / s->total;
+    s->total_avg_conntime_us  = s->total_conntime_us / s->total;
+    s->total_avg_resptime_us  = s->total_resptime_us / s->total;
+    s->total_avg_totaltime_us = s->total_totaltime_us / s->total;
+    /* --- */
+    
     s->avg_conntime_ms = s->avg_resptime_ms = s->avg_totaltime_ms = 0;
     s->avg_conntime_us = s->avg_resptime_us = s->avg_totaltime_us = 0;
     for (i = 0; i < s->arrlen; i++) {
