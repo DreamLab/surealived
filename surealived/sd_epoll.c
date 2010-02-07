@@ -38,7 +38,7 @@ void sd_epoll_free(SDepoll *epoll) {
 }
 
 void sd_epoll_ctl(SDepoll *epoll, int ctl, int fd, void *ptr, uint32_t events) {
-    struct epoll_event ev;
+    struct epoll_event ev = {};
     ev.events   = events;
     ev.data.ptr = ptr;
 

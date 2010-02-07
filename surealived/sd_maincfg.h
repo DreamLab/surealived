@@ -48,6 +48,8 @@ extern gchar      *G_offline_dump;
 extern gboolean    G_use_offline_dump;
 
 extern gchar      *G_override_dump;
+extern gchar      *G_stats_dump;
+extern gint        G_stats_dump_savesec;
 
 extern gchar      *G_listen_addr;
 extern u_int16_t   G_listen_port;

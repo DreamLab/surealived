@@ -457,7 +457,7 @@ static gchar *sd_cmd_connstats(GPtrArray *VCfgArr) {
     for (i = 0; i < VCfgArr->len; i++) {
         virt = (CfgVirtual *) g_ptr_array_index(VCfgArr, i);
         vs = &virt->stats;
-        g_string_append_printf(s, "%d. vname=%s vproto=%s vaddr=%s vport=%d vfwmark=%d vrt=%s vsched=%s\n",
+        g_string_append_printf(s, "v:%d vname=%s vproto=%s vaddr=%s vport=%d vfwmark=%d vrt=%s vsched=%s ",
                                i,
                                virt->name, 
                                sd_proto_str(virt->ipvs_proto),
@@ -466,19 +466,21 @@ static gchar *sd_cmd_connstats(GPtrArray *VCfgArr) {
                                sd_rt_str(virt->ipvs_rt),
                                virt->ipvs_sched);
         if (virt->tester->logmicro)
-            g_string_append_printf(s, "\tsamples=%d  avgconn=%dus avgresp=%dus avgtotal=%dus ",
+            g_string_append_printf(s, "samples=%d total=%d avgconn=%dus avgresp=%dus avgtotal=%dus ",
                                    virt->tester->stats_samples,
+                                   vs->total,
                                    vs->avg_conntime_us,
                                    vs->avg_resptime_us, 
                                    vs->avg_totaltime_us);
         else
-            g_string_append_printf(s, "\tsamples=%d  avgconn=%dms avgresp=%dms avgtotal=%dms ",
+            g_string_append_printf(s, "samples=%d total=%d avgconn=%dms avgresp=%dms avgtotal=%dms ",
                                    virt->tester->stats_samples,
+                                   vs->total,
                                    vs->avg_conntime_ms,
                                    vs->avg_resptime_ms, 
                                    vs->avg_totaltime_ms);
 
-        g_string_append_printf(s, "\tconnprob=%d arpprob=%d rstprob=%d\n",
+        g_string_append_printf(s, "connprob=%d arpprob=%d rstprob=%d\n",
                                vs->conn_problem, vs->arp_problem, vs->rst_problem);
 
 
@@ -486,7 +488,8 @@ static gchar *sd_cmd_connstats(GPtrArray *VCfgArr) {
             for (j = 0; j < virt->realArr->len; j++) {
                 real = (CfgReal *) g_ptr_array_index(virt->realArr, j);
 //                currwgt = sd_ipvssync_calculate_real_weight(real);
-                g_string_append_printf(s, "\t* rname=%s raddr=%s rport=%d ",
+                g_string_append_printf(s, "r:%d.%d rname=%s raddr=%s rport=%d ",
+                                       i, j,
                                        real->name, 
                                        real->addrtxt, ntohs(real->port));
 
@@ -506,8 +509,6 @@ static gchar *sd_cmd_connstats(GPtrArray *VCfgArr) {
 
             }
         } 
-        else 
-            g_string_append_printf(s, "\t* EMPTY\n");
 
         g_string_append_printf(s, "\n");
     }

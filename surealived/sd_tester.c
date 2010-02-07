@@ -711,10 +711,11 @@ static void sd_tester_process_events(gint nr_events) {
 }
 
 gint sd_tester_master_loop(SDTester *sdtest) {
-    gint        nr_events = 0;
-    gint        retv = 0;
-    sigset_t    blockset;
-    sigset_t    oldset;
+    gint           nr_events = 0;
+    gint           retv = 0;
+    sigset_t       blockset;
+    sigset_t       oldset;
+    struct timeval stats_dump_savetime, ctime;
 
     sigfillset(&blockset);
 
@@ -724,8 +725,12 @@ gint sd_tester_master_loop(SDTester *sdtest) {
     sd_tester_debug(sdtest);
     sigprocmask(SIG_SETMASK, &oldset, NULL); 
 
+    gettimeofday(&stats_dump_savetime, NULL);
+
     LOGDETAIL("epoll_interval_ms = %lu\n", G_epoll_interval_ms);
     while (1) {
+        gettimeofday(&ctime, NULL);
+
         sigprocmask(SIG_BLOCK, &blockset, &oldset); /* start critical section */
         if (epoll)
             nr_events = sd_epoll_wait(epoll, G_epoll_interval_ms);
@@ -746,8 +751,18 @@ gint sd_tester_master_loop(SDTester *sdtest) {
         
         sigprocmask(SIG_SETMASK, &oldset, NULL); /* release critical section */
 
-        if (stop && !tests_running) /* we need to stop NOW */
+        if (stop && !tests_running) { /* we need to stop NOW */
+            LOGINFO("Saving statistics (due to stopping the tester)", G_stats_dump_savesec);
+            sd_stats_dump_save(sdtest->VCfgArr);
             break;
+        } 
+        else if (!stop) {
+            if (ctime.tv_sec - stats_dump_savetime.tv_sec > G_stats_dump_savesec) {
+                LOGINFO("Saving statistics every %d seconds", G_stats_dump_savesec);
+                sd_stats_dump_save(sdtest->VCfgArr);
+                stats_dump_savetime = ctime;
+            }
+        }
     }
 
     return retv;

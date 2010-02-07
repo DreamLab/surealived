@@ -110,6 +110,8 @@ typedef struct {
     gint            last_resptime_us;
     gint            last_totaltime_us;
 
+    gint            total;
+
     gint            arridx; //index at which position in the array we need to write
     gint            arrlen; //length
     gint            conntime_ms_arr[STATS_SAMPLES];
@@ -126,9 +128,19 @@ typedef struct {
     gint            avg_conntime_us;
     gint            avg_resptime_us;
     gint            avg_totaltime_us;
+
+    gint64          total_conntime_ms;
+    gint64          total_resptime_ms;
+    gint64          total_totaltime_ms;
+    gint64          total_conntime_us;
+    gint64          total_resptime_us;
+    gint64          total_totaltime_us;
+
 } RealStats;
 
 typedef struct {
+    gint            total;
+
     /* average - calculated from all reals _arr */
     gint            avg_conntime_ms;
     gint            avg_resptime_ms;

@@ -18,12 +18,67 @@
 #include <glib.h>
 #include <sys/file.h>
 
+//static GTree *StatsT = NULL;
+
+void sd_stats_dump_save(GPtrArray *VCfgArr) {
+    FILE         *dump;
+    CfgVirtual   *virt;
+    CfgReal      *real;
+    VirtualStats *vs;
+    RealStats    *rs;
+    gint          vi, ri;
+    
+    dump = fopen(G_stats_dump, "w");
+
+    if (!dump)
+        LOGWARN("Unable to open dump file - %s", G_stats_dump);
+    assert(dump);
+
+    for (vi = 0; vi < VCfgArr->len; vi++) {
+        virt = g_ptr_array_index(VCfgArr, vi);
+        vs = &virt->stats;
+
+        fprintf(dump, "vstats %s:%d:%d:%u - ",
+                virt->addrtxt, ntohs(virt->port), 
+                virt->ipvs_proto, virt->ipvs_fwmark);
+
+        fprintf(dump, "%d %d - %d:%d:%d - %d:%d:%d - %d:%d:%d\n",
+                virt->tester->stats_samples,
+                vs->total,
+                vs->avg_conntime_ms, vs->avg_resptime_ms, vs->avg_totaltime_ms,
+                vs->avg_conntime_us, vs->avg_resptime_us, vs->avg_totaltime_us,
+                vs->conn_problem, vs->arp_problem, vs->rst_problem
+            );
+
+        if (!virt->realArr) /* ignore empty virtuals */
+            continue;
+
+        for (ri = 0; ri < virt->realArr->len; ri++) {
+            real = g_ptr_array_index(virt->realArr, ri);
+            rs = &real->stats;
+
+            fprintf(dump, "rstats %s:%d - ", real->addrtxt, ntohs(real->port));
+
+            fprintf(dump, "%d - %d:%d:%d - %d:%d:%d - %d:%d:%d\n",
+                    rs->total,
+                    rs->avg_conntime_ms, vs->avg_resptime_ms, vs->avg_totaltime_ms,
+                    rs->avg_conntime_us, vs->avg_resptime_us, vs->avg_totaltime_us,
+                    rs->conn_problem, vs->arp_problem, vs->rst_problem);
+        }
+        fprintf(dump, "\n");
+    }
+
+    fclose(dump);
+}
+
 void sd_stats_update_real(CfgReal *real) {
     RealStats *s = &real->stats;
     gint i;
 
     if (s->arrlen < real->tester->stats_samples)
         s->arrlen++;
+
+    s->total++;
 
     s->last_conntime_ms  = TIMEDIFF_MS(real->start_time, real->conn_time);
     s->last_resptime_ms  = TIMEDIFF_MS(real->conn_time,  real->end_time);
@@ -81,6 +136,7 @@ void sd_stats_update_virtual(CfgVirtual *virt) {
     CfgReal *real;
     gint i, rlen;
 
+    s->total++; //update how many tests were performed 
     s->avg_conntime_ms  = 0;
     s->avg_resptime_ms  = 0;
     s->avg_totaltime_ms = 0;
