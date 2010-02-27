@@ -26,11 +26,12 @@
 #include <sys/resource.h>
 
 #define MAX_CLIENTS 16
+#define COMMAND_END g_string_append_printf(s, "_SD_CMD_END_\n")
 
-extern   gboolean daemonize; //surealived global flag (required to report parent and child)
+extern   gboolean G_daemonize; //surealived global flag (required to report parent and child)
 
 int      listen_sock;
-SDepoll *logic_epoll = NULL;
+SDepoll *cmd_epoll = NULL;
 int      connected_clients = 0;
 
 typedef struct {
@@ -182,6 +183,9 @@ static gchar *sd_cmd_vlist(GPtrArray *VCfgArr) {
                                sd_rt_str(virt->ipvs_rt),
                                virt->ipvs_sched);
     }
+
+    COMMAND_END;
+
     return g_string_free(s, FALSE);
 }
 
@@ -217,6 +221,8 @@ static gchar *sd_cmd_rlist(GPtrArray *VCfgArr, GHashTable *ht) {
     } 
     else 
         g_string_append_printf(s, "EMPTY LIST - no reals defined in virtual\n");
+
+    COMMAND_END;
 
     return g_string_free(s, FALSE);
 }
@@ -296,7 +302,7 @@ static gchar *sd_cmd_stats(GPtrArray *VCfgArr) {
                            "=== real stats ===\n"
                            "success        : %d\n"
                            "failed         : %d\n\n",
-                           daemonize ? getppid() : -1,
+                           G_daemonize ? getppid() : -1,
                            getpid(),
                            total_v, total_r,
                            total_ronline, total_roffline, total_rdown,
@@ -367,6 +373,8 @@ static gchar *sd_cmd_stats(GPtrArray *VCfgArr) {
             g_string_append_printf(s, "Vm%-12s : %-6ld %s\n", vmname, vmvalue, vmunit);
         }
     fclose(in);
+
+    COMMAND_END;
 
     return g_string_free(s, FALSE);
 }
@@ -442,6 +450,8 @@ static gchar *sd_cmd_rset(GPtrArray *VCfgArr, GHashTable *ht) {
     g_string_append_printf(s, "Set: rstate=%s, weight=%d, inpercent=%s\n",
                            sd_rstate_str(rst), real->override_weight, 
                            GBOOLSTR(real->override_weight_in_percent));
+
+    COMMAND_END;
 
     return g_string_free(s, FALSE);
 }
@@ -593,6 +603,8 @@ static gchar *sd_cmd_connstats(GPtrArray *VCfgArr) {
         g_string_append_printf(s, "\n");
     }
 
+    COMMAND_END;
+
     return g_string_free(s, FALSE);
 }
 
@@ -606,7 +618,7 @@ gint sd_cmd_listen_socket_create(gchar *addr, u_int16_t lport) {
     LOGDETAIL("%s()", __PRETTY_FUNCTION__);
 
     listen_sock = sd_socket_nb(SOCK_STREAM);
-    sd_socket_solinger(listen_sock);
+
     if (setsockopt(listen_sock, SOL_SOCKET, SO_REUSEADDR, 
                    (const void *) &reuseaddr, sizeof(int)) == -1) {
         LOGERROR("Unable to reuse listen_sock [%s]", STRERROR);
@@ -632,9 +644,10 @@ gint sd_cmd_listen_socket_create(gchar *addr, u_int16_t lport) {
     server = (SDClient *) malloc(sizeof(SDClient));
     server->fd = listen_sock;
 
-    if (!logic_epoll)
-        logic_epoll = sd_epoll_new(MAX_CLIENTS+1);
-    sd_epoll_ctl(logic_epoll, EPOLL_CTL_ADD, listen_sock, server, EPOLLIN);
+    if (!cmd_epoll)
+        cmd_epoll = sd_epoll_new(MAX_CLIENTS+1);
+
+    sd_epoll_ctl(cmd_epoll, EPOLL_CTL_ADD, listen_sock, server, EPOLLIN);
 
     return listen_sock;
 }
@@ -658,7 +671,8 @@ static gint sd_cmd_accept_client() {
     client = (SDClient *)malloc(sizeof(SDClient));
     memset(client, 0, sizeof(SDClient));
     client->fd = client_sock;
-    sd_epoll_ctl(logic_epoll, EPOLL_CTL_ADD, client_sock, client, EPOLLIN); /* waiting for read */
+    sd_epoll_ctl(cmd_epoll, EPOLL_CTL_ADD, client_sock, client, EPOLLIN); /* waiting for read */
+
     connected_clients++;        /* increase counter */
 
     return 0;
@@ -698,111 +712,111 @@ static void sd_cmd_execute(SDClient *client, GPtrArray *VCfgArr) {
         client->wbuf = sd_cmd_connstats(VCfgArr);
         goto cleanup;
     }
-    else{
+    else
         client->wbuf = g_strdup_printf("Invalid request! [%s]\n", cmd);
-    }
 
 cleanup:
     client->wlen = strlen(client->wbuf);
+    client->wpos = 0;
     g_hash_table_destroy(ht);
 }
 
-static void sd_cmd_process_client(SDClient *client, GPtrArray *VCfgArr) {
-    gint    ret;
+static void _sd_cmd_client_free(SDClient *client) {
+    LOGDEBUG("Client free [%x]", client);
+    close(client->fd);
+    if (client->wbuf)
+        free(client->wbuf);
+    free(client);
+    connected_clients--;
+}
+
+static void sd_cmd_process_client_read(SDClient *client, GPtrArray *VCfgArr) {
+    gint    bytes;
     gchar   *npos;
 
-    LOGDEBUG("Processing client!");
-    if (client->wpos < client->wlen) {      /* that means we have to write something to client */
-        ret = write(client->fd, client->wbuf + client->wpos, client->wlen - client->wpos); /* write correct amount */
-        if (!ret || (ret < 0 && errno != EAGAIN)) { /* check if we have an incident */
-            close(client->fd);
-            if (client->wbuf)
-                free(client->wbuf);
-            free(client);
-            connected_clients--;
-            return;
-        }
-        client->wpos += ret;
-        if (client->wpos == client->wlen) { /* are we there yet? */
-            if (client->retcode == -1) {    /* close connection */
-                free(client->wbuf);
-                close(client->fd);
-                free(client);
-                return;
-            }
-            client->wpos = client->wlen = 0;
-            client->retcode = 0;
-            sd_epoll_ctl(logic_epoll, EPOLL_CTL_MOD, client->fd, client, EPOLLIN); /* we need to read now */
-            return;
-        }
+    LOGDETAIL("Processing client READ!");
+    bytes = read(client->fd, client->rbuf + client->rpos, sizeof(client->rbuf) - client->rpos-1);
+    
+    /* EOF */
+    if (!bytes) {
+        _sd_cmd_client_free(client);
         return;
     }
-    ret = read(client->fd, client->rbuf + client->rpos, sizeof(client->rbuf) - client->rpos-1);
+    /* error */
+    else if (bytes < 0) 
+        return;
+    
+    npos = strchr(client->rbuf + client->rpos, '\n');
+    client->rpos += bytes;
 
-    if (ret < 0 && errno != EAGAIN)
+    if (!npos)
         return;
 
-    else if (ret == 0) {
-        close(client->fd);
-        if (client->wbuf)
-            free(client->wbuf);
-        free(client);
-        connected_clients--;
+    *npos = '\0';
+    if (*(npos-1) == '\r')
+        *(npos-1) = '\0';
+    client->rpos = 0;
+
+    LOGDEBUG("rbuf = [%s], bufaddr = %x, npos = %x", client->rbuf, client->rbuf, npos);
+
+    sd_cmd_execute(client, VCfgArr);
+
+    sd_epoll_ctl(cmd_epoll, EPOLL_CTL_MOD, client->fd, client, EPOLLOUT);
+}
+
+void static sd_cmd_process_client_write(SDClient *client) {
+    gint    bytes;
+
+    LOGDETAIL("Processing client WRITE [%s]!", client->wbuf + client->wpos);
+    bytes = write(client->fd, client->wbuf + client->wpos, client->wlen - client->wpos);
+    
+
+    /* EOF */
+    if (bytes <= 0)
         return;
-    }
 
-    if (client->rpos + ret == sizeof(client->rbuf)-1) { /* too long request */
-        sd_epoll_ctl(logic_epoll, EPOLL_CTL_MOD, client->fd, client, EPOLLOUT);
-        if (client->wbuf)
-            free(client->wbuf);
-        client->wbuf = g_strdup_printf("Your request was too long (max=%d bytes)!", (int)sizeof(client->rbuf));
-        client->wlen = strlen(client->wbuf);
-        client->rpos = 0;
-        client->retcode = -1;   /* close connection */
-        return;
-    }
+    client->wpos += bytes;
+    LOGDEBUG(" * written %d bytes [%d / %d]", bytes, client->wpos, client->wlen);
 
-    client->rpos += ret;
-    if ((npos = strchr(client->rbuf + client->rpos - ret, '\n'))) { /* wee! we've got command */
-        *npos = 0;              /* substitute \n with \0 */
-        if (npos > &client->rbuf[0] && *(npos-1) == '\r')
-            *(--npos) = 0;        /* kill \r */
-
-        npos++;                   /* get next char */
-        sd_cmd_execute(client, VCfgArr); /* try to execute command */
-        client->rpos = 0;
-        while (*npos != '\0')
-            client->rbuf[client->rpos++] = *(npos++); /* that looks awful! */
-
-        client->rbuf[client->rpos] = 0;
-        sd_epoll_ctl(logic_epoll, EPOLL_CTL_MOD, client->fd, client, EPOLLOUT);
-    }
+    if (client->wpos == client->wlen) //message sent
+        sd_epoll_ctl(cmd_epoll, EPOLL_CTL_MOD, client->fd, client, EPOLLIN);
 }
 
 void sd_cmd_loop(GPtrArray *VCfgArr) {
-    gint        nr_events = 0;
+    gint        nr_events = 0, i;
     SDClient    *client;
 
-    nr_events = sd_epoll_wait(logic_epoll, 0);
+    nr_events = sd_epoll_wait(cmd_epoll, 0);
 
-    if (nr_events < 1)
-        return;
-
-    for (; nr_events > 0 ; nr_events--) {
-        client = (SDClient *)sd_epoll_event_dataptr(logic_epoll, nr_events-1);
-        if (sd_epoll_event_events(logic_epoll, nr_events-1) & EPOLLERR) {
-            close(client->fd);
-            if (client->wbuf)
-                free(client->wbuf);
-            free(client);
-            connected_clients--;
+    for (i = 0; i < nr_events; i++) {
+        client = (SDClient *)sd_epoll_event_dataptr(cmd_epoll, i);
+        uint32_t ev = sd_epoll_event_events(cmd_epoll, i);
+        
+        /* manage errors */
+        if (ev & EPOLLERR) {
+            _sd_cmd_client_free(client);
+            continue;
         }
 
-        LOGDETAIL("event [%d] on clients!", nr_events-1);
+        /* new client */
         if (client->fd == listen_sock) {
+            LOGDEBUG("New client connected");
             sd_cmd_accept_client();
             continue;
         }
-        sd_cmd_process_client(sd_epoll_event_dataptr(logic_epoll, nr_events-1), VCfgArr);
+
+        /* process client - read command from client */
+        if (ev & EPOLLIN) {
+            LOGDEBUG("READ EVENT [%d] on client [%d]", ev, i);
+            sd_cmd_process_client_read(client, VCfgArr);
+            continue;
+        }
+
+        /* process client - write command output to client */
+        if (ev & EPOLLOUT) {
+            LOGDEBUG("WRITE EVENT [%d] on client [%d]", ev, i);
+            sd_cmd_process_client_write(client);
+            continue;
+        }            
     }
 }

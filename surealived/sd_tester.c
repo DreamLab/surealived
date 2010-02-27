@@ -746,7 +746,7 @@ gint sd_tester_master_loop(SDTester *sdtest) {
         /* if signal detected - sighup, sigint, sigterm - cleanup and exit loop */
         //retv = ... and break
 
-        if (logic_epoll)        /* deal with clients */
+        if (cmd_epoll)        /* deal with clients */
             sd_cmd_loop(sdtest->VCfgArr);
         
         sigprocmask(SIG_SETMASK, &oldset, NULL); /* release critical section */

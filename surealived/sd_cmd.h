@@ -16,7 +16,7 @@
 #if !defined __SD_CMD_H
 #define __SD_CMD_H
 
-extern SDepoll *logic_epoll;
+extern SDepoll *cmd_epoll;
 gint sd_cmd_listen_socket_create(gchar *addrs, u_int16_t lport);
 void sd_cmd_loop(GPtrArray *VCfgArr);
 

@@ -30,10 +30,10 @@
 #define SLEEP_TIME  1           /* defines delay between watchdog checks */
 #define SDCONF      "/etc/surealived/surealived.cfg"
 
-gchar              *configpath  = SDCONF;
-pid_t               sd_pid;              /* child pid (if daemonized) */
-gboolean            test_config = FALSE;
-gboolean            daemonize   = FALSE;
+gchar              *G_config_path = SDCONF;
+pid_t               G_child_pid;              /* child pid (if daemonized) */
+gboolean            G_test_config = FALSE;
+gboolean            G_daemonize   = FALSE;
 
 void print_usage(gchar *pname) {
     fprintf(stderr, "=== SureAliveD v.%s ===\n", VERSION);
@@ -57,23 +57,23 @@ void print_version() {
 }
 
 void sighandler(int signal) {   /* signal handler for watchdog */
-    if (!sd_pid)                /* what?! */
+    if (!G_child_pid)                /* what?! */
         return;
 
     switch (signal) {
     case SIGHUP:
         LOGWARN("Watchdog: Received SIGHUP - gently restarting surealived");
-        kill(sd_pid, SIGHUP);
-        waitpid(sd_pid, NULL, 0); /* wait for child to exit */
+        kill(G_child_pid, SIGHUP);
+        waitpid(G_child_pid, NULL, 0); /* wait for child to exit */
         break;
     case SIGTERM:
         LOGWARN("Watchdog: Received SIGTERM - forcing restart of surealived");
-        kill(sd_pid, SIGTERM);
-        waitpid(sd_pid, NULL, 0);
+        kill(G_child_pid, SIGTERM);
+        waitpid(G_child_pid, NULL, 0);
         break;
     case SIGINT:
         LOGWARN("Watchdog: Received SIGINT - shutting down!");
-        kill(sd_pid, SIGKILL);
+        kill(G_child_pid, SIGKILL);
         _exit(1);               /* man 2 _exit */
         break;
     default:
@@ -91,7 +91,7 @@ void inthandler(int signal) {
     switch (signal) {
     case SIGINT:
         LOGWARN("Surealived: received signal SIGINT - killing myself - notifying parent!");
-        if (daemonize)          /* this means we should have a parent */
+        if (G_daemonize)          /* this means we should have a parent */
             kill(getppid(), signal); /* delete this line if You don't want to notify parent */
         break;
     case SIGTERM:
@@ -120,20 +120,20 @@ void watchdog() {
     daemon(1, 0);
 
     while (TRUE) {               
-        sd_pid = 0;
+        G_child_pid = 0;
         signal(SIGINT, SIG_DFL); /* reset signals (for child after respawn) */
         signal(SIGTERM, SIG_DFL);
         signal(SIGHUP, SIG_DFL);
         signal(SIGCHLD, SIG_DFL);
 
-        if ((sd_pid = fork())) { /* parent */
+        if ((G_child_pid = fork())) { /* parent */
             signal(SIGINT, sighandler);
             signal(SIGTERM, sighandler);
             signal(SIGHUP, sighandler);
             signal(SIGCHLD, SIG_IGN); /* ignore child signals */
 
             LOGINFO("Watchdog started - memory limit set to: %ld kB", G_memlimit);
-            snprintf(sfilename, sizeof(sfilename), "/proc/%d/status", sd_pid);
+            snprintf(sfilename, sizeof(sfilename), "/proc/%d/status", G_child_pid);
             if (status)
                 fclose(status);
 
@@ -146,7 +146,7 @@ void watchdog() {
 
             while (TRUE) {         /* watch our child */
                 sleep(SLEEP_TIME); /* sleep till next glimpse */
-                if (waitpid(sd_pid, NULL, WNOHANG) != 0) /* error or our child passed away */
+                if (waitpid(G_child_pid, NULL, WNOHANG) != 0) /* error or our child passed away */
                     break;         /* respawn! */
 
                 if (!G_memlimit)     /* if memory limit is infinity */
@@ -164,8 +164,8 @@ void watchdog() {
 
                 if (value > G_memlimit) {
                     LOGWARN("Watchdog: Child exceeded memory limit - exterminating!");
-                    kill(sd_pid, SIGHUP); /* kill our beloved child */
-                    waitpid(sd_pid, NULL, 0);
+                    kill(G_child_pid, SIGHUP); /* kill our beloved child */
+                    waitpid(G_child_pid, NULL, 0);
                     break;
                 }
             }
@@ -210,16 +210,16 @@ gint main(gint argc, gchar **argv) {
         case 'V':
             print_version();
         case 'c':
-            configpath = optarg; /* user supplied external config file */
+            G_config_path = optarg; /* user supplied external config file */
             break;
         case 'v':
             G_logging++;         /* increase verbosity */
             break;
         case 't':
-            test_config = TRUE;
+            G_test_config = TRUE;
             break;
         case 'd':
-            daemonize = TRUE;
+            G_daemonize = TRUE;
             break;
         case 'n':
             G_no_sync = TRUE;
@@ -240,14 +240,14 @@ gint main(gint argc, gchar **argv) {
 
     srand(time(NULL));          /* if modules want to use rand() this will help */
 
-    if (!sd_maincfg_new(configpath)) {
+    if (!sd_maincfg_new(G_config_path)) {
         fprintf(stderr, "No surealived.cfg, setting defaults\n");
     }
 
     if (ud_override)
         G_use_offline_dump = ud;
 
-    if (!daemonize)
+    if (!G_daemonize)
         G_flog = stderr; //overwrite surealived.cfg configuration log (no make sense)
 
     LOGINFO("SureAliveD %s starting...", VERSION);
@@ -261,7 +261,7 @@ gint main(gint argc, gchar **argv) {
     modules_load(modpath, modules);
     modules_print_to_log();
 
-    if (!test_config && daemonize)
+    if (!G_test_config && G_daemonize)
         watchdog();
 
     /* here is code used ONLY by the child */
@@ -270,7 +270,7 @@ gint main(gint argc, gchar **argv) {
     signal(SIGTERM, inthandler);
 
     VCfgArr = sd_xmlParseFile(argv[optind]);
-    if (test_config) {
+    if (G_test_config) {
         G_flog = stderr;
         G_logging = LOGLEV_INFO;
 
