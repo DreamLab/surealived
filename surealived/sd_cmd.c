@@ -722,7 +722,9 @@ cleanup:
 }
 
 static void _sd_cmd_client_free(SDClient *client) {
-    LOGDEBUG("Client free [%x]", client);
+    LOGDEBUG("Client free [%x], fd = %d", client, client->fd);
+    sd_epoll_ctl(cmd_epoll, EPOLL_CTL_DEL, client->fd, client, EPOLLIN);
+
     close(client->fd);
     if (client->wbuf)
         free(client->wbuf);
@@ -730,27 +732,29 @@ static void _sd_cmd_client_free(SDClient *client) {
     connected_clients--;
 }
 
-static void sd_cmd_process_client_read(SDClient *client, GPtrArray *VCfgArr) {
+static gboolean sd_cmd_process_client_read(SDClient *client, GPtrArray *VCfgArr) {
     gint    bytes;
     gchar   *npos;
 
-    LOGDETAIL("Processing client READ!");
+    LOGDEBUG("Processing client READ!");
     bytes = read(client->fd, client->rbuf + client->rpos, sizeof(client->rbuf) - client->rpos-1);
     
     /* EOF */
     if (!bytes) {
         _sd_cmd_client_free(client);
-        return;
+        return TRUE;
     }
     /* error */
-    else if (bytes < 0) 
-        return;
+    else if (bytes < 0) {
+        LOGDEBUG(" * error READ!");
+        return FALSE;
+    }
     
     npos = strchr(client->rbuf + client->rpos, '\n');
     client->rpos += bytes;
 
     if (!npos)
-        return;
+        return FALSE;
 
     *npos = '\0';
     if (*(npos-1) == '\r')
@@ -762,15 +766,16 @@ static void sd_cmd_process_client_read(SDClient *client, GPtrArray *VCfgArr) {
     sd_cmd_execute(client, VCfgArr);
 
     sd_epoll_ctl(cmd_epoll, EPOLL_CTL_MOD, client->fd, client, EPOLLOUT);
+
+    return FALSE;
 }
 
 void static sd_cmd_process_client_write(SDClient *client) {
     gint    bytes;
 
-    LOGDETAIL("Processing client WRITE [%s]!", client->wbuf + client->wpos);
+    LOGDEBUG("Processing client WRITE [%s]!", client->wbuf + client->wpos);
     bytes = write(client->fd, client->wbuf + client->wpos, client->wlen - client->wpos);
     
-
     /* EOF */
     if (bytes <= 0)
         return;
@@ -785,13 +790,18 @@ void static sd_cmd_process_client_write(SDClient *client) {
 void sd_cmd_loop(GPtrArray *VCfgArr) {
     gint        nr_events = 0, i;
     SDClient    *client;
+    gchar        s[64];
 
     nr_events = sd_epoll_wait(cmd_epoll, 0);
 
     for (i = 0; i < nr_events; i++) {
         client = (SDClient *)sd_epoll_event_dataptr(cmd_epoll, i);
         uint32_t ev = sd_epoll_event_events(cmd_epoll, i);
-        
+        sd_epoll_event_str(ev, s);
+
+        LOGDEBUG("events: nr_events = %d, i = %d, fd = %d, ev = [%s]",
+                                nr_events, i, client->fd, s);
+
         /* manage errors */
         if (ev & EPOLLERR) {
             _sd_cmd_client_free(client);
@@ -807,8 +817,11 @@ void sd_cmd_loop(GPtrArray *VCfgArr) {
 
         /* process client - read command from client */
         if (ev & EPOLLIN) {
+            gboolean client_closed;
             LOGDEBUG("READ EVENT [%d] on client [%d]", ev, i);
-            sd_cmd_process_client_read(client, VCfgArr);
+            client_closed = sd_cmd_process_client_read(client, VCfgArr);
+            if (client_closed)
+                return;
             continue;
         }
 

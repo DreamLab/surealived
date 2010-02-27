@@ -61,15 +61,18 @@ gboolean sd_append_to_file(gchar *fname, gchar *buf, gint bufsiz, gchar *usertxt
     gchar buft[32];
     gchar micro[16];
     FILE *out;
-    int w;
+    int w, fdno;
 
     out = fopen(fname, "a");
     if (!out)
         LOGERROR("Can't append to file %s", fname);
     assert(out);
 
+    fdno = fileno(out);
     gettimeofday(&tv, NULL);
     strftime(buft, 32, "[%F %T.", localtime(&tv.tv_sec));
+    
+    flock(fdno, LOCK_EX);
     fprintf(out, "%s", buft);
     snprintf(micro, 16, "%06d] ", (int) tv.tv_usec);
     fprintf(out, "%s", micro);
@@ -79,6 +82,8 @@ gboolean sd_append_to_file(gchar *fname, gchar *buf, gint bufsiz, gchar *usertxt
 
     w = fwrite(buf, bufsiz, 1, out);
     fprintf(out, "\n");
+    fflush(out);
+    flock(fdno, LOCK_UN);
     fclose(out);
 
     if (!w)

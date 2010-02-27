@@ -31,6 +31,7 @@
 #include <fcntl.h>
 #include <netdb.h>
 #include <sys/epoll.h>
+#include <sys/file.h>
 
 #include <sd_stats.h>
 #include <sd_defs.h>

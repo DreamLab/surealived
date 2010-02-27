@@ -80,11 +80,24 @@ static void module_start_real(CfgReal *real) {
     }
 
     if (!(real->pid = fork())) { /* child */
+        gint maxfd;
         sigfillset(&blockset);
         sigprocmask(SIG_UNBLOCK, &blockset, NULL); //unblock previously blocked signals in sd_tester_master_loop
 
         dup2(fileno(G_flog), 1);
         dup2(fileno(G_flog), 2);
+
+        /* close all opened filedescriptors to avoid invalid epoll notification */
+        maxfd = open("/etc/passwd", O_RDONLY);
+//        LOGINFO("MAXFD = %d", maxfd);
+        assert(maxfd >= 0);
+        close(maxfd);
+        while(maxfd > 2) {
+//            LOGINFO("* Closing fd = %d", maxfd);
+            close(maxfd);
+            maxfd--;
+        }
+
         real->pgrp = setpgid(0, getpid());
         
         s = g_string_sized_new(PARAMS_LENGTH);
