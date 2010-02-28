@@ -41,7 +41,7 @@ enum {
 
 static mod_operations mops;
 
-static mod_args m_args[]={
+static mod_args m_args[] = {
     { "url",    STRING,     BUFSIZ, BASIC_ATTR, SDOFF(TestHTTP, url)    },
     { "host",   STRING,     256,    BASIC_ATTR, SDOFF(TestHTTP, host)   },
     { "naive",  BOOL,       -1,     EXTRA_ATTR, SDOFF(TestHTTP, naive)  },

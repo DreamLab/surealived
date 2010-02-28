@@ -64,17 +64,125 @@ void sd_stats_dump_save(GPtrArray *VCfgArr) {
 
             fprintf(dump, "%d - %d:%d:%d - %d:%d:%d - %lld:%lld:%lld - %lld:%lld:%lld - %d:%d:%d\n",
                     rs->total,
-                    rs->avg_conntime_ms, vs->avg_resptime_ms, vs->avg_totaltime_ms,
-                    rs->avg_conntime_us, vs->avg_resptime_us, vs->avg_totaltime_us,
+                    rs->avg_conntime_ms, rs->avg_resptime_ms, rs->avg_totaltime_ms,
+                    rs->avg_conntime_us, rs->avg_resptime_us, rs->avg_totaltime_us,
                     rs->total_conntime_ms, rs->total_resptime_ms, rs->total_totaltime_ms, 
                     rs->total_conntime_us, rs->total_resptime_us, rs->total_totaltime_us, 
-                    rs->conn_problem, vs->arp_problem, vs->rst_problem);
+                    rs->conn_problem, rs->arp_problem, rs->rst_problem);
         }
         fprintf(dump, "\n");
     }
 
     fclose(dump);
 }
+
+void sd_stats_dump_merge(GPtrArray *VCfgArr, GHashTable *VCfgHash) {
+    FILE         *dump;
+    CfgVirtual   *virt;
+    CfgReal      *real;
+//    VirtualStats *vs;
+//    RealStats    *rs;
+//    gint          vi, ri;
+    gchar         buf[BUFSIZ];
+
+    gchar         vkey[64], raddr[32], rkey[96];
+    gint          vsamples, vtotal;
+    gint          vavg_conntime_ms, vavg_resptime_ms, vavg_totaltime_ms;
+    gint          vavg_conntime_us, vavg_resptime_us, vavg_totaltime_us;
+    gint          vconn_problem, varp_problem, vrst_problem;
+
+    gint          rtotal;
+    gint          ravg_conntime_ms, ravg_resptime_ms, ravg_totaltime_ms;
+    gint          ravg_conntime_us, ravg_resptime_us, ravg_totaltime_us;
+    gint64        rtotal_conntime_ms, rtotal_resptime_ms, rtotal_totaltime_ms;
+    gint64        rtotal_conntime_us, rtotal_resptime_us, rtotal_totaltime_us;
+    gint          rconn_problem, rarp_problem, rrst_problem;
+
+    if (!G_gather_stats)
+        return;
+    
+    dump = fopen(G_stats_dump, "r");
+
+    if (!dump) {
+        LOGWARN("Unable to open stats dump file - %s", G_stats_dump);
+        return;
+    }
+    assert(dump);
+
+    LOGINFO("Processing stats file [%s]", G_stats_dump);
+
+    while (fgets(buf, BUFSIZ, dump)) {
+        int len = strlen(buf);
+        if (len)
+            buf[len-1] = '\0';
+
+        /* Restore virtual statistics */
+        if (sscanf(buf, "vstats %s - %d %d - %d:%d:%d - %d:%d:%d - %d:%d:%d",
+                   vkey, 
+                   &vsamples, &vtotal,
+                   &vavg_conntime_ms, &vavg_resptime_ms, &vavg_totaltime_ms,
+                   &vavg_conntime_us, &vavg_resptime_us, &vavg_totaltime_us,
+                   &vconn_problem, &varp_problem, &vrst_problem) == 12) {
+            LOGDEBUG("vstats found [vkey = %s]", vkey);
+
+            virt = sd_vcfg_hashmap_lookup_virtual(VCfgHash, vkey);
+            if (!virt)
+                continue;
+
+            VirtualStats *vs = &virt->stats;
+            vs->total             = vtotal;
+            vs->avg_conntime_ms   = vavg_conntime_ms;
+            vs->avg_resptime_ms   = vavg_resptime_ms;
+            vs->avg_totaltime_ms  = vavg_totaltime_ms;
+            vs->avg_conntime_us   = vavg_conntime_us;
+            vs->avg_resptime_us   = vavg_resptime_us;
+            vs->avg_totaltime_us  = vavg_totaltime_us;
+            vs->conn_problem      = vconn_problem;
+            vs->arp_problem       = varp_problem;
+            vs->rst_problem       = vrst_problem;
+        }
+
+        /* Restore real statistics */
+        if (sscanf(buf, "rstats %s - %d - %d:%d:%d - %d:%d:%d - %lld:%lld:%lld - %lld:%lld:%lld - %d:%d:%d",
+                   raddr,
+                   &rtotal,
+                   &ravg_conntime_ms, &ravg_resptime_ms, &ravg_totaltime_ms,
+                   &ravg_conntime_us, &ravg_resptime_us, &ravg_totaltime_us,
+                   &rtotal_conntime_ms, &rtotal_resptime_ms, &rtotal_totaltime_ms, 
+                   &rtotal_conntime_us, &rtotal_resptime_us, &rtotal_totaltime_us, 
+                   &rconn_problem, &rarp_problem, &rrst_problem) == 17) {
+
+            snprintf(rkey, 96, "%s %s", vkey, raddr);
+            LOGDEBUG("rstats found [rname = %s, rkey = %s]", raddr, rkey);
+
+            real = sd_vcfg_hashmap_lookup_real(VCfgHash, rkey);
+            if (!real)
+                continue;
+
+            RealStats *rs = &real->stats;
+            rs->total = rtotal;
+            rs->avg_conntime_ms    = ravg_conntime_ms;
+            rs->avg_resptime_ms    = ravg_resptime_ms;
+            rs->avg_totaltime_ms   = ravg_totaltime_ms;
+            rs->avg_conntime_us    = ravg_conntime_us;
+            rs->avg_resptime_us    = ravg_resptime_us;
+            rs->avg_totaltime_us   = ravg_totaltime_us;
+            rs->total_conntime_ms  = rtotal_conntime_ms;
+            rs->total_resptime_ms  = rtotal_resptime_ms;
+            rs->total_totaltime_ms = rtotal_totaltime_ms;
+            rs->total_conntime_us  = rtotal_conntime_us;
+            rs->total_resptime_us  = rtotal_resptime_us;
+            rs->total_totaltime_us = rtotal_totaltime_us;
+            rs->conn_problem       = rconn_problem;
+            rs->arp_problem        = rarp_problem;
+            rs->rst_problem        = rrst_problem;
+        }
+//        LOGINFO("buf = [%s]", buf);
+    }
+
+    fclose(dump);
+}
+
 
 void sd_stats_update_real(CfgReal *real) {
     RealStats *s = &real->stats;

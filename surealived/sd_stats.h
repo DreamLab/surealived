@@ -20,6 +20,7 @@
 #include <sd_defs.h>
 
 void sd_stats_dump_save(GPtrArray *VCfgArr);
+void sd_stats_dump_merge(GPtrArray *VCfgArr, GHashTable *VCfgHash);
 
 void sd_stats_update_real(CfgReal *real);
 void sd_stats_update_virtual(CfgVirtual *virt);

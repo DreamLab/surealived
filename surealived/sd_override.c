@@ -62,7 +62,7 @@ void sd_override_dump_add(CfgReal *real) {
 
     g_hash_table_insert(OverrideH, real, line);
 
-    LOGINFO("override dump add (real = %x:%s:%s) (hash size = %d)", 
+    LOGINFO("override dump add (real = %p:%s:%s) (hash size = %d)", 
 	     real, virt->name, real->name, g_hash_table_size(OverrideH));
 
     sd_override_dump_save();
@@ -97,7 +97,7 @@ void sd_override_dump_write(gpointer key, gpointer val, gpointer userdata) {
 gint sd_override_dump_save() {
     static FILE *dump = NULL;
 
-    LOGINFO("override dump save [%x]", OverrideH);
+    LOGDEBUG("override dump save [%p]", OverrideH);
 
     if (!OverrideH)
         return 1;
@@ -145,7 +145,7 @@ void sd_override_dump_merge(GPtrArray *VCfgArr) {
         return;
     }
 
-    LOGINFO("Processing override file [%s]!", G_override_dump);
+    LOGINFO("Processing override file [%s]", G_override_dump);
 
     while (fscanf(dump, "%32[^:]:%d:%d:%u - %32[^:]:%d - weight=%d%c rstate=%s\n",
                   vip, &vporth, &ipvs_proto, &ipvs_fwmark, rip, &rporth, &weight, &wgttype, rstate) == 9) {

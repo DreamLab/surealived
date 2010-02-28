@@ -179,6 +179,7 @@ void watchdog() {
 
 gint main(gint argc, gchar **argv) {
     GPtrArray      *VCfgArr;
+    GHashTable     *VCfgHash;
     SDTester       *Tester;
 
     gchar          *modules = NULL;
@@ -270,6 +271,10 @@ gint main(gint argc, gchar **argv) {
     signal(SIGTERM, inthandler);
 
     VCfgArr = sd_xmlParseFile(argv[optind]);
+    
+    if (VCfgArr)
+        VCfgHash = sd_vcfg_hashmap_new(VCfgArr);
+    
     if (G_test_config) {
         G_flog = stderr;
         G_logging = LOGLEV_INFO;
@@ -288,9 +293,11 @@ gint main(gint argc, gchar **argv) {
         LOGERROR("Configuration file is broken!");
         exit(1);
     }
+
     /* update VCfgArr by offline.dump */
     sd_override_dump_merge(VCfgArr);
     sd_offline_dump_merge(VCfgArr);
+    sd_stats_dump_merge(VCfgArr, VCfgHash);
 
     if (G_no_sync == FALSE) /* if full sync file does not exist! */
         sd_ipvssync_save_fullcfg(VCfgArr, TRUE); /* force writing full sync */

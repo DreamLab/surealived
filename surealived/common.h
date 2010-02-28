@@ -53,3 +53,9 @@ gchar *sd_rt_str(SDIPVSRt rt);
 gchar *sd_rstate_str(RState st);
 RState sd_rstate_no(gchar *str);
 GHashTable *sd_parse_line(gchar *line);
+
+/* create hash table which contains mapping string -> virtual/real */
+GHashTable *sd_vcfg_hashmap_new(GPtrArray *VCfgArr);
+CfgVirtual *sd_vcfg_hashmap_lookup_virtual(GHashTable *VCfgHash, gchar *vkey);
+CfgReal *sd_vcfg_hashmap_lookup_real(GHashTable *VCfgHash, gchar *rkey);
+

@@ -152,7 +152,8 @@ static gint sd_parse_mod_args(mod_args  *m,
     gint            attr_size = 0;
 
     for (; m && m->name; m++) {
-        attr_type = BASIC_ATTR;
+//        attr_type = BASIC_ATTR;
+        attr_type = EXTRA_ATTR; //wg: IMHO EXTRA_ATTR should be here
         if (!tester)
             attr_type = m->attr_type;
         else { /* copy value from parent (tester) we will overwrite it if requested */
@@ -277,6 +278,7 @@ static gint sd_parse_real(CfgVirtual *virt, xmlNode *node) {
     }
     else
         real->ipvs_rt = virt->ipvs_rt;
+
     if (real->tester && real->tester->ssl)
         real->ssl = sd_SSL_new();
 
@@ -296,6 +298,7 @@ static gint sd_parse_real(CfgVirtual *virt, xmlNode *node) {
     if (!virt->realArr)
         virt->realArr = g_ptr_array_new();
     g_ptr_array_add(virt->realArr, real);
+
     return 0;
 }
 
@@ -356,7 +359,7 @@ static CfgTester *sd_parse_tester(xmlNode *node) {
         sd_xml_attr(node, "exec", tester->exec, STRING, MAXPATHLEN, BASIC_ATTR, "\t[!] EXEC tester but no 'exec' data");
     }
 
-    sd_xml_attr(node, "testport", &tester->testport, PORT, 0, BASIC_ATTR, "\t[i] No test port specified");
+    sd_xml_attr(node, "testport", &tester->testport, PORT, 0, BASIC_ATTR, "\t[i] Param 'testport' not found");
     sd_xml_attr(node, "loopdelay", &tester->loopdelay, UINT, 0, EXTRA_ATTR, "\t[i] No loopdelay");
     sd_xml_attr(node, "timeout", &tester->timeout, UINT, 0, EXTRA_ATTR, "\t[i] No timeout");
     sd_xml_attr(node, "retries2ok", &tester->retries2ok, UINT, 0, EXTRA_ATTR, "\t[i] No retries2ok");
@@ -385,6 +388,7 @@ static CfgTester *sd_parse_tester(xmlNode *node) {
             free_tester(tester);
             return NULL;
         }
+
         sd_parse_mod_args(tester->mops->m_args, tester->moddata, node, NULL);
         if (parse_error) {
             free_tester(tester);
@@ -593,6 +597,7 @@ static GPtrArray *sd_xmlParseDoc(xmlDoc *doc) {    /* parse xml document */
     xmlNode     *root_node = NULL;
     GPtrArray   *VCfgArr = NULL;
     gint        ret;
+
     if (!VCfgArr)
         VCfgArr = g_ptr_array_new();
     assert(VCfgArr);

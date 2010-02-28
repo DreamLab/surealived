@@ -72,7 +72,7 @@ void sd_offline_dump_write(gpointer key, gpointer val, gpointer userdata) {
 gint sd_offline_dump_save() {
     static FILE *dump = NULL;
 
-    LOGDEBUG("offline dump save [%x,%d]", OfflineH, G_use_offline_dump);
+    LOGDEBUG("offline dump save [%p,%d]", OfflineH, G_use_offline_dump);
 
     if (!OfflineH || !G_use_offline_dump)
         return 1;
@@ -124,7 +124,7 @@ void sd_offline_dump_merge(GPtrArray *VCfgArr) {
         return;
     }
 
-    LOGINFO("Processing dump file [%s]!", G_offline_dump);
+    LOGINFO("Processing dump file [%s]", G_offline_dump);
 
     while (fscanf(dump, "%32[^:]:%d:%d:%u - %32[^:]:%d\n",
                   vip, &vporth, &ipvs_proto, &ipvs_fwmark, rip, &rporth) == 6) {

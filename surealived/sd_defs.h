@@ -155,9 +155,9 @@ typedef struct {
     gint            avg_conntime_us;
     gint            avg_resptime_us;
     gint            avg_totaltime_us;
-    guint           conn_problem;
-    guint           arp_problem;
-    guint           rst_problem;
+    gint            conn_problem;
+    gint            arp_problem;
+    gint            rst_problem;
 } VirtualStats;
 
 typedef struct {

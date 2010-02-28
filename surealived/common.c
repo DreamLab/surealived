@@ -19,6 +19,7 @@
 static gchar *protostr[] = { "tcp", "udp", "fwmark", NULL };
 static gchar *rtstr[] = { "dr", "masq", "tun", NULL };
 static gchar *rstatestr[] = { "ONLINE", "OFFLINE", "DOWN", NULL };
+static GHashTable *VCfgHash = NULL;
 
 inline void time_inc(struct timeval *t, guint s, guint ms) {
     guint usd;
@@ -171,4 +172,63 @@ GHashTable *sd_parse_line(gchar *line) {
     g_strfreev(strv);
 
     return ht;
+}
+
+/* ---------------------------------------------------------------------- */
+/* create hash table which contains mapping:
+   "VIP:VPORT:VPROTO:VFWMARK" -> CfgVirtual *,
+   "VIP:VPORT:VPROTO:VFWMARK RIP:RPORT" -> CfgReal *, for ex.
+   "192.168.0.1:80:0:0" -> 0x081a1234
+   "192.168.0.1:80:0:0 10.0.0.1:80" -> 0x08ab1234
+   Very useful when trying to find out CfgVirtual* and CfgReal*
+*/
+
+GHashTable *sd_vcfg_hashmap_new(GPtrArray *VCfgArr) {
+    CfgVirtual *virt;
+    CfgReal    *real;
+    gint        vi, ri;
+    gchar      *str;
+
+    if (VCfgHash)
+        return VCfgHash;
+
+    VCfgHash = g_hash_table_new(g_str_hash, g_str_equal);
+    assert(VCfgHash);
+
+    LOGINFO("Building virtual/real hashmap...");
+    for (vi = 0; vi < VCfgArr->len; vi++) {
+        virt = g_ptr_array_index(VCfgArr, vi);
+        
+        str = g_strdup_printf("%s:%d:%d:%d", 
+                              virt->addrtxt, ntohs(virt->port), virt->ipvs_proto, virt->ipvs_fwmark);
+        g_hash_table_insert(VCfgHash, str, virt);
+        LOGDEBUG("\tHASHMAP VIRT '%s' -> %p", str, virt);
+
+        if (!virt->realArr) /* ignore empty virtuals */
+            continue;
+            
+        for (ri = 0; ri < virt->realArr->len; ri++) {
+            real = g_ptr_array_index(virt->realArr, ri);
+
+            str = g_strdup_printf("%s:%d:%d:%d %s:%d", 
+                                  virt->addrtxt, ntohs(virt->port), virt->ipvs_proto, virt->ipvs_fwmark,
+                                  real->addrtxt, ntohs(real->port));
+            g_hash_table_insert(VCfgHash, str, real);
+            LOGDEBUG("\tHASHMAP REAL '%s' -> %p", str, real);
+        }
+    }
+
+    return VCfgHash;
+}
+
+CfgVirtual *sd_vcfg_hashmap_lookup_virtual(GHashTable *VCfgHash, gchar *vkey) {
+    CfgVirtual *virt = g_hash_table_lookup(VCfgHash, vkey);
+    LOGDEBUG("hashmap lookup virtual [%s]: %p", vkey, virt);    
+    return virt;
+}
+
+CfgReal *sd_vcfg_hashmap_lookup_real(GHashTable *VCfgHash, gchar *rkey) {
+    CfgReal *real = g_hash_table_lookup(VCfgHash, rkey);
+    LOGDEBUG("hashmap lookup real [%s]: %p", rkey, real);    
+    return real;
 }
