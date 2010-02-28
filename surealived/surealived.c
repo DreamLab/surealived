@@ -272,9 +272,6 @@ gint main(gint argc, gchar **argv) {
 
     VCfgArr = sd_xmlParseFile(argv[optind]);
     
-    if (VCfgArr)
-        VCfgHash = sd_vcfg_hashmap_new(VCfgArr);
-    
     if (G_test_config) {
         G_flog = stderr;
         G_logging = LOGLEV_INFO;
@@ -293,6 +290,8 @@ gint main(gint argc, gchar **argv) {
         LOGERROR("Configuration file is broken!");
         exit(1);
     }
+
+    VCfgHash = sd_vcfg_hashmap_new(VCfgArr);
 
     /* update VCfgArr by offline.dump */
     sd_override_dump_merge(VCfgArr);
