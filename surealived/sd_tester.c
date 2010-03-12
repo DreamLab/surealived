@@ -629,12 +629,24 @@ static void sd_tester_process_events(gint nr_events) {
             gettimeofday(&real->conn_time, NULL);
         else if (real->ssl && !real->conn_time.tv_sec) {
             if ((err = SSL_connect(real->ssl)) == -1) { /* connection not completed */
-                if (SSL_get_error(real->ssl, err) == SSL_ERROR_WANT_WRITE)
+                int serror = SSL_get_error(real->ssl, err); 
+                if (serror == SSL_ERROR_WANT_WRITE)
                     sd_epoll_ctl(epoll, EPOLL_CTL_MOD, real->fd, real, EPOLLOUT);
-                else if (SSL_get_error(real->ssl, err) == SSL_ERROR_WANT_READ)
+                else if (serror == SSL_ERROR_WANT_READ)
                     sd_epoll_ctl(epoll, EPOLL_CTL_MOD, real->fd, real, EPOLLIN);
+                else if (serror == SSL_ERROR_SSL) {
+                    LOGWARN("SSL_ERROR_SSL: real = %s:%s, fd = %d - REINITIALIZE SSL",
+                            real->virt->name, real->name, real->fd);
+                    SSL_free(real->ssl);
+                    real->ssl = sd_SSL_new();
+                    if (real->ssl && sd_bind_ssl(real))
+            			LOGWARN("Unable to bind ssl to socket after SSL reinit (real = [%s:%s]!", real->virt->name, real->name);
+                    sd_epoll_ctl(epoll, EPOLL_CTL_MOD, real->fd, real, EPOLLIN | EPOLLOUT);
+                }
                 else {            /* error! */
-                    LOGDEBUG("Error connect, real = %s:%s, fd = %d", real->virt->name, real->name, real->fd);
+                    
+                    LOGDEBUG("SSL_ERROR [errcode = %d] Error connect, real = %s:%s, fd = %d", 
+                             serror, real->virt->name, real->name, real->fd);
                     if (real->fd != -1)
                         close(real->fd);
                     real->fd = -1;

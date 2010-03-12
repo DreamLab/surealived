@@ -180,7 +180,10 @@ gboolean sd_maincfg_new(gchar *fname) {
         sprintf(t, "%d", currnfd);
         g_hash_table_replace(Cfg, g_strdup("maxfd"), g_strdup(t));
         LOGWARN("setrlimit error: [sys=%s]", STRERROR);
-    }
+    } 
+    else 
+        LOGINFO("changed maxfd to: (soft=%d, hard=%d)",
+                (int) lim.rlim_cur, (int) lim.rlim_max);
 
     sscanf(g_hash_table_lookup(Cfg, "listen_port"), "%hu", &G_listen_port);
     G_listen_addr = g_hash_table_lookup(Cfg, "listen_addr");
