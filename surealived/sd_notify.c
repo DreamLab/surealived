@@ -97,6 +97,54 @@ void sd_notify_dump_merge(GPtrArray *VCfgArr, GHashTable *VCfgHash) {
 }
 
 /* ---------------------------------------------------------------------- */
+static void _sd_execute_notify_script(CfgVirtual *virt, NotifyState nstate) {
+    GString *s = NULL;
+    GError *err = NULL;
+    gchar *script = NULL;
+    gchar **argv = NULL;
+    gboolean isok;
+
+    if (nstate == NOTIFY_UP) 
+        script = virt->tester->vnotifier.notify_up;
+    else if (nstate == NOTIFY_DOWN)
+        script = virt->tester->vnotifier.notify_down;
+    else 
+        return;
+
+    if (!script)
+        return;
+    
+    LOGINFO(" * trying to execute notify script [nstate = %s, script = %s]",
+            sd_nstate_str(nstate), script);
+
+    s = g_string_new(NULL);
+    assert(s);
+
+    g_string_append_printf(s, "'%s' ", script);
+    g_string_append_printf(s, "'notify=%s' 'vname=%s' 'vaddr=%s' 'vport=%d' 'vproto=%s' 'vfwmark=%d'", 
+                           sd_nstate_str(nstate), 
+                           virt->name, virt->addrtxt, ntohs(virt->port), 
+                           sd_proto_str(virt->ipvs_proto), virt->ipvs_fwmark);
+    LOGDEBUG("cmd = [%s]", s->str);
+    isok = g_shell_parse_argv(s->str, NULL, &argv, &err);
+    if (!isok) {
+        LOGWARN("Can't parse notify cmd line [%s, err = %s]", s->str, err->message);
+        g_string_free(s, TRUE);
+        return;
+    }
+
+    isok = g_spawn_async(NULL, argv, NULL, 
+                         G_SPAWN_STDOUT_TO_DEV_NULL | G_SPAWN_STDERR_TO_DEV_NULL, 
+                         NULL, NULL, NULL, 
+                         &err);
+    if (!isok)
+        LOGWARN("Can't exec notify line [%s, err = %s]", s->str, err->message);
+
+    g_string_free(s, TRUE);
+    g_strfreev(argv);
+}
+
+/* ---------------------------------------------------------------------- */
 static void _sd_notify_info(CfgVirtual *virt, gchar *info,
                             gboolean is_enough_reals, gboolean is_enough_weight,
                             gint curr_reals, gint exp_reals,
@@ -193,22 +241,26 @@ void sd_notify_execute_if_required(GPtrArray *VCfgArr, CfgVirtual *virt) {
         if (is_enough_reals && is_enough_weight) {
             vn->nstate = NOTIFY_UP;
             SD_NOTIFY("NOTIFY UP");
+            _sd_execute_notify_script(virt, vn->nstate);
             sd_notify_dump_save(VCfgArr);
         }
         else {
             vn->nstate = NOTIFY_DOWN;
             SD_NOTIFY("NOTIFY DOWN");
+            _sd_execute_notify_script(virt, vn->nstate);
             sd_notify_dump_save(VCfgArr);
         }
     }
     else if (vn->nstate == NOTIFY_DOWN && is_enough_reals && is_enough_weight) {
             vn->nstate = NOTIFY_UP;
             SD_NOTIFY("NOTIFY UP");
+            _sd_execute_notify_script(virt, vn->nstate);
             sd_notify_dump_save(VCfgArr);
     }
     else if (vn->nstate == NOTIFY_UP && (!is_enough_reals || !is_enough_weight)) {
             vn->nstate = NOTIFY_DOWN;
             SD_NOTIFY("NOTIFY DOWN");
+            _sd_execute_notify_script(virt, vn->nstate);
             sd_notify_dump_save(VCfgArr);
     }
 
