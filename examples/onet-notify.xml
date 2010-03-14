@@ -1,0 +1,33 @@
+<surealived>
+
+<virtual name="onet" addr="192.168.0.1" port="80" proto="tcp" sched="wrr" rt="dr">
+  <tester loopdelay="1" timeout="2" retries2fail="1" retries2ok="1"
+          proto="http" testport="80" url="/" host="www.onet.pl" 
+	  stats_samples="10"
+          notify_up="/usr/lib/surealived/scripts/test_up.sh"
+	  notify_down="/usr/lib/surealived/scripts/test_down.sh"
+	  notify_min_reals="4"
+	  notify_min_weight="50%"
+	/>
+  <real name="sg1" addr="213.180.146.27" port="80" weight="10"/>
+  <real name="sg2" addr="213.180.146.27" port="81" weight="1"/>
+  <real name="sg3" addr="213.180.146.27" port="82" weight="1"/>
+  <real name="sg4" addr="213.180.146.27" port="83" weight="1"/>
+</virtual>
+
+<virtual name="onet2" addr="192.168.0.2" port="80" proto="tcp" sched="wrr" rt="dr">
+  <tester loopdelay="1" timeout="2" retries2fail="1" retries2ok="1"
+          proto="http" testport="80" url="/" host="www.onet.pl" 
+	  stats_samples="10"
+          notify_up="/usr/lib/surealived/scripts/test_up.sh"
+	  notify_down="/usr/lib/surealived/scripts/test_down.sh"
+	  notify_min_reals="75%"
+	/>
+  <real name="sg1" addr="213.180.146.27" port="80" weight="10"/>
+  <real name="sg2" addr="213.180.146.27" port="81" weight="10"/>
+  <real name="sg3" addr="213.180.146.27" port="82" weight="10"/>
+  <real name="sg4" addr="213.180.146.27" port="83" weight="10"/>
+</virtual>
+
+
+</surealived>
