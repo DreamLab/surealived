@@ -468,6 +468,9 @@ static void sd_tester_virtual_expired(SDTester *sdtest, CfgVirtual *virt) {
 
     sd_log_stats(virt);
 
+    if (virt->tester->vnotifier.is_defined)
+        sd_notify_execute_if_required(sdtest->VCfgArr, virt);
+
     if (virt->changed) //save offline dump if any real changed its state
         sd_offline_dump_save();
 

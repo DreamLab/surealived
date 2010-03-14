@@ -78,7 +78,7 @@ static void touch_fullreload() {
     close(fd);
 }
 
-gint sd_ipvssync_calculate_real_weight(CfgReal *real) {
+gint sd_ipvssync_calculate_real_weight(CfgReal *real, gboolean apply_online_state) {
     gint        currwgt  = 0;
     gboolean    isonline;
     
@@ -89,8 +89,11 @@ gint sd_ipvssync_calculate_real_weight(CfgReal *real) {
     else if (real->rstate == REAL_ONLINE)
         isonline = real->online;
 
-    /* if real is not online weight is 0 always */
-    if (!isonline)
+    /* if real is not online weight is 0 always 
+       (apply_online_state == FALSE returns calculated weight as host would be online,
+       useful for total reals weight sum)
+    */
+    if (apply_online_state && !isonline)
         currwgt = 0;
     else {
         /* use overrided weight if real->override_weight > 0 */
@@ -130,7 +133,7 @@ void sd_ipvssync_diffcfg_real(CfgReal *real, gboolean override_change) {
         do_chg = TRUE;
     }
 
-    currwgt = sd_ipvssync_calculate_real_weight(real);
+    currwgt = sd_ipvssync_calculate_real_weight(real, TRUE);
 
     s = g_string_new_len(NULL, BUFSIZ);
     
@@ -296,7 +299,7 @@ gint sd_ipvssync_save_fullcfg(GPtrArray *VCfgArr, gboolean force) {
                 real = g_ptr_array_index(virt->realArr, j);
                 LOGDEBUG("real %s:%s, state %s, rstate %s", 
                          real->virt->name, real->name, GBOOLSTR(real->online), sd_rstate_str(real->rstate));
-                currwgt = sd_ipvssync_calculate_real_weight(real);
+                currwgt = sd_ipvssync_calculate_real_weight(real, TRUE);
 
                 if (real->rstate == REAL_DOWN) {
                     LOGDEBUG("Real down - skipping from output");

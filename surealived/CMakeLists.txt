@@ -52,6 +52,7 @@ add_library(sdutil STATIC
   sd_epoll.c 
   sd_tester.c
   sd_stats.c
+  sd_notify.c
   sd_log.c 
   sd_offline.c 
   sd_override.c 

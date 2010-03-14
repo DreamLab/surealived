@@ -34,6 +34,7 @@
 #include <sys/file.h>
 
 #include <sd_stats.h>
+#include <sd_notify.h>
 #include <sd_defs.h>
 #include <sd_maincfg.h>
 #include <logging.h>
@@ -52,10 +53,14 @@ SDIPVSProtocol sd_proto_no(gchar *str);
 gchar *sd_rt_str(SDIPVSRt rt);
 gchar *sd_rstate_str(RState st);
 RState sd_rstate_no(gchar *str);
+gchar *sd_nstate_str(NotifyState st);
+NotifyState sd_nstate_no(gchar *str);
+
 GHashTable *sd_parse_line(gchar *line);
 
 /* create hash table which contains mapping string -> virtual/real */
 GHashTable *sd_vcfg_hashmap_new(GPtrArray *VCfgArr);
 CfgVirtual *sd_vcfg_hashmap_lookup_virtual(GHashTable *VCfgHash, gchar *vkey);
 CfgReal *sd_vcfg_hashmap_lookup_real(GHashTable *VCfgHash, gchar *rkey);
-
+gint sd_vcfg_reals_weight_sum(CfgVirtual *virt, gboolean apply_online_state);
+gint sd_vcfg_reals_online_sum(CfgVirtual *virt);

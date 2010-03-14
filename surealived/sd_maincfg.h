@@ -53,6 +53,8 @@ extern gboolean    G_gather_stats;
 extern gchar      *G_stats_dump;
 extern gint        G_stats_dump_savesec;
 
+extern gchar      *G_notify_dump;
+
 extern gchar      *G_listen_addr;
 extern u_int16_t   G_listen_port;
 extern u_int32_t   G_memlimit;

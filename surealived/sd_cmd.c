@@ -211,7 +211,7 @@ static gchar *sd_cmd_rlist(GPtrArray *VCfgArr, GHashTable *ht) {
     if (virt->realArr) {
         for (i = 0; i < virt->realArr->len; i++) {
             real = (CfgReal *) g_ptr_array_index(virt->realArr, i);
-            currwgt = sd_ipvssync_calculate_real_weight(real);
+            currwgt = sd_ipvssync_calculate_real_weight(real, TRUE);
             g_string_append_printf(s, "r:%d rname=%s raddr=%s rport=%d currwgt=%d confwgt=%d ronline=%s rstate=%s\n",
                                    i,
                                    real->name, 

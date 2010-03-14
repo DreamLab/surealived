@@ -13,12 +13,15 @@
  *
 */
 
-#if !defined __SD_IPVSSYNC_H
-#define __SD_IPVSSYNC_H
+#if !defined __SD_NOTIFY_H
+#define __SD_NOTIFY_H
 
-gint sd_ipvssync_calculate_real_weight(CfgReal *real, gboolean apply_online_state);
-void sd_ipvssync_diffcfg_real(CfgReal *real, gboolean override_change);
-gint sd_ipvssync_diffcfg_virt(CfgVirtual *virt);
-gint sd_ipvssync_save_fullcfg(GPtrArray *VCfgArr, gboolean force);
+#include <glib.h>
+#include <sd_defs.h>
+
+void sd_notify_dump_save(GPtrArray *VCfgArr);
+void sd_notify_dump_merge(GPtrArray *VCfgArr, GHashTable *VCfgHash);
+
+void sd_notify_execute_if_required(GPtrArray *VCfgArr, CfgVirtual *virt);
 
 #endif

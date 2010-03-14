@@ -36,7 +36,14 @@ static CfgTester  CfgDefault = {
     .remove_on_fail = 0,
     .debugcomm      = 0,
     .logmicro       = 0,
-    .stats_samples  = STATS_SAMPLES
+    .stats_samples  = STATS_SAMPLES,
+
+    .vnotifier.is_defined   = FALSE,
+    .vnotifier.nstate       = 0,
+    .vnotifier.notify_up    = NULL,
+    .vnotifier.notify_down  = NULL,
+    .vnotifier.min_reals    = 0,
+    .vnotifier.min_weight   = 0,
 };
 
 static void *sd_xml_attr(xmlNode *node, gchar *attr, void *dst, SD_MODARG_TYPE arg_type, int param, SD_ATTR_TYPE attr_type, gchar *error_fmt, ...) {
@@ -318,6 +325,7 @@ inline void free_tester(CfgTester *t) {
 
 static CfgTester *sd_parse_tester(xmlNode *node) {
     CfgTester *tester;
+    gchar tmpstr[MAXPATHLEN];
 
     if (!node) {
         LOGWARN("\t[-] No tester tag inside virtual!");
@@ -370,6 +378,46 @@ static CfgTester *sd_parse_tester(xmlNode *node) {
     sd_xml_attr(node, "stats_samples", &tester->stats_samples, UINT, 0, EXTRA_ATTR, "\t[i] No stats_samples");
     sd_xml_attr(node, "SSL", &tester->ssl, BOOL, 0, EXTRA_ATTR, "");
 
+    /* ======== Parse notifiers ======== */
+    if (sd_xml_attr(node, "notify_up", tmpstr, STRING, MAXPATHLEN, EXTRA_ATTR, "\t[!] No notify_up defined"))
+        tester->vnotifier.notify_up = g_strdup(tmpstr);
+    if (sd_xml_attr(node, "notify_down", tmpstr, STRING, MAXPATHLEN, EXTRA_ATTR, "\t[!] No notify_down defined"))
+        tester->vnotifier.notify_down = g_strdup(tmpstr);
+    if (tester->vnotifier.notify_up || tester->vnotifier.notify_down)
+        tester->vnotifier.is_defined = TRUE;
+
+    if (sd_xml_attr(node, "notify_min_reals", tmpstr, STRING, MAXPATHLEN, EXTRA_ATTR, 
+                    "\t[!] No notify_min_reals defined")) {
+        char *c = strchr(tmpstr, '%');
+        if (c) {
+            c = '\0';
+            tester->vnotifier.min_reals_in_percent = TRUE;
+        }
+        tester->vnotifier.min_reals = atoi(tmpstr);
+        LOGDEBUG("min_reals = [%d], min_reals_in_percent = [%d]", 
+                 tester->vnotifier.min_reals, 
+                 tester->vnotifier.min_reals_in_percent);
+    }
+
+    if (sd_xml_attr(node, "notify_min_weight", tmpstr, STRING, MAXPATHLEN, EXTRA_ATTR, 
+                    "\t[!] No notify_min_weight defined")) {
+        char *c = strchr(tmpstr, '%');
+        if (c) {
+            c = '\0';
+            tester->vnotifier.min_weight_in_percent = TRUE;
+        }
+        tester->vnotifier.min_weight = atoi(tmpstr);
+        LOGDEBUG("min_weight = [%d], min_weight_in_percent = [%d]", 
+                 tester->vnotifier.min_weight, 
+                 tester->vnotifier.min_weight_in_percent);
+    }
+
+    LOGDEBUG("is_defined: [%d], notify up: [%s], notify_down: [%s]", 
+             tester->vnotifier.is_defined,
+             tester->vnotifier.notify_up, 
+             tester->vnotifier.notify_down);
+
+    /* ------------------------------------------------------------ */
     if (parse_error) {
         free_tester(tester);
         return NULL;

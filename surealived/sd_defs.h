@@ -86,6 +86,11 @@ typedef enum {
     REAL_DOWN,
 } RState;
 
+typedef enum {
+    NOTIFY_UNKNOWN,
+    NOTIFY_UP,
+    NOTIFY_DOWN,
+} NotifyState;
 
 /* === Detailed statistics === */
 #define STATS_SAMPLES   20
@@ -161,6 +166,21 @@ typedef struct {
 } VirtualStats;
 
 typedef struct {
+    /* notifiers */
+    gboolean        is_defined;
+    NotifyState     nstate;
+//    NotifyState     last_nstate;
+    gchar          *notify_up;
+    pid_t           notify_up_pid;
+    gchar          *notify_down;
+    pid_t           notify_down_pid;
+    gint            min_reals;
+    gboolean        min_reals_in_percent;
+    gint            min_weight;
+    gboolean        min_weight_in_percent;
+} VNotifier;
+
+typedef struct {
     gchar           proto[MAXPROTO];
     struct mod_operations  *mops;
     guint           loopdelay;
@@ -175,6 +195,8 @@ typedef struct {
     gchar          *exec;                 /* command to execute for EXEC */
     gchar           ssl;
     gpointer        moddata;              /* module data (ie url for HTTP tester) */
+
+    VNotifier       vnotifier;
 } CfgTester;
 
 typedef struct {
@@ -203,6 +225,10 @@ typedef struct {
     gchar           ipvs_sched[MAXSCHED]; /* ipvs scheduler - wrr/wrc/...*/
     unsigned        ipvs_persistent;      /* persistent timeout (0 by default) */
     u_int32_t       ipvs_fwmark;          /* ipvs fwmark - (0 by default) */
+
+    gint            reals_weight_sum;     /* updated in notify, weight sum can be changed if cmd rset is used (total sum - online/offline/down) */
+    gint            online_weight_sum;    /* updated in notify (sum for only online nodes); */
+    gint            reals_online_sum;     /* updated in notify, contains sum of online nodes */
 
     VirtualStats    stats;
 } CfgVirtual;

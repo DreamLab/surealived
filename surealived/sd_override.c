@@ -90,7 +90,10 @@ void sd_override_dump_write(gpointer key, gpointer val, gpointer userdata) {
     if (!dump)
         return;
 
+    gchar *s = strchr(val, '\n');
+    *s = '\0';
     LOGINFO("override dump write [%s]", val);
+    *s = '\n';
     fprintf(dump, "%s", (gchar *)val);
 }
 

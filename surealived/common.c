@@ -15,10 +15,12 @@
 
 #include <common.h>
 #include <sd_maincfg.h>
+#include <sd_ipvssync.h>
 
 static gchar *protostr[] = { "tcp", "udp", "fwmark", NULL };
 static gchar *rtstr[] = { "dr", "masq", "tun", NULL };
 static gchar *rstatestr[] = { "ONLINE", "OFFLINE", "DOWN", NULL };
+static gchar *nstatestr[] = { "UNKNOWN", "UP", "DOWN", NULL };
 static GHashTable *VCfgHash = NULL;
 
 inline void time_inc(struct timeval *t, guint s, guint ms) {
@@ -148,6 +150,24 @@ RState sd_rstate_no(gchar *str) {
     return -1;
 }
 
+gchar *sd_nstate_str(NotifyState st) {
+    return nstatestr[st];
+}
+
+NotifyState sd_nstate_no(gchar *str) {
+    gint i = 0;
+
+    while (1) {
+        if (!nstatestr[i])
+            return -1;
+
+        if (!strcmp(nstatestr[i], str))
+            return i;
+
+        i++;
+    }
+    return -1;
+}
 
 /* ---------------------------------------------------------------------- */
 /* Split line into hash table, returns GHashTable */
@@ -231,4 +251,42 @@ CfgReal *sd_vcfg_hashmap_lookup_real(GHashTable *VCfgHash, gchar *rkey) {
     CfgReal *real = g_hash_table_lookup(VCfgHash, rkey);
     LOGDEBUG("hashmap lookup real [%s]: %p", rkey, real);    
     return real;
+}
+
+/* This function returns expected weight sum for all reals
+   - online/offline/down - if apply_online_state == FALSE
+   - online              - if apply_online_state == TRUE
+ */
+gint sd_vcfg_reals_weight_sum(CfgVirtual *virt, gboolean apply_online_state) {
+    CfgReal *real;
+    gint sum = 0, ri;
+    
+    if (!virt || !virt->realArr)
+        return 0;
+
+    for (ri = 0; ri < virt->realArr->len; ri++) {
+        real = g_ptr_array_index(virt->realArr, ri);
+        sum += sd_ipvssync_calculate_real_weight(real, apply_online_state);
+    }
+
+    LOGDEBUG("Virtual [%s], reals_weight_sum = %d, apply_online_state = %s", virt->name, sum, GBOOLSTR(apply_online_state));
+    return sum;
+}
+
+/* This function returns sum of all online reals */
+gint sd_vcfg_reals_online_sum(CfgVirtual *virt) {
+    CfgReal *real;
+    gint sum = 0, ri;
+    
+    if (!virt || !virt->realArr)
+        return 0;
+
+    for (ri = 0; ri < virt->realArr->len; ri++) {
+        real = g_ptr_array_index(virt->realArr, ri);
+        if (real->rstate == REAL_ONLINE && real->online)
+            sum++;
+    }
+
+    LOGDEBUG("Virtual [%s], reals_online_sum = %d/%d", virt->name, sum, virt->realArr->len);
+    return sum;
 }

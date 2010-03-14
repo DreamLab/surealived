@@ -23,6 +23,8 @@
 #include <sd_log.h>
 #include <sd_override.h>
 #include <sd_offline.h>
+#include <sd_stats.h>
+#include <sd_notify.h>
 #include <sd_ipvssync.h>
 #include <sd_cmd.h>
 #include <sdversion.h>
@@ -297,6 +299,7 @@ gint main(gint argc, gchar **argv) {
     sd_override_dump_merge(VCfgArr);
     sd_offline_dump_merge(VCfgArr);
     sd_stats_dump_merge(VCfgArr, VCfgHash);
+    sd_notify_dump_merge(VCfgArr, VCfgHash);
 
     if (G_no_sync == FALSE) /* if full sync file does not exist! */
         sd_ipvssync_save_fullcfg(VCfgArr, TRUE); /* force writing full sync */
