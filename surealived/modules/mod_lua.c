@@ -85,8 +85,17 @@ static void mod_lua_test_prepare(CfgReal *real) {
     }
     LOGDETAIL("mod_lua: calling prepare() function");
     lua_pushstring(luadata->L, tlua->params);
-    
-    if (lua_pcall(luadata->L, 1, 0, 0) != 0) {
+    lua_pushstring(luadata->L, real->virt->name);
+    lua_pushstring(luadata->L, real->virt->addrtxt);
+    lua_pushinteger(luadata->L, ntohs(real->virt->port));
+    lua_pushstring(luadata->L, sd_proto_str(real->virt->ipvs_proto));
+    lua_pushinteger(luadata->L, ntohs(real->virt->ipvs_fwmark));
+    lua_pushstring(luadata->L, real->name);
+    lua_pushstring(luadata->L, real->addrtxt);
+    lua_pushinteger(luadata->L, ntohs(real->port));
+    lua_pushinteger(luadata->L, ntohs(real->testport));
+
+    if (lua_pcall(luadata->L, 10, 0, 0) != 0) {
         LOGERROR("mod_lua: error calling prepare() function [error = %s]", lua_tostring(luadata->L, -1));
         real->error = 1;
     }

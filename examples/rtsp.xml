@@ -1,0 +1,11 @@
+<surealived>
+
+<virtual name="rtsp.stream" addr="192.168.2.1" port="554" proto="tcp" sched="wrr" rt="dr">
+	<tester loopdelay="1" retries2ok="1" retries2fail="1" timeout="5"
+		proto="lua" script="/usr/lib/surealived/scripts/rtsp.lua" testport="554" params="/testfile.wmv"/>
+	<real name="stream1.group" addr="192.168.2.11" port="554" rt="dr" weight="100"/>
+	<real name="stream2.group" addr="192.168.2.12" port="554" rt="dr" weight="100"/>
+	<real name="stream3.group" addr="192.168.2.13" port="554" rt="dr" weight="50"/>
+</virtual>
+
+</surealived>
