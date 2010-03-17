@@ -17,6 +17,7 @@
 #include <sd_defs.h>
 #include <glib.h>
 #include <sys/file.h>
+#define FORMAT64 "%" G_GINT64_FORMAT
 
 //static GTree *StatsT = NULL;
 
@@ -62,7 +63,7 @@ void sd_stats_dump_save(GPtrArray *VCfgArr) {
 
             fprintf(dump, "rstats %s:%d - ", real->addrtxt, ntohs(real->port));
 
-            fprintf(dump, "%d - %d:%d:%d - %d:%d:%d - %lld:%lld:%lld - %lld:%lld:%lld - %d:%d:%d\n",
+            fprintf(dump, "%d - %d:%d:%d - %d:%d:%d - " FORMAT64 ":" FORMAT64 ":" FORMAT64 " - " FORMAT64 ":" FORMAT64 ":" FORMAT64 " - %d:%d:%d\n",
                     rs->total,
                     rs->avg_conntime_ms, rs->avg_resptime_ms, rs->avg_totaltime_ms,
                     rs->avg_conntime_us, rs->avg_resptime_us, rs->avg_totaltime_us,
@@ -143,7 +144,7 @@ void sd_stats_dump_merge(GPtrArray *VCfgArr, GHashTable *VCfgHash) {
         }
 
         /* Restore real statistics */
-        if (sscanf(buf, "rstats %s - %d - %d:%d:%d - %d:%d:%d - %lld:%lld:%lld - %lld:%lld:%lld - %d:%d:%d",
+        if (sscanf(buf, "rstats %s - %d - %d:%d:%d - %d:%d:%d - " FORMAT64 ":" FORMAT64 ":" FORMAT64 " - " FORMAT64 ":" FORMAT64 ":" FORMAT64 " - %d:%d:%d",
                    raddr,
                    &rtotal,
                    &ravg_conntime_ms, &ravg_resptime_ms, &ravg_totaltime_ms,
