@@ -445,9 +445,11 @@ ConfVirtual *config_find_virtual(Config *c, ipvs_service_t *svc, gint *cvindex) 
         }
 
         /* second try */
-        if (svc->addr == confsvc->addr && svc->port == confsvc->port) {
-            LOGDETAIL("config find virtual: addr:port equal [%s:%d]", 
-                      INETTXTADDR(svc->addr), ntohs(svc->port));
+        if (svc->addr == confsvc->addr && 
+            svc->port == confsvc->port &&
+            svc->protocol == confsvc->protocol) {
+            LOGDETAIL("config find virtual: addr:port:protocol equal [%s:%d:%d]", 
+                      INETTXTADDR(svc->addr), ntohs(svc->port), ntohs(svc->protocol));
             return cv;        
         }
     }
@@ -471,7 +473,7 @@ ConfReal *config_find_real(ConfVirtual *cv, ipvs_dest_t *dest, gint *crindex) {
         confdest = &cr->dest;
 
         if (dest->addr == confdest->addr && dest->port == confdest->port) {
-            LOGDETAIL("config find real: addr:port equal [%s:%d]", 
+            LOGDETAIL("config find real: addr:port:proto equal [%s:%d]",
                       INETTXTADDR(dest->addr), ntohs(dest->port));
             if (crindex)
                 *crindex = j;
