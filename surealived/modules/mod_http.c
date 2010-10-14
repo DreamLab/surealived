@@ -28,7 +28,7 @@ typedef struct {
     gboolean    naive;
     gchar      *request;
     gint        req_len;
-    gchar       ans[64];
+    gchar       ans[12];
     gchar       retcode[4];
 } TestHTTP;
 
