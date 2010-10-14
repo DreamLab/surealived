@@ -1,5 +1,4 @@
 /var/lib/surealived/stats/sd_full*.log {
-        hourly
         missingok
         size 512M
         rotate 32
