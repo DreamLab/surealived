@@ -151,10 +151,10 @@ void sd_ipvssync_diffcfg_real(CfgReal *real, gboolean override_change) {
                            currwgt);
     
     if (real->ipvs_lthresh > 0)
-        g_string_append_printf(s, " rlthresh=%d", real->ipvs_lthresh);
+        g_string_append_printf(s, " rl_thresh=%d", real->ipvs_lthresh);
 
     if (real->ipvs_uthresh > 0)
-        g_string_append_printf(s, " ruthresh=%d", real->ipvs_uthresh);
+        g_string_append_printf(s, " ru_thresh=%d", real->ipvs_uthresh);
 
     /* if real has rt overwrite, write rrt */
     if (virt->ipvs_rt != real->ipvs_rt)
@@ -312,10 +312,10 @@ gint sd_ipvssync_save_fullcfg(GPtrArray *VCfgArr, gboolean force) {
                     fprintf(ipvsfile, " rweight=%d", currwgt);
 
                     if (real->ipvs_lthresh > 0)
-                        fprintf(ipvsfile, " rlthresh=%d", real->ipvs_lthresh);
+                        fprintf(ipvsfile, " rl_thresh=%d", real->ipvs_lthresh);
 
                     if (real->ipvs_uthresh > 0)
-                        fprintf(ipvsfile, " ruthresh=%d", real->ipvs_uthresh);
+                        fprintf(ipvsfile, " ru_thresh=%d", real->ipvs_uthresh);
 
                     /* if real has rt overwrite, write rrt */
                     if (virt->ipvs_rt != real->ipvs_rt)

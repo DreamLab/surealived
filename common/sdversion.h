@@ -16,6 +16,6 @@
 #if !defined __SDVERSION_H
 #define __SDVERSION_H
 
-#define VERSION     "0.9.6"
+#define VERSION     "0.9.7"
 
 #endif
