@@ -455,8 +455,10 @@ static void sd_tester_virtual_expired(SDTester *sdtest, CfgVirtual *virt) {
             real->tester->retries2fail);
 
         /* Close a descriptor only for timeouted connections */
-        if (real->fd != -1)
+        if (real->fd != -1) {
+       	    sd_epoll_ctl(epoll, EPOLL_CTL_DEL, real->fd, (void *)real, EPOLLOUT|EPOLLIN); /* add to epoll */
             close(real->fd);
+	}
         if (real->ssl)
             SSL_clear(real->ssl);
         if (real->tester->mops->m_cleanup)
@@ -593,12 +595,20 @@ static void sd_tester_process_events(gint nr_events) {
         real = (CfgReal *) sd_epoll_event_dataptr(epoll, i);
         sd_epoll_event_str(ev, s);
         LOGDETAIL("Process events on real = %s:%s, fd = %d [%s]", real->virt->name, real->name, real->fd, s);
+        
+        /* Skip processing an event if fd was already closed */
+        if (real->fd == -1) {
+            LOGWARN("Skipping processing event for already closed real = %s:%s, fd = %d\n", real->virt->name, real->name, real->fd);
+            continue;
+        }
 
         if (ev & EPOLLERR) {
             LOGDETAIL("EPOLLERR: closing descriptor for real = %s, fd = %d\n", real->virt->name, real->name, real->fd);
-
-            if (real->fd != -1)
+            
+            if (real->fd != -1) {
+                sd_epoll_ctl(epoll, EPOLL_CTL_DEL, real->fd, (void *)real, EPOLLOUT|EPOLLIN); /* add to epoll */
                 close(real->fd);
+            }
 
             if (real->ssl)
                 SSL_clear(real->ssl);
@@ -650,8 +660,10 @@ static void sd_tester_process_events(gint nr_events) {
                     
                     LOGDEBUG("SSL_ERROR [errcode = %d] Error connect, real = %s:%s, fd = %d", 
                              serror, real->virt->name, real->name, real->fd);
-                    if (real->fd != -1)
+                    if (real->fd != -1) {
+                        sd_epoll_ctl(epoll, EPOLL_CTL_DEL, real->fd, (void *)real, EPOLLOUT|EPOLLIN); /* add to epoll */
                         close(real->fd);
+                    }
                     real->fd = -1;
                     SSL_clear(real->ssl);
                 }
@@ -698,8 +710,10 @@ static void sd_tester_process_events(gint nr_events) {
 
         if (REQ_END(real->req)) {
             LOGDEBUG("Requesting END (real = %s:%s, fd = %d)", real->virt->name, real->name, real->fd);
-            if (real->fd != -1)
+            if (real->fd != -1) {
+                sd_epoll_ctl(epoll, EPOLL_CTL_DEL, real->fd, (void *)real, EPOLLOUT|EPOLLIN); /* add to epoll */
                 close(real->fd);
+            }
 
             if (real->ssl)
                 SSL_clear(real->ssl);

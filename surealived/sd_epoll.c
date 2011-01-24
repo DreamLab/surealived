@@ -48,6 +48,11 @@ void sd_epoll_ctl(SDepoll *epoll, int ctl, int fd, void *ptr, uint32_t events) {
             exit(1);
         }
     }
+    if (ctl == EPOLL_CTL_DEL) {
+        if (epoll_ctl(epoll->epfd, ctl, fd, &ev) < 0) {
+            SYSERR("Can't del fd to epoll fd\n");
+        }
+    }
     else {
         if (epoll_ctl(epoll->epfd, ctl, fd, &ev) < 0)
             SYSERR("Can't change epoll fd\n");
