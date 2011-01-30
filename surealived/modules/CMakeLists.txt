@@ -35,7 +35,7 @@ add_definitions(${GMODULE2_CFLAGS})
 add_library(mod_http SHARED mod_http.c)
 add_library(mod_tcp SHARED mod_tcp.c)
 add_library(mod_dns SHARED mod_dns.c)
-add_library(mod_dnstcp SHARED mod_dnstcp.c)
+#add_library(mod_dnstcp SHARED mod_dnstcp.c)
 add_library(mod_exec SHARED mod_exec.c)
 
 set_target_properties(mod_http PROPERTIES PREFIX "")
