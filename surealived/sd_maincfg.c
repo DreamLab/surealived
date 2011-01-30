@@ -30,7 +30,7 @@ gint        G_maxfd              = 0;
 /* Logging */
 gint        G_logfd               = 1;
 gchar      *G_logfname            = NULL;
-gboolean    G_use_log             = TRUE;
+gboolean    G_use_log             = FALSE;
 int         G_logging             = -1;
 gboolean    G_use_syslog          = FALSE;
 gboolean    G_use_tm_in_syslog    = FALSE;

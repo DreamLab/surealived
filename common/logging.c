@@ -296,7 +296,7 @@ void log_message(int loglev, int timeline, int newline, char *format, ...) {
         strftime(buf, 32, "[%F %T", localtime(&tv.tv_sec));        
         g_string_append_printf(sf, "%s.%06d] %-6s: ", buf, (int) tv.tv_usec, loglevstr[loglev]);
         if (l_use_tm_in_syslog)
-            g_string_append(ss, buf);
+            g_string_append_printf(ss, "%s.%06d] %-6s: ", buf, (int) tv.tv_usec, loglevstr[loglev]);
     }
     g_string_append_vprintf(sf, format, args);
     g_string_append_vprintf(ss, format, args);    

@@ -54,7 +54,10 @@ gboolean maincfg_new(gchar *fname) {
 
     /* setting defaults */
     _set_default(Cfg, "ipvssync_log",       "/var/log/surealived/ipvssync.log");
+    _set_default(Cfg, "use_log",            "false");
     _set_default(Cfg, "ipvssync_logging",   "debug");
+    _set_default(Cfg, "use_syslog",         "false");
+    _set_default(Cfg, "use_tm_in_syslog",   "false");
     _set_default(Cfg, "no_sync",            "false");
     _set_default(Cfg, "lock_sync_file",     "/var/lib/surealived/ipvsfull.lock");
     _set_default(Cfg, "full_sync_file",     "/var/lib/surealived/ipvsfull.cfg");
@@ -81,22 +84,17 @@ gboolean maincfg_new(gchar *fname) {
     if (!strcmp(G_logfname, "stderr"))
         G_logfd = STDERR_FILENO;
 
+    if (toupper(((gchar *)g_hash_table_lookup(Cfg, "use_log"))[0]) == 'T')
+        G_use_log = TRUE;
+
+    if (toupper(((gchar *)g_hash_table_lookup(Cfg, "use_syslog"))[0]) == 'T')
+        G_use_syslog = TRUE;
+
+    if (toupper(((gchar *)g_hash_table_lookup(Cfg, "use_tm_in_syslog"))[0]) == 'T')
+        G_use_tm_in_syslog = TRUE;
+
+
     log_init(&G_logfd, G_logfname, G_use_log, G_use_syslog, G_use_tm_in_syslog, "ipvssync");
-/*
-    if (!G_flog) {
-        logfname = g_hash_table_lookup(Cfg, "ipvssync_log");
-        if (!strcmp(logfname, "stderr")) {
-            G_flog = stderr;
-        } else {
-            G_flog = fopen(logfname, "a+");
-            if (!G_flog) {
-                fprintf(stderr, "Can't open log file: %s. Exiting\n", logfname);
-                exit(1);
-            }
-            setlinebuf(G_flog);
-        }
-    }
-*/
 
     /* Set global variable: logging */
     if (G_logging < 0)
