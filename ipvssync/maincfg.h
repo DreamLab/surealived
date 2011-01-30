@@ -20,7 +20,8 @@
 
 /* Global variables externs */
 
-extern FILE       *G_flog;
+extern gint        G_logfd;
+extern gchar      *G_logfname;
 extern int         G_logging;
 
 extern gboolean    G_no_sync;

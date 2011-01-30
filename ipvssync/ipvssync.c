@@ -80,6 +80,7 @@ void inthandler(int signal) {
         LOGWARN("IPVSSync: received signal SIGTERM - exiting.");
         break;
     }
+    LOG_NB_FLUSH_QUEUES();
     exit(0);
 }
 
@@ -148,7 +149,7 @@ gint main(gint argc, gchar **argv) {
     }
 
     if (test_config) {
-        G_flog = stderr;
+        G_logfd = STDERR_FILENO;
         conf = config_full_read(G_full_sync_file);
         if (!conf) {
             fprintf(stderr, "ipvssync config file [%s] syntax ERROR\n", G_full_sync_file);
@@ -166,8 +167,10 @@ gint main(gint argc, gchar **argv) {
     signal(SIGILL, sigdefhandler);
     signal(SIGSEGV, sigdefhandler);
 
+    LOG_NB_FLUSH_QUEUES();
+
     if (!daemonize)
-        G_flog = stderr; 
+        G_logfd = STDERR_FILENO; 
     else
         daemon(1, 1);
 
@@ -176,6 +179,7 @@ gint main(gint argc, gchar **argv) {
         LOGINFO("ipvssync config file [%s] FOUND", G_full_sync_file);
     else {
         LOGERROR("ipvssync config file [%s] NOT FOUND!", G_full_sync_file);
+        LOG_NB_FLUSH_QUEUES();
         exit(1);
     }
 
@@ -183,6 +187,7 @@ gint main(gint argc, gchar **argv) {
         LOGINFO("ipvssync lock file [%s] FOUND", G_lock_sync_file);
     else {
         LOGERROR("ipvssync lock file [%s] NOT FOUND!", G_lock_sync_file);
+        LOG_NB_FLUSH_QUEUES();
         exit(1);
     }
 
@@ -223,6 +228,7 @@ gint main(gint argc, gchar **argv) {
             newconf = config_full_read(G_full_sync_file);
             if (!newconf) {
                 LOGERROR("ipvssync config error [%s], config couln't be reloaded", G_full_sync_file);
+                LOG_NB_FLUSH_QUEUES();
                 sleep(1);
             }
             else {
@@ -235,6 +241,7 @@ gint main(gint argc, gchar **argv) {
             unlink(G_full_reload_file);
         }
         diffs_apply(conf, TRUE);
+        LOG_NB_FLUSH_QUEUES();
 
         if (!keep_diffs)
             diffs_clean_old_files(conf);

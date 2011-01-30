@@ -21,7 +21,8 @@
 
 /* Global variables externs */
 
-extern FILE       *G_flog;
+extern int         G_logfd;
+extern gchar      *G_logfname;
 extern int         G_logging;
 
 /* epoll, master loop and startup behavior */

@@ -13,6 +13,7 @@
  *
 */
 
+#include <sdversion.h>
 #include <sd_maincfg.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -20,13 +21,19 @@
 
 static GHashTable *Cfg = NULL;
 
+extern gboolean G_test_config;
+
 /* === GLOBAL VARIABLES === */
 /* Maximum file descriptors available */
 gint        G_maxfd              = 0;
 
 /* Logging */
-FILE       *G_flog                = NULL;
+gint        G_logfd               = 1;
+gchar      *G_logfname            = NULL;
+gboolean    G_use_log             = TRUE;
 int         G_logging             = -1;
+gboolean    G_use_syslog          = FALSE;
+gboolean    G_use_tm_in_syslog    = FALSE;
 
 /* epoll, master loop and startup behavior */
 gint        G_epoll_size          = 0;
@@ -78,7 +85,7 @@ inline static void _set_default(GHashTable *ht, gchar *key, gchar *value) {
 
 gboolean sd_maincfg_new(gchar *fname) {
     FILE *in;
-    gchar *logfname;
+//    gchar *logfname;
     gchar line[BUFSIZ];
     gchar key[32], value[1024];
     gint currnfd, nfd;
@@ -93,7 +100,10 @@ gboolean sd_maincfg_new(gchar *fname) {
     /* setting defaults */
     _set_default(Cfg, "maxfd",              "1024");
     _set_default(Cfg, "log",                "/var/log/surealived/surealived.log");
+    _set_default(Cfg, "use_log",            "false");
     _set_default(Cfg, "logging",            "info");
+    _set_default(Cfg, "use_syslog",         "false");
+    _set_default(Cfg, "use_tm_in_syslog",   "false");
     _set_default(Cfg, "modules_path",       "/usr/lib/surealived/modules/");
     _set_default(Cfg, "modules",            "all");
     _set_default(Cfg, "listen_addr",        "127.0.0.1");
@@ -143,22 +153,32 @@ gboolean sd_maincfg_new(gchar *fname) {
         fclose(in);
     }
 
-    /* Open log file (global flog) */
-    logfname = g_hash_table_lookup(Cfg, "log");
-    if (!strcmp(logfname, "stderr")) {
-        G_flog = stderr;
-    } else {
-        G_flog = fopen(logfname, "a+");
-        if (!G_flog) {
-            fprintf(stderr, "Can't open log file: %s. Exiting\n", logfname);
-            exit(1);
-        }
-        setlinebuf(G_flog);
+    /* Do we use logging to file */
+    if (toupper(((gchar *)g_hash_table_lookup(Cfg, "use_log"))[0]) == 'T')
+        G_use_log = TRUE;
+
+    /* Do we use syslog? */
+    if (toupper(((gchar *)g_hash_table_lookup(Cfg, "use_syslog"))[0]) == 'T')
+        G_use_syslog = TRUE;
+
+    /* Add timestamp to syslog messages? */
+    if (toupper(((gchar *)g_hash_table_lookup(Cfg, "use_tm_in_syslog"))[0]) == 'T')
+        G_use_tm_in_syslog = TRUE;
+
+    if (G_test_config) {
+        G_use_syslog = FALSE;
+        G_logfd = STDERR_FILENO;
     }
 
-    log_message(2, TRUE, TRUE, "Starting surealived");
+    G_logfname = g_hash_table_lookup(Cfg, "log");
+    if (!strcmp(G_logfname, "stderr"))
+        G_logfd = STDERR_FILENO;
+
+    log_init(&G_logfd, G_logfname, G_use_log, G_use_syslog, G_use_tm_in_syslog, "surealived");
+
+    log_message(2, TRUE, TRUE, "Starting surealived %s", VERSION);
     log_message(2, TRUE, TRUE, "logging level: %s", g_hash_table_lookup(Cfg, "logging"));
-    log_message(2, TRUE, TRUE, "log file: %s", logfname);
+    log_message(2, TRUE, TRUE, "log file: %s", G_logfname);
 
     /* Set global variable: logging */
     if (G_logging < 0)

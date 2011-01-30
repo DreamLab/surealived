@@ -26,7 +26,7 @@ static gint module_loader(const gchar *modpath, const gchar *modname) {
 
     snprintf(fname, BUFSIZ, "%s/%s", modpath, modname);
 
-    FLOGINFO(TRUE, FALSE, "Trying to open module [%s] \t", modname);
+    FLOGINFO(TRUE, FALSE, "Trying to open module [%s] ", modname);
     module = g_module_open (fname, G_MODULE_BIND_LAZY);
     if (!module) {
         FLOGERROR(FALSE, TRUE, "NOT FOUND, ERROR");
@@ -72,7 +72,7 @@ static void _load_all(gchar *modpath) {
     const gchar *de;
 
     if (!dir) {
-        G_flog = stderr;
+        G_logfd = STDERR_FILENO;
         LOGERROR("Can't open directory: %s", modpath);
         exit(1);
     }

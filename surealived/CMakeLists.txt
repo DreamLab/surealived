@@ -99,8 +99,8 @@ install(DIRECTORY scripts/
   PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
 )
 
-install(CODE "MESSAGE(STATUS \"Creating directories /var/log/surealived[/comm]\")")
+install(CODE "MESSAGE(STATUS \"Creating directories /var/log/surealived[/comm|/stats]\")")
 install(CODE "FILE(MAKE_DIRECTORY /var/log/surealived/comm)")
-install(CODE "MESSAGE(STATUS \"Creating directories /var/lib/surealived[/stats|/diffs]\")")
-install(CODE "FILE(MAKE_DIRECTORY /var/lib/surealived/stats)")
+install(CODE "FILE(MAKE_DIRECTORY /var/log/surealived/stats)")
+install(CODE "MESSAGE(STATUS \"Creating directories /var/lib/surealived/diffs\")")
 install(CODE "FILE(MAKE_DIRECTORY /var/lib/surealived/diffs)")

@@ -34,9 +34,37 @@
 #include <fcntl.h>
 #include <netdb.h>
 
+typedef struct {
+    GQueue  *queue;
+    gint     fd;
+    gboolean close_fd_after_write;
+    gint     maxlen;
+    gint     dropped;
+} MsgQueue;
+
+typedef struct {
+    guchar  *msg;
+    gint     len;
+    gint     pos;
+} Msg;
+
+void log_nb_queue_init(void);
+MsgQueue *log_nb_queue_new(gint fd, gboolean close_fd_after_write, gint maxlen);
+gboolean log_nb_queue_remove(MsgQueue *mq);
+gboolean log_nb_queue_add_msg(MsgQueue *mq, guchar *msg, gint len);
+void log_nb_queue_write_loop(void);
+gint log_nb_queued_messages(void);
+void log_nb_queue_free(void);
+void log_nb_queue_debug(void);
+
+/* ======== */
+void log_init(int *logfd, gchar *logfname, gboolean use_log, gboolean use_syslog, gboolean use_tm_in_syslog, gchar *ident);
+void log_rotate(int *logfd);
 int log_level_no(char *log);
 void log_message(int loglev, int timeline, int newline, char *format, ...);
 gchar *log_level_str(gint loglev);
+
+#define LOG_NB_FLUSH_QUEUES() G_STMT_START { while (log_nb_queued_messages()) log_nb_queue_write_loop(); } G_STMT_END
 
 #define LOGLEV_ERROR  0
 #define LOGLEV_WARN   1

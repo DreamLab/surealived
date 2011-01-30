@@ -84,8 +84,8 @@ static void module_start_real(CfgReal *real) {
         sigfillset(&blockset);
         sigprocmask(SIG_UNBLOCK, &blockset, NULL); //unblock previously blocked signals in sd_tester_master_loop
 
-        dup2(fileno(G_flog), 1);
-        dup2(fileno(G_flog), 2);
+        dup2(G_logfd, 1);
+        dup2(G_logfd, 2);
 
         /* close all opened filedescriptors to avoid invalid epoll notification */
         maxfd = open("/etc/passwd", O_RDONLY);

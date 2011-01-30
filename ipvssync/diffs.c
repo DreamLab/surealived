@@ -184,7 +184,7 @@ gint diffs_clean_old_files(Config *conf) {
         
     dir = g_dir_open(G_diff_sync_dir, 0, NULL);
     if (!dir) {
-        G_flog = stderr;
+        G_logfd = STDERR_FILENO;
         LOGERROR("Can't open directory: %s", G_diff_sync_dir);
         exit(1);
     }

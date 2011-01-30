@@ -22,8 +22,12 @@ static GHashTable *Cfg = NULL;
 /* === GLOBAL VARIABLES === */
 
 /* Logging */
-FILE       *G_flog                = NULL;
+gint        G_logfd               = 1;
+gchar      *G_logfname            = NULL;
+gboolean    G_use_log             = TRUE;
 int         G_logging             = -1;
+gboolean    G_use_syslog          = FALSE;
+gboolean    G_use_tm_in_syslog    = FALSE;
 
 /* ipvssync */
 gboolean    G_no_sync             = FALSE;
@@ -73,6 +77,12 @@ gboolean maincfg_new(gchar *fname) {
     }
 
     /* Open log file (global flog) - if not already set to stderr */
+    G_logfname = g_hash_table_lookup(Cfg, "ipvssync_log");
+    if (!strcmp(G_logfname, "stderr"))
+        G_logfd = STDERR_FILENO;
+
+    log_init(&G_logfd, G_logfname, G_use_log, G_use_syslog, G_use_tm_in_syslog, "ipvssync");
+/*
     if (!G_flog) {
         logfname = g_hash_table_lookup(Cfg, "ipvssync_log");
         if (!strcmp(logfname, "stderr")) {
@@ -86,6 +96,7 @@ gboolean maincfg_new(gchar *fname) {
             setlinebuf(G_flog);
         }
     }
+*/
 
     /* Set global variable: logging */
     if (G_logging < 0)

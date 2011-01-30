@@ -64,40 +64,47 @@ void sighandler(int signal) {   /* signal handler for watchdog */
 
     switch (signal) {
     case SIGHUP:
-        LOGWARN("Watchdog: Received SIGHUP - gently restarting surealived");
+        LOGWARN("watchdog: Received SIGHUP - gently restarting surealived");
+        LOG_NB_FLUSH_QUEUES();
         kill(G_child_pid, SIGHUP);
         waitpid(G_child_pid, NULL, 0); /* wait for child to exit */
         break;
     case SIGTERM:
-        LOGWARN("Watchdog: Received SIGTERM - forcing restart of surealived");
+        LOGWARN("watchdog: Received SIGTERM - forcing restart of surealived");
+        LOG_NB_FLUSH_QUEUES();
         kill(G_child_pid, SIGTERM);
         waitpid(G_child_pid, NULL, 0);
         break;
     case SIGINT:
-        LOGWARN("Watchdog: Received SIGINT - shutting down!");
+        LOGWARN("watchdog: Received SIGINT - shutting down!");
+        LOG_NB_FLUSH_QUEUES();
         kill(G_child_pid, SIGKILL);
         _exit(1);               /* man 2 _exit */
         break;
     default:
-        LOGERROR("Watchdog: Received Unknown signal!");
+        LOGERROR("watchdog: Received Unknown signal!");
+        LOG_NB_FLUSH_QUEUES();
         break;
     }
 }
 
 void setstop(int unused) {      /* HUP signal handler for child */
-    LOGWARN("Surealived: received signal SIGHUP - stopping...");
+    LOGWARN("surealived: received signal SIGHUP - stopping...");
+    LOG_NB_FLUSH_QUEUES();
     stop = TRUE;                /* we should set stop flag and wait for tests to finish */
 }
 
 void inthandler(int signal) {
     switch (signal) {
     case SIGINT:
-        LOGWARN("Surealived: received signal SIGINT - killing myself - notifying parent!");
+        LOGWARN("surealived: received signal SIGINT - killing myself - notifying parent!");
+        LOG_NB_FLUSH_QUEUES();
         if (G_daemonize)          /* this means we should have a parent */
             kill(getppid(), signal); /* delete this line if You don't want to notify parent */
         break;
     case SIGTERM:
-        LOGWARN("Surealived: received signal SIGTERM - killing myself!"); /* those handlers are so depressing... */
+        LOGWARN("surealived: received signal SIGTERM - killing myself!"); /* those handlers are so depressing... */
+        LOG_NB_FLUSH_QUEUES();
         break;
     }
 //    _exit(1);
@@ -112,7 +119,7 @@ void watchdog() {
     int     nullfd = open("/dev/null", O_NONBLOCK | O_RDWR);
 
     if (nullfd < 0) {
-        LOGERROR("Watchdog: Unable to open /dev/null!");
+        LOGERROR("watchdog: Unable to open /dev/null!");
         exit(1);
     }
 
@@ -134,14 +141,16 @@ void watchdog() {
             signal(SIGHUP, sighandler);
             signal(SIGCHLD, SIG_IGN); /* ignore child signals */
 
-            LOGINFO("Watchdog started - memory limit set to: %ld kB", G_memlimit);
+            LOGINFO("watchdog: started - memory limit set to: %ld kB", G_memlimit);
+            LOG_NB_FLUSH_QUEUES();            
             snprintf(sfilename, sizeof(sfilename), "/proc/%d/status", G_child_pid);
             if (status)
                 fclose(status);
 
             status = fopen(sfilename, "r");
             if (!status && G_memlimit) {
-                LOGERROR("Watchdog: Unable to open %s - is our child dead?", sfilename);
+                LOGERROR("watchdog: Unable to open %s - is our child dead?", sfilename);
+                LOG_NB_FLUSH_QUEUES();
                 sleep(SLEEP_TIME);
                 continue;          /* respawn! */
             }
@@ -165,7 +174,8 @@ void watchdog() {
                 }
 
                 if (value > G_memlimit) {
-                    LOGWARN("Watchdog: Child exceeded memory limit - exterminating!");
+                    LOGWARN("watchdog: Child exceeded memory limit - exterminating!");
+                    LOG_NB_FLUSH_QUEUES();
                     kill(G_child_pid, SIGHUP); /* kill our beloved child */
                     waitpid(G_child_pid, NULL, 0);
                     break;
@@ -251,9 +261,9 @@ gint main(gint argc, gchar **argv) {
         G_use_offline_dump = ud;
 
     if (!G_daemonize)
-        G_flog = stderr; //overwrite surealived.cfg configuration log (no make sense)
+        G_logfd = STDERR_FILENO; //overwrite surealived.cfg configuration log (no make sense)
 
-    LOGINFO("SureAliveD %s starting...", VERSION);
+    LOGINFO("Initializing...");
 
     sd_maincfg_print_to_log();
     modpath = sd_maincfg_get_value("modules_path");
@@ -264,6 +274,7 @@ gint main(gint argc, gchar **argv) {
     modules_load(modpath, modules);
     modules_print_to_log();
 
+    LOG_NB_FLUSH_QUEUES();
     if (!G_test_config && G_daemonize)
         watchdog();
 
@@ -275,7 +286,7 @@ gint main(gint argc, gchar **argv) {
     VCfgArr = sd_xmlParseFile(argv[optind]);
     
     if (G_test_config) {
-        G_flog = stderr;
+        G_logfd = STDERR_FILENO;
         G_logging = LOGLEV_INFO;
 
         if (VCfgArr) {

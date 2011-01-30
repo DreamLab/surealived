@@ -751,7 +751,7 @@ gint sd_tester_master_loop(SDTester *sdtest) {
     /* avoid receiving signals */
     sigprocmask(SIG_BLOCK, &blockset, &oldset);
     sd_tester_loop(sdtest);
-    sd_tester_debug(sdtest);
+//    sd_tester_debug(sdtest);
     sigprocmask(SIG_SETMASK, &oldset, NULL); 
 
     gettimeofday(&stats_dump_savetime, NULL);
@@ -780,9 +780,12 @@ gint sd_tester_master_loop(SDTester *sdtest) {
         
         sigprocmask(SIG_SETMASK, &oldset, NULL); /* release critical section */
 
+        log_nb_queue_write_loop();
+
         if (stop && !tests_running) { /* we need to stop NOW */
             LOGINFO("Saving statistics (due to stopping the tester)", G_stats_dump_savesec);
             sd_stats_dump_save(sdtest->VCfgArr);
+            LOG_NB_FLUSH_QUEUES();
             break;
         } 
         else if (!stop) {

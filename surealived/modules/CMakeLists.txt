@@ -35,11 +35,13 @@ add_definitions(${GMODULE2_CFLAGS})
 add_library(mod_http SHARED mod_http.c)
 add_library(mod_tcp SHARED mod_tcp.c)
 add_library(mod_dns SHARED mod_dns.c)
+add_library(mod_dnstcp SHARED mod_dnstcp.c)
 add_library(mod_exec SHARED mod_exec.c)
 
 set_target_properties(mod_http PROPERTIES PREFIX "")
 set_target_properties(mod_tcp PROPERTIES PREFIX "")
 set_target_properties(mod_dns PROPERTIES PREFIX "")
+set_target_properties(mod_dnstcp PROPERTIES PREFIX "")
 
 if (LUA_FOUND)
   MESSAGE(STATUS "\nCompiling and linking mod_lua (5.1)")
@@ -56,7 +58,8 @@ include_directories(../../common)
 install(TARGETS 
   mod_http 
   mod_tcp 
-  mod_dns 
+  mod_dns
+  mod_dnstcp 
   mod_exec
   DESTINATION "/usr/lib/surealived/modules")
 
