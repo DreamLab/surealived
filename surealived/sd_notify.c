@@ -52,15 +52,51 @@ void sd_notify_dump_save(GPtrArray *VCfgArr) {
 }
 
 void sd_notify_dump_merge(GPtrArray *VCfgArr, GHashTable *VCfgHash) {
-    FILE         *dump;
-    CfgVirtual   *virt;
-    VNotifier    *vn;
-    gchar         buf[BUFSIZ];
+    FILE          *f;
+    gfloat         uptime;
+    struct stat    st;
+    struct timeval currtime;
+    FILE          *dump;
+    CfgVirtual    *virt;
+    VNotifier     *vn;
+    gchar          buf[BUFSIZ];
+    gchar          vkey[64], nstatestr[16];
 
-    gchar         vkey[64], nstatestr[16];
-    
+    /* Don't merge notify.dump if system is already booted. In such a case
+       executing notifiers is required. */
+    f = fopen("/proc/uptime", "r");
+    assert(f);
+    if (fscanf(f, "%f", &uptime) != 1) {
+        LOGERROR("Can't parse /proc/uptime file. Exiting.");
+        abort();
+    }
+    fclose(f);
+
+    gettimeofday(&currtime, NULL);
+    if (stat(G_notify_dump, &st)) {
+        LOGWARN("Can't stat %s [%s]", G_notify_dump, STRERROR);
+        return;
+    }
+    LOGDEBUG("notify.dump file mtime = %d", (int) st.st_mtime);
+    LOGDEBUG("current time = %d\n", (int) currtime.tv_sec);
+
+    /* Calculate should we run all notifiers */
+    /* Example: mtime(notify_dump) = 1296422425
+                current_time       = 1296423707
+                uptime             = 17702
+       mtime(notify_dump) - (current_time - uptime) 
+       1296422425         - (1296423707 - 17702) 
+       ---
+       16420 ( > 0  - don't unlink notify.dump - and process it)
+             ( <= 0 - unlink the notify.dump and run all notifiers)
+    */
+    if ((st.st_mtime - (currtime.tv_sec - uptime)) <= 0) {
+        LOGWARN("Probably system restart was performed (uptime = %.2f). Executing all notifiers", uptime);
+        unlink(G_notify_dump);
+        return;
+    }
+        
     dump = fopen(G_notify_dump, "r");
-
     if (!dump) {
         LOGWARN("Unable to open notify dump file - %s", G_notify_dump);
         return;
@@ -264,4 +300,66 @@ void sd_notify_execute_if_required(GPtrArray *VCfgArr, CfgVirtual *virt) {
             sd_notify_dump_save(VCfgArr);
     }
 
+}
+
+/* ---------------------------------------------------------------------- */
+static void _sd_execute_notify_real_script(CfgReal *real, NotifyState nstate) {
+    CfgVirtual *virt = real->virt;
+    GString *s = NULL;
+    GError *err = NULL;
+    gchar *script = NULL;
+    gchar **argv = NULL;
+    gboolean isok;
+
+    if (nstate == NOTIFY_UP) 
+        script = virt->tester->rnotifier.notify_up;
+    else if (nstate == NOTIFY_DOWN)
+        script = virt->tester->rnotifier.notify_down;
+    else 
+        return;
+
+    if (!script)
+        return;
+    
+    LOGINFO(" * trying to execute real notify script [nstate = %s, script = %s]",
+            sd_nstate_str(nstate), script);
+
+    s = g_string_new(NULL);
+    assert(s);
+
+    g_string_append_printf(s, "'%s' ", script);
+    g_string_append_printf(s, "'notify=%s' 'vname=%s' 'vaddr=%s' 'vport=%d' 'vproto=%s' 'vfwmark=%d' "
+                           "'rname=%s' 'raddr=%s' 'rport=%d'", 
+                           sd_nstate_str(nstate), 
+                           virt->name, virt->addrtxt, ntohs(virt->port), 
+                           sd_proto_str(virt->ipvs_proto), virt->ipvs_fwmark,
+                           real->name, real->addrtxt, ntohs(real->port));
+    LOGDEBUG("cmd = [%s]", s->str);
+    isok = g_shell_parse_argv(s->str, NULL, &argv, &err);
+    if (!isok) {
+        LOGWARN("Can't parse notify real cmd line [%s, err = %s]", s->str, err->message);
+        g_string_free(s, TRUE);
+        return;
+    }
+
+    isok = g_spawn_async(NULL, argv, NULL, 
+                         G_SPAWN_STDOUT_TO_DEV_NULL | G_SPAWN_STDERR_TO_DEV_NULL, 
+                         NULL, NULL, NULL, 
+                         &err);
+    if (!isok)
+        LOGWARN("Can't exec notify line [%s, err = %s]", s->str, err->message);
+
+    g_string_free(s, TRUE);
+    g_strfreev(argv);
+}
+
+void sd_notify_real(CfgReal *real, RState state) {
+    RNotifier *rn = &real->tester->rnotifier;
+    if (!rn->is_defined)
+        return;
+
+    if (rn->is_defined && state == REAL_ONLINE && rn->notify_up)
+        _sd_execute_notify_real_script(real, NOTIFY_UP);
+    else if (rn->is_defined && state == REAL_OFFLINE && rn->notify_down)
+        _sd_execute_notify_real_script(real, NOTIFY_DOWN);
 }

@@ -1,0 +1,13 @@
+<surealived>
+
+<virtual name="onet" addr="192.168.0.1" port="80" proto="tcp" sched="wrr" rt="dr">
+  <tester loopdelay="1" timeout="2" retries2fail="1" retries2ok="1"
+          proto="http" testport="80" url="/" host="www.onet.pl" 
+          real_notify_up="/usr/lib/surealived/scripts/test_real_up.sh"
+	  real_notify_down="/usr/lib/surealived/scripts/test_real_down.sh"
+	/>
+  <real name="sg1" addr="213.180.146.27" port="80" weight="10"/>
+  <real name="sg2" addr="213.180.146.27" port="81" weight="1"/>
+</virtual>
+
+</surealived>

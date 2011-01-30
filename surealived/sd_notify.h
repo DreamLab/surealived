@@ -24,4 +24,6 @@ void sd_notify_dump_merge(GPtrArray *VCfgArr, GHashTable *VCfgHash);
 
 void sd_notify_execute_if_required(GPtrArray *VCfgArr, CfgVirtual *virt);
 
+void sd_notify_real(CfgReal *real, RState state);
+
 #endif

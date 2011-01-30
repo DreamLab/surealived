@@ -381,8 +381,10 @@ static CfgTester *sd_parse_tester(xmlNode *node) {
     /* ======== Parse notifiers ======== */
     if (sd_xml_attr(node, "notify_up", tmpstr, STRING, MAXPATHLEN, EXTRA_ATTR, "\t[!] No notify_up defined"))
         tester->vnotifier.notify_up = g_strdup(tmpstr);
+
     if (sd_xml_attr(node, "notify_down", tmpstr, STRING, MAXPATHLEN, EXTRA_ATTR, "\t[!] No notify_down defined"))
         tester->vnotifier.notify_down = g_strdup(tmpstr);
+
     if (tester->vnotifier.notify_up || tester->vnotifier.notify_down)
         tester->vnotifier.is_defined = TRUE;
 
@@ -416,6 +418,17 @@ static CfgTester *sd_parse_tester(xmlNode *node) {
              tester->vnotifier.is_defined,
              tester->vnotifier.notify_up, 
              tester->vnotifier.notify_down);
+
+
+    /* ======== Parse real notifiers ======== */
+    if (sd_xml_attr(node, "real_notify_up", tmpstr, STRING, MAXPATHLEN, EXTRA_ATTR, "\t[!] No real notify_up defined"))
+        tester->rnotifier.notify_up = g_strdup(tmpstr);
+
+    if (sd_xml_attr(node, "real_notify_down", tmpstr, STRING, MAXPATHLEN, EXTRA_ATTR, "\t[!] No real notify_down defined"))
+        tester->rnotifier.notify_down = g_strdup(tmpstr);
+
+    if (tester->rnotifier.notify_up || tester->rnotifier.notify_down)
+        tester->rnotifier.is_defined = TRUE;
 
     /* ------------------------------------------------------------ */
     if (parse_error) {

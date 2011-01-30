@@ -357,6 +357,7 @@ static gboolean sd_tester_eval_state(CfgReal *real) {
                     real->addrtxt, ntohs(real->port),
                     sd_rstate_str(real->rstate));
             sd_offline_dump_del(real);
+            sd_notify_real(real, REAL_ONLINE);
             real_state_changed = TRUE;
         }
     }
@@ -374,6 +375,7 @@ static gboolean sd_tester_eval_state(CfgReal *real) {
                     real->addrtxt, ntohs(real->port),
                     sd_rstate_str(real->rstate));
             sd_offline_dump_add(real);
+            sd_notify_real(real, REAL_OFFLINE);
             real_state_changed = TRUE;
         }
     } 

@@ -181,6 +181,15 @@ typedef struct {
 } VNotifier;
 
 typedef struct {
+    gboolean        is_defined;
+    gchar          *notify_up;
+    pid_t           notify_up_pid;
+    gchar          *notify_down;
+    pid_t           notify_down_pid;
+} RNotifier;
+
+
+typedef struct {
     gchar           proto[MAXPROTO];
     struct mod_operations  *mops;
     guint           loopdelay;
@@ -197,6 +206,7 @@ typedef struct {
     gpointer        moddata;              /* module data (ie url for HTTP tester) */
 
     VNotifier       vnotifier;
+    RNotifier       rnotifier;
 } CfgTester;
 
 typedef struct {
