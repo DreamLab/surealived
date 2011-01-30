@@ -41,7 +41,7 @@ add_library(mod_exec SHARED mod_exec.c)
 set_target_properties(mod_http PROPERTIES PREFIX "")
 set_target_properties(mod_tcp PROPERTIES PREFIX "")
 set_target_properties(mod_dns PROPERTIES PREFIX "")
-set_target_properties(mod_dnstcp PROPERTIES PREFIX "")
+#set_target_properties(mod_dnstcp PROPERTIES PREFIX "")
 
 if (LUA_FOUND)
   MESSAGE(STATUS "\nCompiling and linking mod_lua (5.1)")
@@ -59,7 +59,7 @@ install(TARGETS
   mod_http 
   mod_tcp 
   mod_dns
-  mod_dnstcp 
+#  mod_dnstcp 
   mod_exec
   DESTINATION "/usr/lib/surealived/modules")
 
