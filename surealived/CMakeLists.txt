@@ -2,8 +2,7 @@ PROJECT(surealived C)
 cmake_minimum_required(VERSION 2.6)
 #add_definitions("-Werror -Wall -ggdb -pg")
 add_definitions("-Werror -Wall -Wformat=2 -ggdb")
-add_definitions("-D_FILE_OFFSET_BITS=64")
-
+add_definitions("-D_FILE_OFFSET_BITS=64 -D__EXPORTED_HEADERS__")
 message(STATUS "\n=== configuring surealived ===")
 
 include(FindPkgConfig)
