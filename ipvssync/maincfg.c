@@ -1,5 +1,5 @@
 /*
- * Copyright 2009-2010 DreamLab Onet.pl Sp. z o.o.
+ * Copyright 2009-2011 DreamLab Onet.pl Sp. z o.o.
  * 
  *   This program is distributed in the hope that it will be useful,
  *   but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -42,7 +42,7 @@ inline static void _set_default(GHashTable *ht, gchar *key, gchar *value) {
 
 gboolean maincfg_new(gchar *fname) {
     FILE *in;
-    gchar *logfname;
+//    gchar *logfname;
     gchar line[BUFSIZ];
     gchar key[32], value[1024];
 
@@ -103,8 +103,8 @@ gboolean maincfg_new(gchar *fname) {
     log_message(2, TRUE, TRUE, "Starting ipvssync");
     log_message(2, TRUE, TRUE, "logging level: %d", G_logging);
     log_message(2, TRUE, TRUE, "logging level: %s", log_level_str(G_logging));
-    if (logfname)
-        log_message(2, TRUE, TRUE, "log file: %s", logfname);
+    if (G_logfname)
+        log_message(2, TRUE, TRUE, "log file: %s", G_logfname);
 
     if (toupper(((gchar *)g_hash_table_lookup(Cfg, "no_sync"))[0]) == 'T')
         G_no_sync = TRUE;

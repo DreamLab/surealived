@@ -1,5 +1,5 @@
 /*
- * Copyright 2009-2010 DreamLab Onet.pl Sp. z o.o.
+ * Copyright 2009-2011 DreamLab Onet.pl Sp. z o.o.
  * 
  *   This program is distributed in the hope that it will be useful,
  *   but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -85,7 +85,6 @@ inline static void _set_default(GHashTable *ht, gchar *key, gchar *value) {
 
 gboolean sd_maincfg_new(gchar *fname) {
     FILE *in;
-//    gchar *logfname;
     gchar line[BUFSIZ];
     gchar key[32], value[1024];
     gint currnfd, nfd;
