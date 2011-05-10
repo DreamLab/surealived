@@ -150,7 +150,7 @@ static void _log_nb_queue_write(gpointer key, gpointer val, gpointer userdata) {
     while (g_queue_is_empty(mq->queue) == FALSE && write_fail == FALSE && wnr++ < MAX_WRITE_AT_ONE_LOOP) {
 
         ready = poll(&fds, 1, 0);
-        if (!ready || (!fds.revents & POLLOUT)) {
+        if (!ready || !(fds.revents & POLLOUT)) {
             write_fail = TRUE;
             break;
         }
@@ -290,23 +290,26 @@ void log_message(int loglev, int timeline, int newline, char *format, ...) {
     assert(sf);
     
     gettimeofday(&tv, NULL);
-    va_list args;
-    va_start (args, format);
     if (timeline) {
         strftime(buf, 32, "[%F %T", localtime(&tv.tv_sec));        
         g_string_append_printf(sf, "%s.%06d] %-6s: ", buf, (int) tv.tv_usec, loglevstr[loglev]);
         if (l_use_tm_in_syslog)
             g_string_append_printf(ss, "%s.%06d] %-6s: ", buf, (int) tv.tv_usec, loglevstr[loglev]);
     }
+    va_list args;
+    va_start (args, format);
     g_string_append_vprintf(sf, format, args);
+    va_end(args);
+
+    va_start (args, format);
     g_string_append_vprintf(ss, format, args);    
+    va_end(args);
     if (newline) {        
         if (l_use_log)
             g_string_append(sf, "\n");
         if (l_use_syslog)
             g_string_append(ss, "\n");      
     }
-    va_end(args);
 
     if (l_use_syslog) {
         switch (loglev) {
