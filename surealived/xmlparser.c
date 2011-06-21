@@ -47,7 +47,7 @@ static CfgTester  CfgDefault = {
 };
 
 static void *sd_xml_attr(xmlNode *node, gchar *attr, void *dst, SD_MODARG_TYPE arg_type, int param, SD_ATTR_TYPE attr_type, gchar *error_fmt, ...) {
-    gchar       errmsg[256];
+    gchar       errmsg[256] = { 0 };
     xmlChar     *tmp;
     va_list     args;
     u_int32_t   p;
@@ -56,11 +56,13 @@ static void *sd_xml_attr(xmlNode *node, gchar *attr, void *dst, SD_MODARG_TYPE a
     vsnprintf(errmsg, 256, error_fmt, args);
     va_end(args);
     tmp = xmlGetProp(node, BAD_CAST attr);
+
     if (!tmp) {
         if (attr_type == BASIC_ATTR) {
-            LOGERROR(errmsg);
+            if (*errmsg)
+                LOGERROR(errmsg);
+
             parse_error = TRUE;
-            free(tmp);
             return NULL;
         }
         else {                  /* not mandatory but we could set default value */
@@ -71,10 +73,10 @@ static void *sd_xml_attr(xmlNode *node, gchar *attr, void *dst, SD_MODARG_TYPE a
                 *(u_int16_t *)dst = htons(param);
             else
                 *(int *)dst = param;
-            free(tmp);
             return dst;            
         }
     }
+
     switch (arg_type) {
     case STRING:
         if (!strncpy(dst, (gchar *) tmp, param)) {
@@ -159,11 +161,10 @@ static gint sd_parse_mod_args(mod_args  *m,
     gint            attr_size = 0;
 
     for (; m && m->name; m++) {
-//        attr_type = BASIC_ATTR;
-        attr_type = EXTRA_ATTR; //wg: IMHO EXTRA_ATTR should be here
-        if (!tester)
-            attr_type = m->attr_type;
-        else { /* copy value from parent (tester) we will overwrite it if requested */
+//        attr_type = EXTRA_ATTR; //wg: IMHO EXTRA_ATTR should be here
+        attr_type = tester ? BASIC_ATTR : m->attr_type; /* this is correct - really */
+
+        if (tester) { /* copy value from parent (tester) we will overwrite it if requested */
             switch (m->type) {
             case STRING:
                 attr_size = m->param;
@@ -181,12 +182,12 @@ static gint sd_parse_mod_args(mod_args  *m,
             memcpy((void *)((gchar *)md + m->offset), (void *)((gchar *)tester->moddata + m->offset), attr_size);
         }
         if (sd_xml_attr(node, (gchar *)m->name, (void *)((gchar *)md + m->offset), m->type, m->param, attr_type,
-                "\t[-] 404 - param '%s' not found", m->name))
+                tester ? "" : "\t[-] 404 - param '%s' not found", m->name))
             ret++;
     }
     LOGDEBUG("sd_parse_mod_args() = %d\n", ret);
-    return ret;
 
+    return ret;
 }
 
 void free_real(gpointer realptr, gpointer unused) {

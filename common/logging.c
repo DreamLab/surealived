@@ -330,7 +330,6 @@ void log_message(int loglev, int timeline, int newline, char *format, ...) {
             break;
         }
         syslog(priority, "%s", ss->str);
-        g_string_free(ss, TRUE);
     } 
 
     if (l_use_log) {
@@ -347,8 +346,13 @@ void log_message(int loglev, int timeline, int newline, char *format, ...) {
             syslog(LOG_CRIT, "Log message queue full [maxlen = %d] - disk problems?", l_msgqueue->maxlen);
             closelog();
         }
-        g_string_free(sf, FALSE); //message will be freed after save in log_nb_queue_write_loop()
     }  
+    g_string_free(ss, TRUE);
+    if (l_use_log)
+        g_string_free(sf, FALSE); //message will be freed after save in log_nb_queue_write_loop()
+    else 
+        g_string_free(sf, TRUE); //free it now
+
 }
 
 /*! \brief Return ptr to log level corresponding string 
