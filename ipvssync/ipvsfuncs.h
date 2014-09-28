@@ -19,7 +19,7 @@
 #include <linux/types.h>
 #include <glib.h>
 #include <libipvs.h>
-#include <net/ip_vs.h> 
+//#include <net/ip_vs.h> 
 
 int ipvsfuncs_modprobe_ipvs(void);
 void ipvsfuncs_initialize(void);

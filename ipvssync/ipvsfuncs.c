@@ -24,14 +24,13 @@ int ipvsfuncs_modprobe_ipvs(void)
 	char *argv[] = { "/sbin/modprobe", "--", "ip_vs", NULL };
 	int child;
 	int status;
-	int rc;
 
 	if (!(child = fork())) {
 		execv(argv[0], argv);
 		exit(1);
 	}
 
-	rc = waitpid(child, &status, 0);
+	waitpid(child, &status, 0);
 
 	if (!WIFEXITED(status) || WEXITSTATUS(status)) {
 		return 1;
@@ -249,7 +248,7 @@ int ipvsfuncs_fprintf_services(FILE *f) {
 	for (i = 0; i < vs->num_services; i++) {
 		se = &vs->entrytable[i];
 		fprintf(f, "service [%d], ip=%x, port=%d\n", 
-				i, ntohl(se->addr), ntohs(se->port));
+				i, ntohl(se->addr.ip), ntohs(se->port));
 	}
 	free(vs);
 	
@@ -279,15 +278,15 @@ int ipvsfuncs_del_unmanaged_services(ipvs_service_t **managed_svc, gint *is_in_i
 	for (i = 0; i < vs->num_services; i++) {
 		se = &vs->entrytable[i];
         LOGDETAIL("del_umanaged_services check: [%d], ip=%x, port=%d, protocol=%d, fwmark=%d", 
-				i, ntohl(se->addr), ntohs(se->port), se->protocol, se->fwmark);
+				i, ntohl(se->addr.ip), ntohs(se->port), se->protocol, se->fwmark);
 		m = managed_svc;
 		found = 0;
 		idx = 0;
 		while (*m) {
             LOGDETAIL(" * compare to [%x:%d proto=%d fwmark=%d]",
-                      ntohl((*m)->addr), ntohs((*m)->port), 
+                      ntohl((*m)->addr.ip), ntohs((*m)->port), 
                       (*m)->protocol, (*m)->fwmark);
-			if ((*m)->addr == se->addr && 
+			if ((*m)->addr.ip == se->addr.ip && 
 				(*m)->port == se->port &&
 				(*m)->protocol == se->protocol &&
 				(*m)->fwmark == se->fwmark) {
@@ -302,7 +301,7 @@ int ipvsfuncs_del_unmanaged_services(ipvs_service_t **managed_svc, gint *is_in_i
 
 		if (!found) {
             LOGDEBUG("Delete unmanaged virtual: ip=%x, port=%d, protocol=%d, fwmark=%d", 
-                      ntohl(se->addr), ntohs(se->port), se->protocol, se->fwmark);
+                      ntohl(se->addr.ip), ntohs(se->port), se->protocol, se->fwmark);
 			ipvsfuncs_del_service((ipvs_service_t *) se);
         }
 	}
@@ -325,7 +324,7 @@ int ipvsfuncs_del_unmanaged_dests(ipvs_service_t *svc,
 	int i, idx, found;
 	ipvs_dest_t **m;
 
-	ipvs_service_entry_t *se = ipvs_get_service(svc->fwmark, 
+	ipvs_service_entry_t *se = ipvs_get_service(svc->fwmark, AF_INET, 
 												svc->protocol, 
 												svc->addr, 
 												svc->port);
@@ -345,7 +344,7 @@ int ipvsfuncs_del_unmanaged_dests(ipvs_service_t *svc,
 		found = 0;
 		idx = 0;
 		while (*m) {
-			if ((*m)->addr == de->addr && 
+			if ((*m)->addr.ip == de->addr.ip && 
 				(*m)->port == de->port) {
 				found = 1;
 				if (is_in_ipvs)
@@ -380,11 +379,11 @@ int ipvsfuncs_fprintf_ipvs(FILE *f) {
         if (!vd)
             continue;
 		fprintf(f, " svc dest [%d], ip=%x, port=%d, fwmark=%d, proto=%d\n", 
-				i, ntohl(se->addr), ntohs(se->port), se->fwmark, se->protocol);
+				i, ntohl(se->addr.ip), ntohs(se->port), se->fwmark, se->protocol);
 		for (j = 0; j < se->num_dests; j++) {
 			de = &vd->entrytable[j];
 			fprintf(f, "  dest [%d], ip=%x, port=%d, weight=%d\n", 
-					j, ntohl(de->addr), ntohs(de->port), de->weight);
+					j, ntohl(de->addr.ip), ntohs(de->port), de->weight);
 		}
 		free(vd);		
 	}

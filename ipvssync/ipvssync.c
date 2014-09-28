@@ -94,7 +94,7 @@ gint main(gint argc, gchar **argv) {
     Config     *conf, *newconf;
     gint        next_opt;
     gboolean    test_config = 0;
-    gchar      *configpath = NULL;
+    //gchar      *configpath = NULL;
     gboolean    daemonize = FALSE;
     gboolean    del_unmanaged = FALSE;
     gboolean    keep_diffs = FALSE;
@@ -138,7 +138,7 @@ gint main(gint argc, gchar **argv) {
             keep_diffs = TRUE;
             break;
         case 'c':
-            configpath = optarg; /* another (not /etc/surealived/surealived.cfg file) */
+            //configpath = optarg; /* another (not /etc/surealived/surealived.cfg file) */
             break;
         }
     } while (next_opt != -1);

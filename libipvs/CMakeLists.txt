@@ -1,4 +1,7 @@
 cmake_minimum_required(VERSION 2.6)
+set(CMAKE_INCLUDE_CURRENT_DIR ON)
+SET(CMAKE_VERBOSE_MAKEFILE on )
+add_definitions("-Wall -Werror -Wunused -Wstrict-prototypes -g -fPIC")
 IF (CMAKE_SYSTEM_PROCESSOR MATCHES "i.86")
     SET (PROCTYPE "x86")
 ELSE (CMAKE_SYSTEM_PROCESSOR MATCHES "i.86")
@@ -9,7 +12,12 @@ ELSE (CMAKE_SYSTEM_PROCESSOR MATCHES "i.86")
     ENDIF (CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64")
 ENDIF (CMAKE_SYSTEM_PROCESSOR MATCHES "i.86")
 
-include_directories("/lib/modules/${CMAKE_SYSTEM_VERSION}/build/include")
-include_directories("/lib/modules/${CMAKE_SYSTEM_VERSION}/build/include/net")
-include_directories("/lib/modules/${CMAKE_SYSTEM_VERSION}/build/arch/${PROCTYPE}/include")
+add_definitions("-DHAVE_NET_IP_VS_H")
+
+#include_directories("/lib/modules/${CMAKE_SYSTEM_VERSION}/build/include")
+#include_directories("/lib/modules/${CMAKE_SYSTEM_VERSION}/build/include/net")
+#include_directories("/lib/modules/${CMAKE_SYSTEM_VERSION}/build/arch/${PROCTYPE}/include")
+include_directories(".")
+include_directories("../../.")
+
 add_library(libipvs libipvs)
