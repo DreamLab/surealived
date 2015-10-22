@@ -196,8 +196,8 @@ gint main(gint argc, gchar **argv) {
 
     gchar          *modules = NULL;
     gchar          *modpath = NULL;
+    gint            ret;
     gint            next_opt;
-//    struct stat     tmpstat;
     gboolean        ud = G_use_offline_dump;
     gboolean        ud_override = FALSE;
 
@@ -317,7 +317,8 @@ gint main(gint argc, gchar **argv) {
     Tester = sd_tester_create(VCfgArr);
     sd_cmd_listen_socket_create(G_listen_addr, G_listen_port); /* set listen addr and port */
 
-    sd_tester_master_loop(Tester);
+    ret = sd_tester_master_loop(Tester);
+    LOGINFO("Master loop, ret = %d\n", ret);
 
     exit(0);
 }

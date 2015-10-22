@@ -1,0 +1,17 @@
+<surealived>
+
+<virtual name="onetdns1" addr="192.168.0.1" port="53" proto="udp" sched="wrr" rt="dr" ops="1">
+  <tester loopdelay="1" timeout="2" retries2fail="1" retries2ok="1"
+          proto="dns" testport="53" request="onet.pl" />
+  <real name="dns1" addr="213.180.128.240" port="53" weight="10"/>
+  <real name="dns2" addr="217.97.201.240" port="53" weight="11"/>
+</virtual>
+
+<virtual name="onetdns2" addr="192.168.0.2" port="53" proto="udp" sched="wrr" rt="dr">
+  <tester loopdelay="1" timeout="2" retries2fail="1" retries2ok="1"
+          proto="dns" testport="53" request="onet.pl" remove_on_fail="1" />
+  <real name="dns1" addr="213.180.128.240" port="53" weight="20"/>
+  <real name="dns2" addr="217.97.201.240" port="53" weight="21"/>
+</virtual>
+
+</surealived>

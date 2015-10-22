@@ -394,7 +394,7 @@ int ipvsfuncs_fprintf_ipvs(FILE *f) {
 
 /* ---------------------------------------------------------------------- */
 gboolean ipvsfuncs_set_svc_from_ht(ipvs_service_t *svc, GHashTable *ht) {
-    gchar       *vproto, *vaddr, *vport, *vsched, *vpers, *v;
+    gchar       *vproto, *vaddr, *vport, *vsched, *vpers, *vops, *v;
     u_int16_t    svcproto   = IPPROTO_TCP;
     guint        vfwmark    = 0;
     __be32       netmask    = ~0;
@@ -447,8 +447,14 @@ gboolean ipvsfuncs_set_svc_from_ht(ipvs_service_t *svc, GHashTable *ht) {
     /* Get persistent timeout if defined */
     vpers = g_hash_table_lookup(ht, "vpers");
     if (vpers) {
-        flags = IP_VS_SVC_F_PERSISTENT;
+        flags |= IP_VS_SVC_F_PERSISTENT;
         timeout = atoi(vpers);
+    }
+
+    /* Get "one packet scheduler" if defined */
+    vops = g_hash_table_lookup(ht, "vops");
+    if (vops) {
+        flags |= IP_VS_SVC_F_ONEPACKET;
     }
 
     ipvsfuncs_set_svc(svcproto, vaddr, vport, vfwmark, vsched, flags, timeout, netmask, svc);

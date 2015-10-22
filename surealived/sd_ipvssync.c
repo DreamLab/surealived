@@ -292,6 +292,9 @@ gint sd_ipvssync_save_fullcfg(GPtrArray *VCfgArr, gboolean force) {
         if (virt->ipvs_fwmark)
             fprintf(ipvsfile," vfwmark=%d", virt->ipvs_fwmark);
 
+        if (virt->ipvs_ops && virt->ipvs_proto == SD_IPVS_UDP)
+            fprintf(ipvsfile," vops=%u", (unsigned) virt->ipvs_ops);
+
         fprintf(ipvsfile, "\n");
 
         if (virt->realArr) {
