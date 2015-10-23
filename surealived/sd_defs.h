@@ -235,6 +235,7 @@ typedef struct {
     gchar           ipvs_sched[MAXSCHED]; /* ipvs scheduler - wrr/wrc/...*/
     unsigned        ipvs_persistent;      /* persistent timeout (0 by default) */
     u_int32_t       ipvs_fwmark;          /* ipvs fwmark - (0 by default) */
+    gboolean        ipvs_ops;             /* flag: one packet scheduling, false - disabled by default, works only for UDP traffic */
 
     gint            reals_weight_sum;     /* updated in notify, weight sum can be changed if cmd rset is used (total sum - online/offline/down) */
     gint            online_weight_sum;    /* updated in notify (sum for only online nodes); */

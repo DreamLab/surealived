@@ -558,6 +558,12 @@ static gint sd_parse_virtual(GPtrArray *VCfgArr, xmlNode *node) {
     if ((tmp = xmlGetProp(node, BAD_CAST "pers")))
         virt->ipvs_persistent = (unsigned) atoi((const char *)tmp);
 
+    if ((tmp = xmlGetProp(node, BAD_CAST "ops"))) {
+        int v = (unsigned) atoi((const char *)tmp);
+        if (v)
+            virt->ipvs_ops = TRUE;
+    }
+
     if (!virt->ipvs_fwmark) {
         if (!inet_aton(virt->addrtxt, (struct in_addr *) &virt->addr)) {
             LOGERROR("[-] Virtual: addr not correct");
