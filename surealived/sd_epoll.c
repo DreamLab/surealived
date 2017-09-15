@@ -67,11 +67,11 @@ int sd_epoll_wait(SDepoll *epoll, int timeout) {
     return nr_events;
 }
 
-inline void *sd_epoll_event_dataptr(SDepoll *epoll, int i) {
+void *sd_epoll_event_dataptr(SDepoll *epoll, int i) {
     return epoll->events[i].data.ptr;
 }
 
-inline uint32_t  sd_epoll_event_events(SDepoll *epoll, int i) {
+uint32_t  sd_epoll_event_events(SDepoll *epoll, int i) {
     return epoll->events[i].events;
 }
 

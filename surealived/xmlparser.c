@@ -310,7 +310,7 @@ static gint sd_parse_real(CfgVirtual *virt, xmlNode *node) {
     return 0;
 }
 
-inline void free_tester(CfgTester *t) {
+void free_tester(CfgTester *t) {
     if (!t)
         return;
     LOGDEBUG("Freeing tester: %s", t->proto);
