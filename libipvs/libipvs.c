@@ -55,31 +55,6 @@ static int family, try_nl = 1;
 	CHECK_PE(s, ret);
 
 #ifdef LIBIPVS_USE_NL
-#ifndef FALLBACK_LIBNL1
-static int nlerr2syserr(int err)
-{
-	switch (abs(err)) {
-	case NLE_BAD_SOCK:       return EBADF;
-	case NLE_EXIST:          return EEXIST;
-	case NLE_NOADDR:         return EADDRNOTAVAIL;
-	case NLE_OBJ_NOTFOUND:   return ENOENT;
-	case NLE_INTR:           return EINTR;
-	case NLE_AGAIN:          return EAGAIN;
-	case NLE_INVAL:          return EINVAL;
-	case NLE_NOACCESS:       return EACCES;
-	case NLE_NOMEM:          return ENOMEM;
-	case NLE_AF_NOSUPPORT:   return EAFNOSUPPORT;
-	case NLE_PROTO_MISMATCH: return EPROTONOSUPPORT;
-	case NLE_OPNOTSUPP:      return EOPNOTSUPP;
-	case NLE_PERM:           return EPERM;
-	case NLE_BUSY:           return EBUSY;
-	case NLE_RANGE:          return ERANGE;
-	case NLE_NODEV:          return ENODEV;
-	default:                 return err;
-	}
-}
-#endif
-
 struct nl_msg *ipvs_nl_message(int cmd, int flags)
 {
 	struct nl_msg *msg;
@@ -99,9 +74,23 @@ static int ipvs_nl_noop_cb(struct nl_msg *msg, void *arg)
 	return NL_OK;
 }
 
+struct cb_err_data {
+	int	err;
+};
+
+static int ipvs_nl_err_cb(struct sockaddr_nl *nla, struct nlmsgerr *nlerr,
+			  void *arg)
+{
+	struct cb_err_data *data = arg;
+
+	data->err = nlerr->error;
+	return -nl_syserr2nlerr(nlerr->error);
+}
+
 int ipvs_nl_send_message(struct nl_msg *msg, nl_recvmsg_msg_cb_t func, void *arg)
 {
 	int err = EINVAL;
+	struct cb_err_data err_data = { .err = 0 };
 
 	sock = nl_socket_alloc();
 	if (!sock) {
@@ -125,12 +114,18 @@ int ipvs_nl_send_message(struct nl_msg *msg, nl_recvmsg_msg_cb_t func, void *arg
 
 	if (nl_socket_modify_cb(sock, NL_CB_VALID, NL_CB_CUSTOM, func, arg) != 0)
 		goto fail_genl;
+	if (nl_socket_modify_err_cb(sock, NL_CB_CUSTOM, ipvs_nl_err_cb,
+				    &err_data) != 0)
+		goto fail_genl;
 
 	if (nl_send_auto_complete(sock, msg) < 0)
 		goto fail_genl;
 
-	if ((err = -nl_recvmsgs_default(sock)) > 0)
+	if (nl_recvmsgs_default(sock) < 0) {
+		if (err_data.err)
+			err = -err_data.err;
 		goto fail_genl;
+	}
 
 	nlmsg_free(msg);
 
@@ -143,9 +138,6 @@ fail_genl:
 	sock = NULL;
 	nlmsg_free(msg);
 	errno = err;
-#ifndef FALLBACK_LIBNL1
-	errno = nlerr2syserr(err);
-#endif
 	return -1;
 }
 #endif
@@ -176,6 +168,21 @@ int ipvs_init(void)
 		return -1;
 
 	return 0;
+}
+
+static void copy_stats_from_kern(struct ip_vs_stats64 *d,
+				 struct ip_vs_stats_user *s)
+{
+	d->conns = s->conns;
+	d->inpkts = s->inpkts;
+	d->outpkts = s->outpkts;
+	d->inbytes = s->inbytes;
+	d->outbytes = s->outbytes;
+	d->cps = s->cps;
+	d->inpps = s->inpps;
+	d->outpps = s->outpps;
+	d->inbps = s->inbps;
+	d->outbps = s->outbps;
 }
 
 #ifdef LIBIPVS_USE_NL
@@ -513,6 +520,8 @@ nla_put_failure:
 
 int ipvs_start_daemon(ipvs_daemon_t *dm)
 {
+	struct ip_vs_daemon_kern dmk;
+
 	ipvs_func = ipvs_start_daemon;
 #ifdef LIBIPVS_USE_NL
 	if (try_nl) {
@@ -527,6 +536,22 @@ int ipvs_start_daemon(ipvs_daemon_t *dm)
 		NLA_PUT_U32(msg, IPVS_DAEMON_ATTR_STATE, dm->state);
 		NLA_PUT_STRING(msg, IPVS_DAEMON_ATTR_MCAST_IFN, dm->mcast_ifn);
 		NLA_PUT_U32(msg, IPVS_DAEMON_ATTR_SYNC_ID, dm->syncid);
+		if (dm->sync_maxlen)
+			NLA_PUT_U16(msg, IPVS_DAEMON_ATTR_SYNC_MAXLEN,
+				    dm->sync_maxlen);
+		if (dm->mcast_port)
+			NLA_PUT_U16(msg, IPVS_DAEMON_ATTR_MCAST_PORT,
+				    dm->mcast_port);
+		if (dm->mcast_ttl)
+			NLA_PUT_U8(msg, IPVS_DAEMON_ATTR_MCAST_TTL,
+				   dm->mcast_ttl);
+		if (AF_INET6 == dm->mcast_af)
+			NLA_PUT(msg, IPVS_DAEMON_ATTR_MCAST_GROUP6,
+				sizeof(dm->mcast_group.in6),
+				&dm->mcast_group.in6);
+		else if (AF_INET == dm->mcast_af)
+			NLA_PUT_U32(msg, IPVS_DAEMON_ATTR_MCAST_GROUP,
+				    dm->mcast_group.ip);
 
 		nla_nest_end(msg, nl_daemon);
 
@@ -537,13 +562,19 @@ nla_put_failure:
 		return -1;
 	}
 #endif
+	memset(&dmk, 0, sizeof(dmk));
+	dmk.state = dm->state;
+	strcpy(dmk.mcast_ifn, dm->mcast_ifn);
+	dmk.syncid = dm->syncid;
 	return setsockopt(sockfd, IPPROTO_IP, IP_VS_SO_SET_STARTDAEMON,
-			  (char *)dm, sizeof(*dm));
+			  (char *)&dmk, sizeof(dmk));
 }
 
 
 int ipvs_stop_daemon(ipvs_daemon_t *dm)
 {
+	struct ip_vs_daemon_kern dmk;
+
 	ipvs_func = ipvs_stop_daemon;
 #ifdef LIBIPVS_USE_NL
 	if (try_nl) {
@@ -568,12 +599,14 @@ nla_put_failure:
 		return -1;
 	}
 #endif
+	memset(&dmk, 0, sizeof(dmk));
+	dmk.state = dm->state;
 	return setsockopt(sockfd, IPPROTO_IP, IP_VS_SO_SET_STOPDAEMON,
-			  (char *)dm, sizeof(*dm));
+			  (char *)&dmk, sizeof(dmk));
 }
 
 #ifdef LIBIPVS_USE_NL
-static int ipvs_parse_stats(struct ip_vs_stats_user *stats, struct nlattr *nla)
+static int ipvs_parse_stats(struct ip_vs_stats64 *stats, struct nlattr *nla)
 {
 	struct nlattr *attrs[IPVS_STATS_ATTR_MAX + 1];
 
@@ -605,6 +638,40 @@ static int ipvs_parse_stats(struct ip_vs_stats_user *stats, struct nlattr *nla)
 
 	return 0;
 
+}
+
+static int ipvs_parse_stats64(struct ip_vs_stats64 *stats, struct nlattr *nla)
+{
+	struct nlattr *attrs[IPVS_STATS_ATTR_MAX + 1];
+
+	if (nla_parse_nested(attrs, IPVS_STATS_ATTR_MAX, nla,
+			     ipvs_stats_policy))
+		return -1;
+
+	if (!(attrs[IPVS_STATS_ATTR_CONNS] &&
+	      attrs[IPVS_STATS_ATTR_INPKTS] &&
+	      attrs[IPVS_STATS_ATTR_OUTPKTS] &&
+	      attrs[IPVS_STATS_ATTR_INBYTES] &&
+	      attrs[IPVS_STATS_ATTR_OUTBYTES] &&
+	      attrs[IPVS_STATS_ATTR_CPS] &&
+	      attrs[IPVS_STATS_ATTR_INPPS] &&
+	      attrs[IPVS_STATS_ATTR_OUTPPS] &&
+	      attrs[IPVS_STATS_ATTR_INBPS] &&
+	      attrs[IPVS_STATS_ATTR_OUTBPS]))
+		return -1;
+
+	stats->conns = nla_get_u64(attrs[IPVS_STATS_ATTR_CONNS]);
+	stats->inpkts = nla_get_u64(attrs[IPVS_STATS_ATTR_INPKTS]);
+	stats->outpkts = nla_get_u64(attrs[IPVS_STATS_ATTR_OUTPKTS]);
+	stats->inbytes = nla_get_u64(attrs[IPVS_STATS_ATTR_INBYTES]);
+	stats->outbytes = nla_get_u64(attrs[IPVS_STATS_ATTR_OUTBYTES]);
+	stats->cps = nla_get_u64(attrs[IPVS_STATS_ATTR_CPS]);
+	stats->inpps = nla_get_u64(attrs[IPVS_STATS_ATTR_INPPS]);
+	stats->outpps = nla_get_u64(attrs[IPVS_STATS_ATTR_OUTPPS]);
+	stats->inbps = nla_get_u64(attrs[IPVS_STATS_ATTR_INBPS]);
+	stats->outbps = nla_get_u64(attrs[IPVS_STATS_ATTR_OUTBPS]);
+
+	return 0;
 }
 
 static int ipvs_services_parse_cb(struct nl_msg *msg, void *arg)
@@ -664,9 +731,15 @@ static int ipvs_services_parse_cb(struct nl_msg *msg, void *arg)
 	nla_memcpy(&flags, svc_attrs[IPVS_SVC_ATTR_FLAGS], sizeof(flags));
 	get->entrytable[i].flags = flags.flags & flags.mask;
 
-	if (ipvs_parse_stats(&(get->entrytable[i].stats),
-			     svc_attrs[IPVS_SVC_ATTR_STATS]) != 0)
-		return -1;
+	if (svc_attrs[IPVS_SVC_ATTR_STATS64]) {
+		if (ipvs_parse_stats64(&get->entrytable[i].stats64,
+				       svc_attrs[IPVS_SVC_ATTR_STATS64]) != 0)
+			return -1;
+	} else if (svc_attrs[IPVS_SVC_ATTR_STATS]) {
+		if (ipvs_parse_stats(&get->entrytable[i].stats64,
+				     svc_attrs[IPVS_SVC_ATTR_STATS]) != 0)
+			return -1;
+	}
 
 	get->entrytable[i].num_dests = 0;
 
@@ -730,6 +803,8 @@ struct ip_vs_get_services *ipvs_get_services(void)
 		       sizeof(struct ip_vs_service_entry_kern));
 		get->entrytable[i].af = AF_INET;
 		get->entrytable[i].addr.ip = get->entrytable[i].__addr_v4;
+		copy_stats_from_kern(&get->entrytable[i].stats64,
+				     &get->entrytable[i].stats);
 	}
 	free(getk);
 	return get;
@@ -824,9 +899,15 @@ static int ipvs_dests_parse_cb(struct nl_msg *msg, void *arg)
 	else
 		d->entrytable[i].af = d->af;
 
-	if (ipvs_parse_stats(&(d->entrytable[i].stats),
-			     dest_attrs[IPVS_DEST_ATTR_STATS]) != 0)
-		return -1;
+	if (dest_attrs[IPVS_DEST_ATTR_STATS64]) {
+		if (ipvs_parse_stats(&d->entrytable[i].stats64,
+				     dest_attrs[IPVS_DEST_ATTR_STATS64]) != 0)
+			return -1;
+	} else if (dest_attrs[IPVS_DEST_ATTR_STATS]) {
+		if (ipvs_parse_stats(&d->entrytable[i].stats64,
+				     dest_attrs[IPVS_DEST_ATTR_STATS]) != 0)
+			return -1;
+	}
 
 	i++;
 
@@ -928,6 +1009,8 @@ ipvs_nl_dest_failure:
 		       sizeof(struct ip_vs_dest_entry_kern));
 		d->entrytable[i].af = AF_INET;
 		d->entrytable[i].addr.ip = d->entrytable[i].__addr_v4;
+		copy_stats_from_kern(&d->entrytable[i].stats64,
+				     &d->entrytable[i].stats);
 	}
 	free(dk);
 	return d;
@@ -1029,6 +1112,7 @@ ipvs_get_service_err2:
 	svc->af = AF_INET;
 	svc->addr.ip = svc->__addr_v4;
 	svc->pe_name[0] = '\0';
+	copy_stats_from_kern(&svc->stats64, &svc->stats);
 	return svc;
 out_err:
 	free(svc);
@@ -1093,6 +1177,7 @@ static int ipvs_daemon_parse_cb(struct nl_msg *msg, void *arg)
 	struct nlattr *attrs[IPVS_CMD_ATTR_MAX + 1];
 	struct nlattr *daemon_attrs[IPVS_DAEMON_ATTR_MAX + 1];
 	ipvs_daemon_t *u = (ipvs_daemon_t *)arg;
+	struct nlattr *a;
 	int i = 0;
 
 	/* We may get two daemons.  If we've already got one, this is the second */
@@ -1117,26 +1202,54 @@ static int ipvs_daemon_parse_cb(struct nl_msg *msg, void *arg)
 		IP_VS_IFNAME_MAXLEN);
 	u[i].syncid = nla_get_u32(daemon_attrs[IPVS_DAEMON_ATTR_SYNC_ID]);
 
+	a = daemon_attrs[IPVS_DAEMON_ATTR_SYNC_MAXLEN];
+	if (a)
+		u[i].sync_maxlen = nla_get_u16(a);
+
+	a = daemon_attrs[IPVS_DAEMON_ATTR_MCAST_PORT];
+	if (a)
+		u[i].mcast_port = nla_get_u16(a);
+
+	a = daemon_attrs[IPVS_DAEMON_ATTR_MCAST_TTL];
+	if (a)
+		u[i].mcast_ttl = nla_get_u8(a);
+
+	a = daemon_attrs[IPVS_DAEMON_ATTR_MCAST_GROUP];
+	if (a) {
+		u[i].mcast_af = AF_INET;
+		u[i].mcast_group.ip = nla_get_u32(a);
+	} else {
+		a = daemon_attrs[IPVS_DAEMON_ATTR_MCAST_GROUP6];
+		if (a) {
+			u[i].mcast_af = AF_INET6;
+			memcpy(&u[i].mcast_group.in6, nla_data(a),
+			       sizeof(u[i].mcast_group.in6));
+		}
+	}
+
 	return NL_OK;
 }
 #endif
 
 ipvs_daemon_t *ipvs_get_daemon(void)
 {
+	struct ip_vs_daemon_kern dmk[2];
 	ipvs_daemon_t *u;
 	socklen_t len;
+	int i;
 
 	/* note that we need to get the info about two possible
 	   daemons, master and backup. */
 	len = sizeof(*u) * 2;
-	if (!(u = malloc(len)))
+	u = calloc(len, 1);
+	if (!u)
 		return NULL;
 
 	ipvs_func = ipvs_get_daemon;
 #ifdef LIBIPVS_USE_NL
 	if (try_nl) {
 		struct nl_msg *msg;
-		memset(u, 0, len);
+
 		msg = ipvs_nl_message(IPVS_CMD_GET_DAEMON, NLM_F_DUMP);
 		if (msg && (ipvs_nl_send_message(msg, ipvs_daemon_parse_cb, u) == 0))
 			return u;
@@ -1145,9 +1258,15 @@ ipvs_daemon_t *ipvs_get_daemon(void)
 		return NULL;
 	}
 #endif
-	if (getsockopt(sockfd, IPPROTO_IP, IP_VS_SO_GET_DAEMON, (char *)u, &len)) {
+	if (getsockopt(sockfd, IPPROTO_IP, IP_VS_SO_GET_DAEMON, (char *)dmk,
+		       &len)) {
 		free(u);
 		return NULL;
+	}
+	for (i = 0; i < 2; i++) {
+		u[i].state = dmk[i].state;
+		strncpy(u[i].mcast_ifn, dmk[i].mcast_ifn, IP_VS_IFNAME_MAXLEN);
+		u[i].syncid = dmk[i].syncid;
 	}
 	return u;
 }

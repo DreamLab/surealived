@@ -522,7 +522,7 @@ static void sd_tester_process_virt(gpointer virtptr, gpointer dataptr) {
     }
 }
 
-inline gboolean sd_tester_loop(SDTester *sdtest) {
+gboolean sd_tester_loop(SDTester *sdtest) {
     struct timeval ctime;
 
     if (sdtest && sdtest->VCfgArr) {
