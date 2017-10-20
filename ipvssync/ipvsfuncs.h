@@ -40,6 +40,7 @@ int ipvsfuncs_update_service(ipvs_service_t *svc);
 
 int ipvsfuncs_add_dest(ipvs_service_t *svc, ipvs_dest_t *dest);
 int ipvsfuncs_del_dest(ipvs_service_t *svc, ipvs_dest_t *dest);
+int ipvsfuncs_del_dest_entry(ipvs_service_t *svc, struct ip_vs_dest_entry *de);
 int ipvsfuncs_update_dest(ipvs_service_t *svc, ipvs_dest_t *dest);
 
 int ipvsfuncs_fprintf_services(FILE *f);

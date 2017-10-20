@@ -430,7 +430,7 @@ ConfVirtual *config_find_virtual(Config *c, ipvs_service_t *svc, gint *cvindex) 
     ipvs_service_t *confsvc;
     gint            i;
 
-    LOGDETAIL("find virtual = %s:%d", INETTXTADDR(svc->addr), ntohs(svc->port));
+    LOGDETAIL("find virtual = %s:%d", INETTXTADDR(svc->addr.ip), ntohs(svc->port));
 
     for (i = 0; i < c->virtarr->len; i++) {
         cv = g_array_index(c->virtarr, ConfVirtual *, i);
@@ -449,13 +449,13 @@ ConfVirtual *config_find_virtual(Config *c, ipvs_service_t *svc, gint *cvindex) 
             svc->port == confsvc->port &&
             svc->protocol == confsvc->protocol) {
             LOGDETAIL("config find virtual: addr:port:protocol equal [%s:%d:%d]", 
-                      INETTXTADDR(svc->addr), ntohs(svc->port), ntohs(svc->protocol));
+                      INETTXTADDR(svc->addr.ip), ntohs(svc->port), ntohs(svc->protocol));
             return cv;        
         }
     }
 
     LOGDETAIL("config find virtual: addr:port not found [%s:%d]", 
-              INETTXTADDR(svc->addr), ntohs(svc->port));
+              INETTXTADDR(svc->addr.ip), ntohs(svc->port));
 
     return FALSE;
 }
@@ -466,7 +466,7 @@ ConfReal *config_find_real(ConfVirtual *cv, ipvs_dest_t *dest, gint *crindex) {
     ipvs_dest_t    *confdest;
     gint            j;
 
-    LOGDETAIL("find real, virtual = %s:%d", INETTXTADDR(cv->svc.addr), ntohs(cv->svc.port));
+    LOGDETAIL("find real, virtual = %s:%d", INETTXTADDR(cv->svc.addr.ip), ntohs(cv->svc.port));
 
     for (j = cv->realarr->len - 1; j >= 0; j--) { 
         cr = g_array_index(cv->realarr, ConfReal *, j);
@@ -474,14 +474,14 @@ ConfReal *config_find_real(ConfVirtual *cv, ipvs_dest_t *dest, gint *crindex) {
 
         if (dest->addr.ip == confdest->addr.ip && dest->port == confdest->port) {
             LOGDETAIL("config find real: addr:port:proto equal [%s:%d]",
-                      INETTXTADDR(dest->addr), ntohs(dest->port));
+                      INETTXTADDR(dest->addr.ip), ntohs(dest->port));
             if (crindex)
                 *crindex = j;
             return cr;
         }
     }
     LOGDETAIL("config find real: addr:port not found [%s:%d]", 
-              INETTXTADDR(dest->addr), ntohs(dest->port));
+              INETTXTADDR(dest->addr.ip), ntohs(dest->port));
 
     return FALSE;
 }

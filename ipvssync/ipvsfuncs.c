@@ -104,7 +104,7 @@ ipvs_dest_t *ipvsfuncs_set_dest(char *taddr, char *tport,
    
 	memset(dest, 0, sizeof(ipvs_dest_t));
 	
-	inet_pton(AF_INET, (const char *) taddr, &dest->addr);	
+	inet_pton(AF_INET, (const char *) taddr, &dest->addr.ip);	
 	dest->port = htons(atoi(tport));
 	dest->conn_flags  = conn_flags;
 	dest->weight      = weight;
@@ -118,13 +118,13 @@ ipvs_dest_t *ipvsfuncs_set_dest(char *taddr, char *tport,
 int ipvsfuncs_add_service(ipvs_service_t *svc) {
 	int ret;
 
-    LOGDEBUG("add_service: [%s:%d proto=%d fwmark=%d]", INETTXTADDR(svc->addr), 
+    LOGDEBUG("add_service: [%s:%d proto=%d fwmark=%d]", INETTXTADDR(svc->addr.ip), 
              ntohs(svc->port), svc->protocol, svc->fwmark);
 
 	ret = ipvs_add_service(svc);
 
 	if (ret) {
-		LOGDEBUG("ERROR add_service: [%s:%d proto=%d fwmark=%d] [%s]", INETTXTADDR(svc->addr), 
+		LOGDEBUG("ERROR add_service: [%s:%d proto=%d fwmark=%d] [%s]", INETTXTADDR(svc->addr.ip), 
                  ntohs(svc->port), svc->protocol, svc->fwmark, ipvs_strerror(errno));
 		return -1;
 	}
@@ -136,12 +136,12 @@ int ipvsfuncs_add_service(ipvs_service_t *svc) {
 int ipvsfuncs_del_service(ipvs_service_t *svc) {
 	int ret;
 
-    LOGDEBUG("del_service: [%s:%d proto=%d fwmark=%d]", INETTXTADDR(svc->addr), 
+    LOGDEBUG("del_service: [%s:%d proto=%d fwmark=%d]", INETTXTADDR(svc->addr.ip), 
              ntohs(svc->port), svc->protocol, svc->fwmark);
 
 	ret = ipvs_del_service(svc);
 	if (ret) {
-		LOGDEBUG("ERROR del_service: [%s:%d proto=%d fwmark=%d] [%s]", INETTXTADDR(svc->addr), 
+		LOGDEBUG("ERROR del_service: [%s:%d proto=%d fwmark=%d] [%s]", INETTXTADDR(svc->addr.ip), 
                  ntohs(svc->port), svc->protocol, svc->fwmark, ipvs_strerror(errno));
 		return -1;
 	}
@@ -153,12 +153,12 @@ int ipvsfuncs_del_service(ipvs_service_t *svc) {
 int ipvsfuncs_update_service(ipvs_service_t *svc) {
 	int ret;
 
-    LOGDEBUG("update_service: [%s:%d proto=%d fwmark=%d]", INETTXTADDR(svc->addr), 
+    LOGDEBUG("update_service: [%s:%d proto=%d fwmark=%d]", INETTXTADDR(svc->addr.ip), 
              ntohs(svc->port), svc->protocol, svc->fwmark);
 
 	ret = ipvs_update_service(svc);
 	if (ret) {
-		LOGDEBUG("ERROR update_service: [%s:%d proto=%d fwmark=%d] [%s]", INETTXTADDR(svc->addr), 
+		LOGDEBUG("ERROR update_service: [%s:%d proto=%d fwmark=%d] [%s]", INETTXTADDR(svc->addr.ip), 
                  ntohs(svc->port), svc->protocol, svc->fwmark, ipvs_strerror(errno));
 		return -1;
 	}
@@ -171,9 +171,9 @@ int ipvsfuncs_update_service(ipvs_service_t *svc) {
 int ipvsfuncs_add_dest(ipvs_service_t *svc, ipvs_dest_t *dest) {
 	int ret;
 
-    gchar *s1 = g_strdup_printf("%s:%d proto=%d fwmark=%d", INETTXTADDR(svc->addr), ntohs(svc->port),
+    gchar *s1 = g_strdup_printf("%s:%d proto=%d fwmark=%d", INETTXTADDR(svc->addr.ip), ntohs(svc->port),
                                 svc->protocol, svc->fwmark);
-    gchar *s2 = g_strdup_printf("%s:%d proto=%d fwmark=%d", INETTXTADDR(dest->addr), ntohs(dest->port),
+    gchar *s2 = g_strdup_printf("%s:%d proto=%d fwmark=%d", INETTXTADDR(dest->addr.ip), ntohs(dest->port),
                                 svc->protocol, svc->fwmark);
 
     LOGDEBUG(" * add_dest: [%s :: %s]", s1, s2);
@@ -195,12 +195,13 @@ int ipvsfuncs_add_dest(ipvs_service_t *svc, ipvs_dest_t *dest) {
 int ipvsfuncs_del_dest(ipvs_service_t *svc, ipvs_dest_t *dest) {
 	int ret;
 
-    gchar *s1 = g_strdup_printf("%s:%d proto=%d fwmark=%d", INETTXTADDR(svc->addr), ntohs(svc->port),
+    gchar *s1 = g_strdup_printf("%s:%d proto=%d fwmark=%d", INETTXTADDR(svc->addr.ip), ntohs(svc->port),
                                 svc->protocol, svc->fwmark);
-    gchar *s2 = g_strdup_printf("%s:%d proto=%d fwmark=%d", INETTXTADDR(dest->addr), ntohs(dest->port),
+    gchar *s2 = g_strdup_printf("%s:%d proto=%d fwmark=%d", INETTXTADDR(dest->addr.ip), ntohs(dest->port),
                                 svc->protocol, svc->fwmark);
 
     LOGDEBUG(" * del_dest: [%s :: %s]", s1, s2);
+
 
 	ret = ipvs_del_dest(svc, dest);
 	if (ret) {
@@ -216,12 +217,30 @@ int ipvsfuncs_del_dest(ipvs_service_t *svc, ipvs_dest_t *dest) {
 }
 
 /* ------------------------------------------------------------ */
+int ipvsfuncs_del_dest_entry(ipvs_service_t *svc, struct ip_vs_dest_entry *de) {
+    int ret;
+    ipvs_dest_t dest;
+
+    memset(&dest, 0, sizeof(ipvs_dest_t));
+    dest.addr.ip = de->addr.ip;
+    dest.port = de->port;
+    dest.conn_flags = de->conn_flags;
+    dest.weight = de->weight;
+    dest.u_threshold = de->u_threshold;
+    dest.l_threshold = de->l_threshold;
+    ret = ipvsfuncs_del_dest(svc, &dest);
+
+    return ret;
+}
+
+
+/* ------------------------------------------------------------ */
 int ipvsfuncs_update_dest(ipvs_service_t *svc, ipvs_dest_t *dest) {
 	int ret;
 
-    gchar *s1 = g_strdup_printf("%s:%d proto=%d fwmark=%d", INETTXTADDR(svc->addr), ntohs(svc->port),
+    gchar *s1 = g_strdup_printf("%s:%d proto=%d fwmark=%d", INETTXTADDR(svc->addr.ip), ntohs(svc->port),
                                 svc->protocol, svc->fwmark);
-    gchar *s2 = g_strdup_printf("%s:%d proto=%d fwmark=%d", INETTXTADDR(dest->addr), ntohs(dest->port),
+    gchar *s2 = g_strdup_printf("%s:%d proto=%d fwmark=%d", INETTXTADDR(dest->addr.ip), ntohs(dest->port),
                                 svc->protocol, svc->fwmark);
 
     LOGDEBUG(" * update_dest: [%s :: %s]", s1, s2);
@@ -355,9 +374,11 @@ int ipvsfuncs_del_unmanaged_dests(ipvs_service_t *svc,
 			idx++;
 		}
 
-		if (!found)
-			ipvsfuncs_del_dest(svc, (ipvs_dest_t *) de);
-
+		if (!found){
+                       LOGDEBUG("Delete unmanaged dest: ip=%s, port=%d", 
+                           INETTXTADDR(de->addr.ip), ntohs(de->port));
+		       ipvsfuncs_del_dest_entry(svc, (struct ip_vs_dest_entry *) de);
+                }
 	}
 	free(vd);
 	free(se);
