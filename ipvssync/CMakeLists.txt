@@ -49,3 +49,9 @@ include_directories("." "../libipvs/")
 
 install(TARGETS ipvssync 
   DESTINATION "/usr/sbin")
+
+install(FILES ../scripts/etc/init.d/surealived-check
+  DESTINATION "/etc/init.d"
+  PERMISSIONS OWNER_EXECUTE OWNER_WRITE OWNER_READ GROUP_EXECUTE GROUP_READ )
+
+
