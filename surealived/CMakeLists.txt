@@ -97,6 +97,8 @@ install(FILES ../scripts/etc/logrotate.d/surealived
 install(FILES ../scripts/etc/default/surealived
   DESTINATION "/etc/default")
 
+install(DIRECTORY DESTINATION "/var/log/surealived" )
+
 install(DIRECTORY scripts/
   DESTINATION "/usr/lib/surealived/scripts"
   PATTERN ".svn" EXCLUDE
