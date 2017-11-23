@@ -39,7 +39,7 @@
 #include <sd_maincfg.h>
 #include <logging.h>
 
-inline void time_inc(struct timeval *, guint, guint);
+void time_inc(struct timeval *, guint, guint);
 
 #ifndef MAXPATHLEN
 #define MAXPATHLEN 512

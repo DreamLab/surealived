@@ -84,8 +84,20 @@ add_subdirectory(modules)
 install(TARGETS surealived 
   DESTINATION "/usr/bin")
 
-install(FILES surealived.cfg
+install(FILES ../scripts/etc/surealived/surealived.cfg
   DESTINATION "/etc/surealived")
+
+install(FILES ../scripts/etc/init.d/surealived-ipvssync
+  DESTINATION "/etc/init.d"
+  PERMISSIONS OWNER_EXECUTE OWNER_WRITE OWNER_READ GROUP_EXECUTE GROUP_READ )
+
+install(FILES ../scripts/etc/logrotate.d/surealived
+  DESTINATION "/etc/logrotate.d")
+
+install(FILES ../scripts/etc/default/surealived
+  DESTINATION "/etc/default")
+
+install(DIRECTORY DESTINATION "/var/log/surealived" )
 
 install(DIRECTORY scripts/
   DESTINATION "/usr/lib/surealived/scripts"

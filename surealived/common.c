@@ -23,7 +23,7 @@ static gchar *rstatestr[] = { "ONLINE", "OFFLINE", "DOWN", NULL };
 static gchar *nstatestr[] = { "UNKNOWN", "UP", "DOWN", NULL };
 static GHashTable *VCfgHash = NULL;
 
-inline void time_inc(struct timeval *t, guint s, guint ms) {
+void time_inc(struct timeval *t, guint s, guint ms) {
     guint usd;
 
     usd = t->tv_usec + ms*1000;

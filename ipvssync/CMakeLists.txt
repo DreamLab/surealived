@@ -1,6 +1,8 @@
 PROJECT(ipvssync C)
 cmake_minimum_required(VERSION 2.6)
 #add_definitions("-Wall -Werror -ggdb")
+SET(CMAKE_VERBOSE_MAKEFILE on )
+
 add_definitions("-Wall -Werror -Wformat=2")
 add_definitions("-D_FILE_OFFSET_BITS=64 -D__EXPORTED_HEADERS__")
 
@@ -26,7 +28,7 @@ set(ipvssyncSrcs
 )
 
 add_executable(ipvssync ${ipvssyncSrcs})
-add_library(ipvs STATIC ../libipvs/libipvs.c)
+add_library(ipvs STATIC ../libipvs/libipvs)
 add_definitions("-DHAVE_NET_IP_VS_H")
 target_link_libraries(ipvssync ipvs glib-2.0)
 
@@ -40,10 +42,16 @@ ELSE (CMAKE_SYSTEM_PROCESSOR MATCHES "i.86")
     ENDIF (CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64")
 ENDIF (CMAKE_SYSTEM_PROCESSOR MATCHES "i.86")
 
-include_directories("/lib/modules/${CMAKE_SYSTEM_VERSION}/build/include")
-include_directories("/lib/modules/${CMAKE_SYSTEM_VERSION}/build/include/net")
-include_directories("/lib/modules/${CMAKE_SYSTEM_VERSION}/build/arch/${PROCTYPE}/include")
-include_directories("." "../libipvs")
+#include_directories("/lib/modules/${CMAKE_SYSTEM_VERSION}/build/include")
+#include_directories("/lib/modules/${CMAKE_SYSTEM_VERSION}/build/include/net")
+#include_directories("/lib/modules/${CMAKE_SYSTEM_VERSION}/build/arch/${PROCTYPE}/include")
+include_directories("." "../libipvs/")
 
 install(TARGETS ipvssync 
   DESTINATION "/usr/sbin")
+
+install(FILES ../scripts/etc/init.d/surealived-check
+  DESTINATION "/etc/init.d"
+  PERMISSIONS OWNER_EXECUTE OWNER_WRITE OWNER_READ GROUP_EXECUTE GROUP_READ )
+
+

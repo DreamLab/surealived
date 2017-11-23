@@ -29,10 +29,10 @@ typedef enum {
 static ConfVirtual *vptr = NULL;
 
 #define PRINT_SVC fprintf(stderr, "Virtual: [%s], ip:[%08x], port:[%d], is_in_ipvs:[%d]\n", \
-                          cv->vname, ntohl(cv->svc.addr), ntohs(cv->svc.port), cv->is_in_ipvs);
+                          cv->vname, ntohl(cv->svc.addr.ip), ntohs(cv->svc.port), cv->is_in_ipvs);
 
 #define PRINT_DEST fprintf(f, " * Real: [%s], ip:[%08x], port:[%d], is_in_ipvs:[%d]\n", \
-                           cr->rname, ntohl(cr->dest.addr), ntohs(cr->dest.port), cr->is_in_ipvs);
+                           cr->rname, ntohl(cr->dest.addr.ip), ntohs(cr->dest.port), cr->is_in_ipvs);
 
 /* ---------------------------------------------------------------------- */
 /* Split line from config file into hash table */
@@ -147,8 +147,8 @@ static gint _virtarr_cmp(gconstpointer p1, gconstpointer p2) {
     if ((*v1)->svc.fwmark > 0 && (*v2)->svc.fwmark > 0)
         return (*v1)->svc.fwmark - (*v2)->svc.fwmark;
 
-    if (ntohl((*v1)->svc.addr) - ntohl((*v2)->svc.addr))
-        return ntohl((*v1)->svc.addr) - ntohl((*v2)->svc.addr);
+    if (ntohl((*v1)->svc.addr.ip) - ntohl((*v2)->svc.addr.ip))
+        return ntohl((*v1)->svc.addr.ip) - ntohl((*v2)->svc.addr.ip);
 
     if (ntohs((*v1)->svc.port) - ntohs((*v2)->svc.port))
         return ntohs((*v1)->svc.port) - ntohs((*v2)->svc.port);
@@ -161,8 +161,8 @@ static gint _realarr_cmp(gconstpointer p1, gconstpointer p2) {
     ConfReal **r1 = (ConfReal **) p1;
     ConfReal **r2 = (ConfReal **) p2;
 
-    if (ntohl((*r1)->dest.addr) - ntohl((*r2)->dest.addr)) 
-        return ntohl((*r1)->dest.addr) - ntohl((*r2)->dest.addr);
+    if (ntohl((*r1)->dest.addr.ip) - ntohl((*r2)->dest.addr.ip)) 
+        return ntohl((*r1)->dest.addr.ip) - ntohl((*r2)->dest.addr.ip);
 
     return ntohs((*r1)->dest.port) - ntohs((*r2)->dest.port);
 }
@@ -430,7 +430,7 @@ ConfVirtual *config_find_virtual(Config *c, ipvs_service_t *svc, gint *cvindex) 
     ipvs_service_t *confsvc;
     gint            i;
 
-    LOGDETAIL("find virtual = %s:%d", INETTXTADDR(svc->addr), ntohs(svc->port));
+    LOGDETAIL("find virtual = %s:%d", INETTXTADDR(svc->addr.ip), ntohs(svc->port));
 
     for (i = 0; i < c->virtarr->len; i++) {
         cv = g_array_index(c->virtarr, ConfVirtual *, i);
@@ -445,17 +445,17 @@ ConfVirtual *config_find_virtual(Config *c, ipvs_service_t *svc, gint *cvindex) 
         }
 
         /* second try */
-        if (svc->addr == confsvc->addr && 
+        if (svc->addr.ip == confsvc->addr.ip && 
             svc->port == confsvc->port &&
             svc->protocol == confsvc->protocol) {
             LOGDETAIL("config find virtual: addr:port:protocol equal [%s:%d:%d]", 
-                      INETTXTADDR(svc->addr), ntohs(svc->port), ntohs(svc->protocol));
+                      INETTXTADDR(svc->addr.ip), ntohs(svc->port), ntohs(svc->protocol));
             return cv;        
         }
     }
 
     LOGDETAIL("config find virtual: addr:port not found [%s:%d]", 
-              INETTXTADDR(svc->addr), ntohs(svc->port));
+              INETTXTADDR(svc->addr.ip), ntohs(svc->port));
 
     return FALSE;
 }
@@ -466,22 +466,22 @@ ConfReal *config_find_real(ConfVirtual *cv, ipvs_dest_t *dest, gint *crindex) {
     ipvs_dest_t    *confdest;
     gint            j;
 
-    LOGDETAIL("find real, virtual = %s:%d", INETTXTADDR(cv->svc.addr), ntohs(cv->svc.port));
+    LOGDETAIL("find real, virtual = %s:%d", INETTXTADDR(cv->svc.addr.ip), ntohs(cv->svc.port));
 
     for (j = cv->realarr->len - 1; j >= 0; j--) { 
         cr = g_array_index(cv->realarr, ConfReal *, j);
         confdest = &cr->dest;
 
-        if (dest->addr == confdest->addr && dest->port == confdest->port) {
+        if (dest->addr.ip == confdest->addr.ip && dest->port == confdest->port) {
             LOGDETAIL("config find real: addr:port:proto equal [%s:%d]",
-                      INETTXTADDR(dest->addr), ntohs(dest->port));
+                      INETTXTADDR(dest->addr.ip), ntohs(dest->port));
             if (crindex)
                 *crindex = j;
             return cr;
         }
     }
     LOGDETAIL("config find real: addr:port not found [%s:%d]", 
-              INETTXTADDR(dest->addr), ntohs(dest->port));
+              INETTXTADDR(dest->addr.ip), ntohs(dest->port));
 
     return FALSE;
 }

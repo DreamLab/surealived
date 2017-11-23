@@ -24,14 +24,13 @@ int ipvsfuncs_modprobe_ipvs(void)
 	char *argv[] = { "/sbin/modprobe", "--", "ip_vs", NULL };
 	int child;
 	int status;
-	int rc;
 
 	if (!(child = fork())) {
 		execv(argv[0], argv);
 		exit(1);
 	}
 
-	rc = waitpid(child, &status, 0);
+	waitpid(child, &status, 0);
 
 	if (!WIFEXITED(status) || WEXITSTATUS(status)) {
 		return 1;
@@ -105,7 +104,7 @@ ipvs_dest_t *ipvsfuncs_set_dest(char *taddr, char *tport,
    
 	memset(dest, 0, sizeof(ipvs_dest_t));
 	
-	inet_pton(AF_INET, (const char *) taddr, &dest->addr);	
+	inet_pton(AF_INET, (const char *) taddr, &dest->addr.ip);	
 	dest->port = htons(atoi(tport));
 	dest->conn_flags  = conn_flags;
 	dest->weight      = weight;
@@ -119,13 +118,13 @@ ipvs_dest_t *ipvsfuncs_set_dest(char *taddr, char *tport,
 int ipvsfuncs_add_service(ipvs_service_t *svc) {
 	int ret;
 
-    LOGDEBUG("add_service: [%s:%d proto=%d fwmark=%d]", INETTXTADDR(svc->addr), 
+    LOGDEBUG("add_service: [%s:%d proto=%d fwmark=%d]", INETTXTADDR(svc->addr.ip), 
              ntohs(svc->port), svc->protocol, svc->fwmark);
 
 	ret = ipvs_add_service(svc);
 
 	if (ret) {
-		LOGDEBUG("ERROR add_service: [%s:%d proto=%d fwmark=%d] [%s]", INETTXTADDR(svc->addr), 
+		LOGDEBUG("ERROR add_service: [%s:%d proto=%d fwmark=%d] [%s]", INETTXTADDR(svc->addr.ip), 
                  ntohs(svc->port), svc->protocol, svc->fwmark, ipvs_strerror(errno));
 		return -1;
 	}
@@ -137,12 +136,12 @@ int ipvsfuncs_add_service(ipvs_service_t *svc) {
 int ipvsfuncs_del_service(ipvs_service_t *svc) {
 	int ret;
 
-    LOGDEBUG("del_service: [%s:%d proto=%d fwmark=%d]", INETTXTADDR(svc->addr), 
+    LOGDEBUG("del_service: [%s:%d proto=%d fwmark=%d]", INETTXTADDR(svc->addr.ip), 
              ntohs(svc->port), svc->protocol, svc->fwmark);
 
 	ret = ipvs_del_service(svc);
 	if (ret) {
-		LOGDEBUG("ERROR del_service: [%s:%d proto=%d fwmark=%d] [%s]", INETTXTADDR(svc->addr), 
+		LOGDEBUG("ERROR del_service: [%s:%d proto=%d fwmark=%d] [%s]", INETTXTADDR(svc->addr.ip), 
                  ntohs(svc->port), svc->protocol, svc->fwmark, ipvs_strerror(errno));
 		return -1;
 	}
@@ -154,12 +153,12 @@ int ipvsfuncs_del_service(ipvs_service_t *svc) {
 int ipvsfuncs_update_service(ipvs_service_t *svc) {
 	int ret;
 
-    LOGDEBUG("update_service: [%s:%d proto=%d fwmark=%d]", INETTXTADDR(svc->addr), 
+    LOGDEBUG("update_service: [%s:%d proto=%d fwmark=%d]", INETTXTADDR(svc->addr.ip), 
              ntohs(svc->port), svc->protocol, svc->fwmark);
 
 	ret = ipvs_update_service(svc);
 	if (ret) {
-		LOGDEBUG("ERROR update_service: [%s:%d proto=%d fwmark=%d] [%s]", INETTXTADDR(svc->addr), 
+		LOGDEBUG("ERROR update_service: [%s:%d proto=%d fwmark=%d] [%s]", INETTXTADDR(svc->addr.ip), 
                  ntohs(svc->port), svc->protocol, svc->fwmark, ipvs_strerror(errno));
 		return -1;
 	}
@@ -172,9 +171,9 @@ int ipvsfuncs_update_service(ipvs_service_t *svc) {
 int ipvsfuncs_add_dest(ipvs_service_t *svc, ipvs_dest_t *dest) {
 	int ret;
 
-    gchar *s1 = g_strdup_printf("%s:%d proto=%d fwmark=%d", INETTXTADDR(svc->addr), ntohs(svc->port),
+    gchar *s1 = g_strdup_printf("%s:%d proto=%d fwmark=%d", INETTXTADDR(svc->addr.ip), ntohs(svc->port),
                                 svc->protocol, svc->fwmark);
-    gchar *s2 = g_strdup_printf("%s:%d proto=%d fwmark=%d", INETTXTADDR(dest->addr), ntohs(dest->port),
+    gchar *s2 = g_strdup_printf("%s:%d proto=%d fwmark=%d", INETTXTADDR(dest->addr.ip), ntohs(dest->port),
                                 svc->protocol, svc->fwmark);
 
     LOGDEBUG(" * add_dest: [%s :: %s]", s1, s2);
@@ -196,12 +195,13 @@ int ipvsfuncs_add_dest(ipvs_service_t *svc, ipvs_dest_t *dest) {
 int ipvsfuncs_del_dest(ipvs_service_t *svc, ipvs_dest_t *dest) {
 	int ret;
 
-    gchar *s1 = g_strdup_printf("%s:%d proto=%d fwmark=%d", INETTXTADDR(svc->addr), ntohs(svc->port),
+    gchar *s1 = g_strdup_printf("%s:%d proto=%d fwmark=%d", INETTXTADDR(svc->addr.ip), ntohs(svc->port),
                                 svc->protocol, svc->fwmark);
-    gchar *s2 = g_strdup_printf("%s:%d proto=%d fwmark=%d", INETTXTADDR(dest->addr), ntohs(dest->port),
+    gchar *s2 = g_strdup_printf("%s:%d proto=%d fwmark=%d", INETTXTADDR(dest->addr.ip), ntohs(dest->port),
                                 svc->protocol, svc->fwmark);
 
     LOGDEBUG(" * del_dest: [%s :: %s]", s1, s2);
+
 
 	ret = ipvs_del_dest(svc, dest);
 	if (ret) {
@@ -217,12 +217,30 @@ int ipvsfuncs_del_dest(ipvs_service_t *svc, ipvs_dest_t *dest) {
 }
 
 /* ------------------------------------------------------------ */
+int ipvsfuncs_del_dest_entry(ipvs_service_t *svc, struct ip_vs_dest_entry *de) {
+    int ret;
+    ipvs_dest_t dest;
+
+    memset(&dest, 0, sizeof(ipvs_dest_t));
+    dest.addr.ip = de->addr.ip;
+    dest.port = de->port;
+    dest.conn_flags = de->conn_flags;
+    dest.weight = de->weight;
+    dest.u_threshold = de->u_threshold;
+    dest.l_threshold = de->l_threshold;
+    ret = ipvsfuncs_del_dest(svc, &dest);
+
+    return ret;
+}
+
+
+/* ------------------------------------------------------------ */
 int ipvsfuncs_update_dest(ipvs_service_t *svc, ipvs_dest_t *dest) {
 	int ret;
 
-    gchar *s1 = g_strdup_printf("%s:%d proto=%d fwmark=%d", INETTXTADDR(svc->addr), ntohs(svc->port),
+    gchar *s1 = g_strdup_printf("%s:%d proto=%d fwmark=%d", INETTXTADDR(svc->addr.ip), ntohs(svc->port),
                                 svc->protocol, svc->fwmark);
-    gchar *s2 = g_strdup_printf("%s:%d proto=%d fwmark=%d", INETTXTADDR(dest->addr), ntohs(dest->port),
+    gchar *s2 = g_strdup_printf("%s:%d proto=%d fwmark=%d", INETTXTADDR(dest->addr.ip), ntohs(dest->port),
                                 svc->protocol, svc->fwmark);
 
     LOGDEBUG(" * update_dest: [%s :: %s]", s1, s2);
@@ -249,7 +267,7 @@ int ipvsfuncs_fprintf_services(FILE *f) {
 	for (i = 0; i < vs->num_services; i++) {
 		se = &vs->entrytable[i];
 		fprintf(f, "service [%d], ip=%x, port=%d\n", 
-				i, ntohl(se->addr), ntohs(se->port));
+				i, ntohl(se->addr.ip), ntohs(se->port));
 	}
 	free(vs);
 	
@@ -279,15 +297,15 @@ int ipvsfuncs_del_unmanaged_services(ipvs_service_t **managed_svc, gint *is_in_i
 	for (i = 0; i < vs->num_services; i++) {
 		se = &vs->entrytable[i];
         LOGDETAIL("del_umanaged_services check: [%d], ip=%x, port=%d, protocol=%d, fwmark=%d", 
-				i, ntohl(se->addr), ntohs(se->port), se->protocol, se->fwmark);
+				i, ntohl(se->addr.ip), ntohs(se->port), se->protocol, se->fwmark);
 		m = managed_svc;
 		found = 0;
 		idx = 0;
 		while (*m) {
             LOGDETAIL(" * compare to [%x:%d proto=%d fwmark=%d]",
-                      ntohl((*m)->addr), ntohs((*m)->port), 
+                      ntohl((*m)->addr.ip), ntohs((*m)->port), 
                       (*m)->protocol, (*m)->fwmark);
-			if ((*m)->addr == se->addr && 
+			if ((*m)->addr.ip == se->addr.ip && 
 				(*m)->port == se->port &&
 				(*m)->protocol == se->protocol &&
 				(*m)->fwmark == se->fwmark) {
@@ -302,7 +320,7 @@ int ipvsfuncs_del_unmanaged_services(ipvs_service_t **managed_svc, gint *is_in_i
 
 		if (!found) {
             LOGDEBUG("Delete unmanaged virtual: ip=%x, port=%d, protocol=%d, fwmark=%d", 
-                      ntohl(se->addr), ntohs(se->port), se->protocol, se->fwmark);
+                      ntohl(se->addr.ip), ntohs(se->port), se->protocol, se->fwmark);
 			ipvsfuncs_del_service((ipvs_service_t *) se);
         }
 	}
@@ -325,7 +343,7 @@ int ipvsfuncs_del_unmanaged_dests(ipvs_service_t *svc,
 	int i, idx, found;
 	ipvs_dest_t **m;
 
-	ipvs_service_entry_t *se = ipvs_get_service(svc->fwmark, 
+	ipvs_service_entry_t *se = ipvs_get_service(svc->fwmark, AF_INET, 
 												svc->protocol, 
 												svc->addr, 
 												svc->port);
@@ -345,7 +363,7 @@ int ipvsfuncs_del_unmanaged_dests(ipvs_service_t *svc,
 		found = 0;
 		idx = 0;
 		while (*m) {
-			if ((*m)->addr == de->addr && 
+			if ((*m)->addr.ip == de->addr.ip && 
 				(*m)->port == de->port) {
 				found = 1;
 				if (is_in_ipvs)
@@ -356,9 +374,11 @@ int ipvsfuncs_del_unmanaged_dests(ipvs_service_t *svc,
 			idx++;
 		}
 
-		if (!found)
-			ipvsfuncs_del_dest(svc, (ipvs_dest_t *) de);
-
+		if (!found){
+                       LOGDEBUG("Delete unmanaged dest: ip=%s, port=%d", 
+                           INETTXTADDR(de->addr.ip), ntohs(de->port));
+		       ipvsfuncs_del_dest_entry(svc, (struct ip_vs_dest_entry *) de);
+                }
 	}
 	free(vd);
 	free(se);
@@ -380,11 +400,11 @@ int ipvsfuncs_fprintf_ipvs(FILE *f) {
         if (!vd)
             continue;
 		fprintf(f, " svc dest [%d], ip=%x, port=%d, fwmark=%d, proto=%d\n", 
-				i, ntohl(se->addr), ntohs(se->port), se->fwmark, se->protocol);
+				i, ntohl(se->addr.ip), ntohs(se->port), se->fwmark, se->protocol);
 		for (j = 0; j < se->num_dests; j++) {
 			de = &vd->entrytable[j];
 			fprintf(f, "  dest [%d], ip=%x, port=%d, weight=%d\n", 
-					j, ntohl(de->addr), ntohs(de->port), de->weight);
+					j, ntohl(de->addr.ip), ntohs(de->port), de->weight);
 		}
 		free(vd);		
 	}
@@ -395,7 +415,7 @@ int ipvsfuncs_fprintf_ipvs(FILE *f) {
 
 /* ---------------------------------------------------------------------- */
 gboolean ipvsfuncs_set_svc_from_ht(ipvs_service_t *svc, GHashTable *ht) {
-    gchar       *vproto, *vaddr, *vport, *vsched, *vpers, *v;
+    gchar       *vproto, *vaddr, *vport, *vsched, *vpers, *vops, *v;
     u_int16_t    svcproto   = IPPROTO_TCP;
     guint        vfwmark    = 0;
     __be32       netmask    = ~0;
@@ -448,8 +468,14 @@ gboolean ipvsfuncs_set_svc_from_ht(ipvs_service_t *svc, GHashTable *ht) {
     /* Get persistent timeout if defined */
     vpers = g_hash_table_lookup(ht, "vpers");
     if (vpers) {
-        flags = IP_VS_SVC_F_PERSISTENT;
+        flags |= IP_VS_SVC_F_PERSISTENT;
         timeout = atoi(vpers);
+    }
+
+    /* Get "one packet scheduler" if defined */
+    vops = g_hash_table_lookup(ht, "vops");
+    if (vops) {
+        flags |= IP_VS_SVC_F_ONEPACKET;
     }
 
     ipvsfuncs_set_svc(svcproto, vaddr, vport, vfwmark, vsched, flags, timeout, netmask, svc);

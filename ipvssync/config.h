@@ -18,7 +18,7 @@
 
 #include <stdio.h>
 #include <glib.h>
-#include <net/ip_vs.h> 
+//#include <net/ip_vs.h> 
 #include <libipvs.h>
 
 #define MAXSIZE 64

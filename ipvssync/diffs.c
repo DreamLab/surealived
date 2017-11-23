@@ -121,7 +121,6 @@ void diffs_apply(Config *conf, gboolean sync_to_ipvs) {
 	GHashTable *ht;
     gchar       cmd[16];
     FILE       *df = conf->diff_file;
-    gchar      *tbuf = NULL;
     int         fd;
 
     while (1) {
@@ -132,7 +131,7 @@ void diffs_apply(Config *conf, gboolean sync_to_ipvs) {
         if (fd < 0)
             LOGERROR("diff file fd == %d!", fd);
 
-        tbuf = fgets(line, BUFSIZ, df);
+        fgets(line, BUFSIZ, df);
         if (feof(df)) {
             clearerr(df);
             break;

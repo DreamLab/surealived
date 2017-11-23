@@ -10,11 +10,7 @@
 #ifndef _LIBIPVS_H
 #define _LIBIPVS_H
 
-#ifdef HAVE_NET_IP_VS_H
-#include <net/ip_vs.h>
-#else
 #include "ip_vs.h"
-#endif
 
 
 #define MINIMUM_IPVS_VERSION_MAJOR      1
@@ -116,7 +112,7 @@ extern void ipvs_sort_dests(struct ip_vs_get_dests *d,
 
 /* get an ipvs service entry */
 extern ipvs_service_entry_t *
-ipvs_get_service(__u32 fwmark, __u16 protocol, __u32 addr, __u16 port);
+ipvs_get_service(__u32 fwmark, __u16 af, __u16 protocol, union nf_inet_addr addr, __u16 port);
 
 /* get ipvs timeout */
 extern ipvs_timeout_t *ipvs_get_timeout(void);

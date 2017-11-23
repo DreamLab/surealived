@@ -39,7 +39,7 @@ void            sd_epoll_ctl(SDepoll *epoll, int ctl, int fd, void *ptr, uint32_
 int             sd_epoll_wait(SDepoll *epoll, int timeout);
 gchar          *sd_epoll_event_str(uint32_t ev, gchar *buf);
 
-inline void    *sd_epoll_event_dataptr(SDepoll *epoll, int i);
-inline uint32_t sd_epoll_event_events(SDepoll *epoll, int i);
+void           *sd_epoll_event_dataptr(SDepoll *epoll, int i);
+uint32_t        sd_epoll_event_events(SDepoll *epoll, int i);
 
 #endif
