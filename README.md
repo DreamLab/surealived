@@ -59,8 +59,8 @@ From src directory (from root account):
 
 Build deb package:
 From src directory (from root account):
-> cmake .
-> make package
+# cmake .
+# make package
 
 surealived needn't to be executed from root account, but you
 need to set apropriate grants for such user. 
