@@ -57,6 +57,11 @@ From src directory (from root account):
 > make 
 > make install
 
+Build deb package:
+From src directory (from root account):
+> cmake .
+> make package
+
 surealived needn't to be executed from root account, but you
 need to set apropriate grants for such user. 
 You need following directories created:
