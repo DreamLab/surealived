@@ -2,18 +2,18 @@ cmake_minimum_required(VERSION 3.0)
 cmake_policy(SET CMP0048 NEW)
 
 PROJECT(SureAliveD
-        VERSION "1.0.2"
+        VERSION "1.0.3"
         LANGUAGES CXX)
 
 add_subdirectory(ipvssync)
 add_subdirectory(surealived)
 
-SET(CPACK_PACKAGE_VERSION "1.0.2")
+SET(CPACK_PACKAGE_VERSION "1.0.3")
 SET(CPACK_PACKAGE_NAME "surealived")
 
 SET(CPACK_GENERATOR "DEB")
 SET(CPACK_DEBIAN_PACKAGE_NAME "surealived")
-SET(CPACK_DEBIAN_PACKAGE_VERSION "1.0.2")
+SET(CPACK_DEBIAN_PACKAGE_VERSION "1.0.3")
 SET(CPACK_DEBIAN_PACKAGE_MAINTAINER "Dominik Mostowiec <dmostowiec@dreamlab.pl>") #required
 SET(CPACK_DEBIAN_PACKAGE_ARCHITECTURE "amd64")
 SET(CPACK_DEBIAN_PACKAGE_DEPENDS "liblua5.1-0")
