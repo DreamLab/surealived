@@ -17,6 +17,10 @@ AUTOSTART=false
 
 DEFAULT=/etc/default/surealived
 CONFIG=/etc/surealived/surealived.cfg
+DIFFS=/var/lib/surealived/diffs
+
+#create diffs directory ( used if /var/lib/surealived is tmpfs mount )
+mkdir -p $DIFFS
 
 # variables are overwritten by $DEFAULT file
 test -r "$DEFAULT" && . "$DEFAULT"

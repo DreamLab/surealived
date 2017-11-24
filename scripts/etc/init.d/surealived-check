@@ -18,6 +18,13 @@ DEFAULT=/etc/default/surealived
 CHECKER_CONFIG=/etc/surealived/services.xml
 AUTOSTART=false
 
+DIFFS=/var/lib/surealived/diffs
+STATS=/var/lib/surealived/stats
+COMM=/var/lib/surealived/comm
+
+#create /var/lib/surealived subdirectory ( used if /var/lib/surealived is tmpfs mount )
+mkdir -p $DIFFS $STATS $COMM
+
 # check for config
 test -r "$DEFAULT" && . "$DEFAULT"
 
