@@ -36,6 +36,7 @@ ipvs_dest_t *ipvsfuncs_set_dest(char *taddr, char *tport,
 
 int ipvsfuncs_add_service(ipvs_service_t *svc);
 int ipvsfuncs_del_service(ipvs_service_t *svc);
+int ipvsfuncs_del_service_entry(struct ip_vs_service_entry *se);
 int ipvsfuncs_update_service(ipvs_service_t *svc);
 
 int ipvsfuncs_add_dest(ipvs_service_t *svc, ipvs_dest_t *dest);
