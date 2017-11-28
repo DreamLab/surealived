@@ -334,7 +334,6 @@ int ipvsfuncs_del_unmanaged_services(ipvs_service_t **managed_svc, gint *is_in_i
 		if (!found) {
             LOGDEBUG("Delete unmanaged virtual: ip=%s, port=%d, protocol=%d, fwmark=%d", 
                       INETTXTADDR(se->addr.ip), ntohs(se->port), se->protocol, se->fwmark);
-                        //ipvsfuncs_del_service((ipvs_service_t *) se);
 			ipvsfuncs_del_service_entry((struct ip_vs_service_entry *)se);
         }
 	}
