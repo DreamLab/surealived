@@ -133,6 +133,19 @@ int ipvsfuncs_add_service(ipvs_service_t *svc) {
 }
 
 /* ------------------------------------------------------------ */
+int ipvsfuncs_del_service_entry(struct ip_vs_service_entry *se) {
+        ipvs_service_t svc;
+	int ret;
+        memset(&svc, 0, sizeof(ipvs_service_t));
+        svc.addr.ip = se->addr.ip;
+        svc.port = se->port;
+        svc.fwmark = se->fwmark;
+        svc.protocol = se->protocol;
+        ret = ipvsfuncs_del_service(&svc);
+	return ret;
+}
+
+/* ------------------------------------------------------------ */
 int ipvsfuncs_del_service(ipvs_service_t *svc) {
 	int ret;
 
@@ -319,9 +332,10 @@ int ipvsfuncs_del_unmanaged_services(ipvs_service_t **managed_svc, gint *is_in_i
 		}
 
 		if (!found) {
-            LOGDEBUG("Delete unmanaged virtual: ip=%x, port=%d, protocol=%d, fwmark=%d", 
-                      ntohl(se->addr.ip), ntohs(se->port), se->protocol, se->fwmark);
-			ipvsfuncs_del_service((ipvs_service_t *) se);
+            LOGDEBUG("Delete unmanaged virtual: ip=%s, port=%d, protocol=%d, fwmark=%d", 
+                      INETTXTADDR(se->addr.ip), ntohs(se->port), se->protocol, se->fwmark);
+                        //ipvsfuncs_del_service((ipvs_service_t *) se);
+			ipvsfuncs_del_service_entry((struct ip_vs_service_entry *)se);
         }
 	}
 	free(vs);
