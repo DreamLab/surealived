@@ -43,24 +43,17 @@ ipvssync:
 To compile application need development tools and libraries:
 * gcc
 * cmake
-* glib2-dev
 * libxml2-dev
-* libssl
+* libssl-dev
+* libpackagekit-glib2-dev
+* liblua5.1-0-dev
 
 From src directory (from root account):
-> cd surealived
-> cmake .
-> make
-> make install
-> cd ../ipvssync
-> cmake .
-> make 
-> make install
-
-Build deb package:
-From src directory (from root account):
-* > cmake .
-* > make package
+* mkdir build
+* cd build
+* cmake ..
+* make #to biuld binaries, or
+* make package # to build deb package
 
 surealived needn't to be executed from root account, but you
 need to set apropriate grants for such user. 
@@ -212,3 +205,8 @@ b)
 # ipvssync -vvvv -u  
 
 This gives you a lot of debug information (-vvvv) and delete unmanaged virtuals.
+
+---------
+More info and detailed manual will be soon...
+
+2009-09-07, wegorz.
