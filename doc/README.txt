@@ -43,19 +43,17 @@ ipvssync:
 To compile application need development tools and libraries:
 * gcc
 * cmake
-* glib2-dev
 * libxml2-dev
-* libssl
+* libssl-dev
+* libpackagekit-glib2-dev
+* liblua5.1-0-dev
 
 From src directory (from root account):
-> cd surealived
-> cmake .
-> make
-> make install
-> cd ../ipvssync
-> cmake .
-> make 
-> make install
+* mkdir build
+* cd build
+* cmake ..
+* make #to biuld binaries, or
+* make package # to build deb package
 
 surealived needn't to be executed from root account, but you
 need to set apropriate grants for such user. 
