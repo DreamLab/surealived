@@ -1,6 +1,6 @@
 /*
  * Copyright 2009-2011 DreamLab Onet.pl Sp. z o.o.
- * 
+ *
  *   This program is distributed in the hope that it will be useful,
  *   but WITHOUT ANY WARRANTY; without even the implied warranty of
  *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
@@ -61,7 +61,7 @@ static void module_test_prepare(CfgReal *real) {
 
     real->intstate = CONNECTED;
     if (!t->retcode[0])
-        strncpy(t->retcode, "200", 3);
+        strcpy(t->retcode, "200");
 }
 
 static u_int32_t module_process_event(CfgReal *real) {
