@@ -1,6 +1,6 @@
 /*
  * Copyright 2009-2011 DreamLab Onet.pl Sp. z o.o.
- * 
+ *
  *   This program is distributed in the hope that it will be useful,
  *   but WITHOUT ANY WARRANTY; without even the implied warranty of
  *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
@@ -65,11 +65,11 @@ int sd_socket_connect(int fd, in_addr_t addr, u_int16_t port) {
 
 int sd_bind_ssl(CfgReal *real) {
     BIO *sbio;
-    if (!real->ssl->rbio && (sbio = BIO_new_socket(real->fd, BIO_NOCLOSE)))
+    if (!SSL_get_rbio(real->ssl) && (sbio = BIO_new_socket(real->fd, BIO_NOCLOSE)))
         SSL_set_bio(real->ssl, sbio, sbio);
-    else if (real->ssl->rbio) {
-        BIO_set_fd(real->ssl->rbio, real->fd, BIO_NOCLOSE);
-        BIO_set_fd(real->ssl->wbio, real->fd, BIO_NOCLOSE);
+    else if (SSL_get_rbio(real->ssl)) {
+        BIO_set_fd(SSL_get_rbio(real->ssl), real->fd, BIO_NOCLOSE);
+        BIO_set_fd(SSL_get_wbio(real->ssl), real->fd, BIO_NOCLOSE);
     }
     return 0;
 }
