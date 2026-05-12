@@ -348,8 +348,10 @@ void log_message(int loglev, int timeline, int newline, char *format, ...) {
         }
     }  
     g_string_free(ss, TRUE);
-    if (l_use_log)
-        g_string_free(sf, FALSE); //message will be freed after save in log_nb_queue_write_loop()
+    if (l_use_log) {
+        gchar *msg = g_string_free(sf, FALSE); //message will be freed after save in log_nb_queue_write_loop()
+        (void) msg;
+    }
     else 
         g_string_free(sf, TRUE); //free it now
 
