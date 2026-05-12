@@ -52,9 +52,11 @@ static void *sd_xml_attr(xmlNode *node, gchar *attr, void *dst, SD_MODARG_TYPE a
     va_list     args;
     u_int32_t   p;
 
-    va_start(args, error_fmt);
-    vsnprintf(errmsg, 256, error_fmt, args);
-    va_end(args);
+    if (error_fmt) {
+        va_start(args, error_fmt);
+        vsnprintf(errmsg, 256, error_fmt, args);
+        va_end(args);
+    }
     tmp = xmlGetProp(node, BAD_CAST attr);
 
     if (!tmp) {
